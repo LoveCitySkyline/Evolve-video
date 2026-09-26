@@ -1,0 +1,24 @@
+{
+  "task_count": 5,
+  "family_counts": {
+    "multi_shot_identity": 5
+  },
+  "split_counts": {
+    "test": 1,
+    "train": 3,
+    "validation": 1
+  },
+  "mode_counts": {
+    "generation": 5
+  },
+  "difficulty_counts": {
+    "1": 1,
+    "2": 1,
+    "3": 1,
+    "4": 1,
+    "5": 1
+  },
+  "asset_required_count": 0,
+  "scenario_group_count": 5,
+  "prompt_sha256": "acb07793b838619a515d5758399ab190674973669c287f08a42b9bfd86ad0a16"
+}

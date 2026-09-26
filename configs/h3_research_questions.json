@@ -1,0 +1,33 @@
+{
+  "task_file": "outputs/h3_mini50_prepared/complex_video_bench_mini50_h3.json",
+  "output_dir": "outputs/h3_research_questions",
+  "max_searches": 24,
+  "searches_per_task": 3,
+  "max_generation_calls": 1000,
+  "max_generated_seconds": 12000,
+  "evaluation_seeds": [42, 123, 456],
+  "max_nodes": 16,
+  "max_edits": 24,
+  "min_gain": 0.02,
+  "runtime": {
+    "provider": "local-h3",
+    "resolution": "768P",
+    "h3_local_model_revision": "unspecified",
+    "h3_max_api_calls": 1000,
+    "timeout_seconds": 1800,
+    "sample_frames": 12,
+    "enable_vlm_eval": true,
+    "vlm_model": "qwen3-vl-plus",
+    "vlm_max_images": 16,
+    "vlm_timeout_seconds": 240,
+    "enable_llm_mutation": true,
+    "graph_planner_backend": "api",
+    "graph_llm_model": "openai/gpt-5.6-sol",
+    "graph_llm_base_url": "https://openrouter.ai/api/v1",
+    "graph_llm_reasoning_effort": "high",
+    "graph_llm_timeout_seconds": 240,
+    "enable_open_world_tools": false,
+    "enable_mcp_tools": false,
+    "restore_catalog_tools": false
+  }
+}

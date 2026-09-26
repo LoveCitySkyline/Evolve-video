@@ -1,0 +1,11 @@
+{
+  "name": "offline_research_plumbing_only",
+  "tasks": [
+    {"task_id": "smoke-train-a", "prompt": "A woman in a red coat walks, turns and waves.", "metadata": {"category": "identity", "split": "train"}},
+    {"task_id": "smoke-train-b", "prompt": "A man in a blue jacket walks, turns and waves.", "metadata": {"category": "identity", "split": "train"}},
+    {"task_id": "smoke-val-a", "prompt": "A dancer in a green coat walks, turns and waves.", "metadata": {"category": "identity", "split": "validation"}},
+    {"task_id": "smoke-val-b", "prompt": "A chef in a white coat walks, turns and waves.", "metadata": {"category": "identity", "split": "validation"}},
+    {"task_id": "smoke-test-a", "prompt": "An actor in a yellow coat walks, turns and waves.", "metadata": {"category": "identity", "split": "test"}},
+    {"task_id": "smoke-test-b", "prompt": "A singer in a purple coat walks, turns and waves.", "metadata": {"category": "identity", "split": "test"}}
+  ]
+}

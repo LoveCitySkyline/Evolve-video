@@ -1,0 +1,35 @@
+{
+  "name": "external_vbench_frozen_transfer",
+  "output_dir": "outputs/external_vbench_frozen",
+  "task_files": [
+    "benchmarks/external/vbench_official.json"
+  ],
+  "cache_enabled": true,
+  "evaluation_seeds": [],
+  "selection_strategy": "best",
+  "frontier_size": 3,
+  "ablations": ["full"],
+  "runtime": {
+    "provider": "local-wan",
+    "duration": 6,
+    "video_output_dir": "outputs/external_vbench_frozen/videos",
+    "sample_frames": 3,
+    "timeout_seconds": 900,
+    "enable_vlm_eval": false,
+    "wan_task": "t2v-1.3B",
+    "wan_size": "832*480",
+    "wan_python": "python",
+    "wan_extra_args": "--offload_model True --t5_cpu --sample_shift 8 --sample_guide_scale 6",
+    "wan_save_arg": "--save_file",
+    "wan_seed_arg": "--base_seed",
+    "strict_eval": false,
+    "evolve_on_lte_095": false,
+    "enable_llm_mutation": false,
+    "template_mutations_enabled": false,
+    "tool_catalog_path": "outputs/prepared_tool_store_mini15/tool_catalog.json",
+    "restore_catalog_tools": true,
+    "enable_open_world_tools": false,
+    "enable_mcp_tools": false,
+    "tool_acquisition_policy": "local_first"
+  }
+}

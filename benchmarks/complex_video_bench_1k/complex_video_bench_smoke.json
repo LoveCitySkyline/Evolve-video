@@ -1,0 +1,3451 @@
+{
+  "name": "complex_video_bench_smoke",
+  "description": "A 40-task split-aware smoke subset of ComplexVideoBench-1K.",
+  "tags": [
+    "multi-shot",
+    "long-horizon",
+    "video-editing",
+    "stylization",
+    "tool-path-evolution",
+    "smoke"
+  ],
+  "tasks": [
+    {
+      "task_id": "cvb-msi-0000",
+      "prompt": "Create a coherent 3-shot sequence about the same woman with short black hair, round silver glasses, and a bright red trench coat. The character walks through the crowded railway station carrying a black umbrella, then turns toward the camera in the snow-covered village square, then sets the black umbrella down briefly in the old-town market. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_000",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_000",
+            "role": "woman",
+            "appearance": "short black hair",
+            "accessory": "round silver glasses",
+            "clothing": "bright red trench coat"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the crowded railway station carrying a black umbrella",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the snow-covered village square",
+            "camera": "close-up",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the black umbrella down briefly in the old-town market",
+            "camera": "wide",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0001",
+      "prompt": "Generate a coherent 3-shot sequence about the same woman with short black hair, round silver glasses, and a bright red trench coat. The character walks through the crowded railway station carrying a black umbrella, then turns toward the camera in the snow-covered village square, then sets the black umbrella down briefly in the old-town market. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_000",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_000",
+            "role": "woman",
+            "appearance": "short black hair",
+            "accessory": "round silver glasses",
+            "clothing": "bright red trench coat"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the crowded railway station carrying a black umbrella",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the snow-covered village square",
+            "camera": "close-up",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the black umbrella down briefly in the old-town market",
+            "camera": "wide",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0002",
+      "prompt": "Produce a coherent 4-shot sequence about the same woman with short black hair, round silver glasses, and a bright red trench coat. The character walks through the crowded railway station carrying a black umbrella, then turns toward the camera in the snow-covered village square, then sets the black umbrella down briefly in the old-town market, then leaves the frame and reappears from behind a crowd in the snow-covered village square. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_000",
+            "role": "woman",
+            "appearance": "short black hair",
+            "accessory": "round silver glasses",
+            "clothing": "bright red trench coat"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the crowded railway station carrying a black umbrella",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the snow-covered village square",
+            "camera": "close-up",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the black umbrella down briefly in the old-town market",
+            "camera": "wide",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the snow-covered village square",
+            "camera": "follow",
+            "active_characters": [
+              "character_000"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_000",
+              "black umbrella"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0120",
+      "prompt": "Create a coherent 3-shot sequence about the same boy with straight auburn hair, a small green backpack, and a cream sweater with a blue stripe. The character walks through the glass-roofed cafe carrying a white envelope, then turns toward the camera in the industrial film studio, then sets the white envelope down briefly in the modern art museum. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "validation",
+        "scenario_group": "multi_shot_identity_group_024",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_024",
+            "role": "boy",
+            "appearance": "straight auburn hair",
+            "accessory": "a small green backpack",
+            "clothing": "cream sweater with a blue stripe"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the glass-roofed cafe carrying a white envelope",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_024"
+            ],
+            "required_state": {
+              "white envelope": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the industrial film studio",
+            "camera": "close-up",
+            "active_characters": [
+              "character_024"
+            ],
+            "required_state": {
+              "white envelope": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the white envelope down briefly in the modern art museum",
+            "camera": "wide",
+            "active_characters": [
+              "character_024"
+            ],
+            "required_state": {
+              "white envelope": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_024",
+              "white envelope"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_024",
+              "white envelope"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_024",
+              "white envelope"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "white envelope": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "white envelope": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "white envelope": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0160",
+      "prompt": "Create a coherent 3-shot sequence about the same chef with closely cropped gray hair, a navy neckerchief, and a cobalt denim jacket. The character walks through the windswept coastal pier carrying a red hardback book, then turns toward the camera in the modern art museum, then sets the red hardback book down briefly in the crowded railway station. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "test",
+        "scenario_group": "multi_shot_identity_group_032",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_032",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "accessory": "a navy neckerchief",
+            "clothing": "cobalt denim jacket"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the windswept coastal pier carrying a red hardback book",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_032"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the modern art museum",
+            "camera": "close-up",
+            "active_characters": [
+              "character_032"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the red hardback book down briefly in the crowded railway station",
+            "camera": "wide",
+            "active_characters": [
+              "character_032"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_032",
+              "red hardback book"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_032",
+              "red hardback book"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_032",
+              "red hardback book"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0200",
+      "prompt": "Create a three-shot interaction in the crowded railway station. A woman with short black hair, round silver glasses, and a bright red trench coat starts with a black umbrella and hands it to a chef with closely cropped gray hair, a navy neckerchief, and a bright red trench coat. The second character uses the black umbrella and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "train",
+        "scenario_group": "multi_character_interaction_group_000",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "woman",
+            "appearance": "short black hair",
+            "clothing": "bright red trench coat"
+          },
+          {
+            "id": "actor_b",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "clothing": "bright red trench coat"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "black umbrella": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "black umbrella": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "black umbrella": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "black umbrella": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0201",
+      "prompt": "Generate a three-shot interaction in the crowded railway station. A woman with short black hair, round silver glasses, and a bright red trench coat starts with a black umbrella and places it on a table for a chef with closely cropped gray hair, a navy neckerchief, and a bright red trench coat. The second character uses the black umbrella and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "train",
+        "scenario_group": "multi_character_interaction_group_000",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "woman",
+            "appearance": "short black hair",
+            "clothing": "bright red trench coat"
+          },
+          {
+            "id": "actor_b",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "clothing": "bright red trench coat"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "black umbrella": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "black umbrella": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "black umbrella": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "black umbrella": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0202",
+      "prompt": "Produce a three-shot interaction in the crowded railway station. A woman with short black hair, round silver glasses, and a bright red trench coat starts with a black umbrella and rolls it toward a chef with closely cropped gray hair, a navy neckerchief, and a bright red trench coat. The second character uses the black umbrella and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "train",
+        "scenario_group": "multi_character_interaction_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "woman",
+            "appearance": "short black hair",
+            "clothing": "bright red trench coat"
+          },
+          {
+            "id": "actor_b",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "clothing": "bright red trench coat"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "black umbrella": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "black umbrella": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "black umbrella": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "black umbrella": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0270",
+      "prompt": "Create a three-shot interaction in the industrial film studio. A boy with straight auburn hair, a small green backpack, and a orange windbreaker starts with a antique camera and hands it to a woman with short black hair, round silver glasses, and a cobalt denim jacket. The second character uses the antique camera and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "validation",
+        "scenario_group": "multi_character_interaction_group_014",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "boy",
+            "appearance": "straight auburn hair",
+            "clothing": "orange windbreaker"
+          },
+          {
+            "id": "actor_b",
+            "role": "woman",
+            "appearance": "short black hair",
+            "clothing": "cobalt denim jacket"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "antique camera": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "antique camera": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "antique camera": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "antique camera": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0295",
+      "prompt": "Create a three-shot interaction in the crowded railway station. A boy with straight auburn hair, a small green backpack, and a purple patterned dress starts with a folded paper map and hands it to a boy with straight auburn hair, a small green backpack, and a cobalt denim jacket. The second character uses the folded paper map and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "test",
+        "scenario_group": "multi_character_interaction_group_019",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "boy",
+            "appearance": "straight auburn hair",
+            "clothing": "purple patterned dress"
+          },
+          {
+            "id": "actor_b",
+            "role": "boy",
+            "appearance": "straight auburn hair",
+            "clothing": "cobalt denim jacket"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "folded paper map": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "folded paper map": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "folded paper map": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "folded paper map": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0320",
+      "prompt": "Create one continuous video in the crowded railway station: a chef begins with whole tomato, then places it on a board, then slices it, then moves the slices into a pan. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a red round wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "train",
+        "scenario_group": "long_horizon_causal_group_000",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "places it on a board",
+          "slices it",
+          "moves the slices into a pan"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "places it on a board",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "slices it",
+            "must_follow": "places it on a board"
+          },
+          {
+            "step": 2,
+            "description": "moves the slices into a pan",
+            "must_follow": "slices it"
+          }
+        ],
+        "continuity_marker": "red round wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0321",
+      "prompt": "Generate one continuous video in the crowded railway station: a chef begins with whole tomato, then places it on a board, then slices it, then moves the slices into a pan, then stirs until cooked. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a red round wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 14,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "train",
+        "scenario_group": "long_horizon_causal_group_000",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "places it on a board",
+          "slices it",
+          "moves the slices into a pan",
+          "stirs until cooked"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "places it on a board",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "slices it",
+            "must_follow": "places it on a board"
+          },
+          {
+            "step": 2,
+            "description": "moves the slices into a pan",
+            "must_follow": "slices it"
+          },
+          {
+            "step": 3,
+            "description": "stirs until cooked",
+            "must_follow": "moves the slices into a pan"
+          }
+        ],
+        "continuity_marker": "red round wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0322",
+      "prompt": "Produce one continuous video in the crowded railway station: a chef begins with whole tomato, then places it on a board, then slices it, then moves the slices into a pan, then stirs until cooked, then serves it on a plate. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a red round wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 16,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "train",
+        "scenario_group": "long_horizon_causal_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "places it on a board",
+          "slices it",
+          "moves the slices into a pan",
+          "stirs until cooked",
+          "serves it on a plate"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "places it on a board",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "slices it",
+            "must_follow": "places it on a board"
+          },
+          {
+            "step": 2,
+            "description": "moves the slices into a pan",
+            "must_follow": "slices it"
+          },
+          {
+            "step": 3,
+            "description": "stirs until cooked",
+            "must_follow": "moves the slices into a pan"
+          },
+          {
+            "step": 4,
+            "description": "serves it on a plate",
+            "must_follow": "stirs until cooked"
+          }
+        ],
+        "continuity_marker": "red round wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0410",
+      "prompt": "Create one continuous video in the modern art museum: a mechanic begins with detached bicycle wheel, then aligns it, then tightens the axle, then connects the brake. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a silver square wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "validation",
+        "scenario_group": "long_horizon_causal_group_018",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "aligns it",
+          "tightens the axle",
+          "connects the brake"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "aligns it",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "tightens the axle",
+            "must_follow": "aligns it"
+          },
+          {
+            "step": 2,
+            "description": "connects the brake",
+            "must_follow": "tightens the axle"
+          }
+        ],
+        "continuity_marker": "silver square wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0440",
+      "prompt": "Create one continuous video in the glass-roofed cafe: a baker begins with raw dough, then kneads it, then shapes a loaf, then puts it in an oven. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a white triangular wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "test",
+        "scenario_group": "long_horizon_causal_group_024",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "kneads it",
+          "shapes a loaf",
+          "puts it in an oven"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "kneads it",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "shapes a loaf",
+            "must_follow": "kneads it"
+          },
+          {
+            "step": 2,
+            "description": "puts it in an oven",
+            "must_follow": "shapes a loaf"
+          }
+        ],
+        "continuity_marker": "white triangular wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-vst-0470",
+      "prompt": "Create a faithful clean Japanese cel animation transformation of the provided dance performance. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "train",
+        "scenario_group": "video_stylization_group_000",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "clean Japanese cel animation",
+        "input_assets": {
+          "source_video": "source_video_000",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0471",
+      "prompt": "Generate a faithful clean Japanese cel animation transformation of the provided dance performance. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "train",
+        "scenario_group": "video_stylization_group_000",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "clean Japanese cel animation",
+        "input_assets": {
+          "source_video": "source_video_000",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0472",
+      "prompt": "Produce a faithful clean Japanese cel animation transformation of the provided dance performance. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 14,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "train",
+        "scenario_group": "video_stylization_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "clean Japanese cel animation",
+        "input_assets": {
+          "source_video": "source_video_000",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0560",
+      "prompt": "Create a faithful pastel storybook illustration transformation of the provided cooking demonstration. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "validation",
+        "scenario_group": "video_stylization_group_018",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "pastel storybook illustration",
+        "input_assets": {
+          "source_video": "source_video_018",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0590",
+      "prompt": "Create a faithful European ligne-claire comics transformation of the provided travel clip. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "test",
+        "scenario_group": "video_stylization_group_024",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "European ligne-claire comics",
+        "input_assets": {
+          "source_video": "source_video_024",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0620",
+      "prompt": "Create a consistent edit of the source video in the crowded railway station: replace only the red car with a blue electric car and remove the red hardback book. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "train",
+        "scenario_group": "compositional_editing_group_000",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "red car",
+            "value": "blue electric car"
+          },
+          {
+            "operation": "remove",
+            "target": "red hardback book"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_000",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0621",
+      "prompt": "Generate a consistent edit of the source video in the crowded railway station: replace only the red car with a blue electric car and remove the red hardback book. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "train",
+        "scenario_group": "compositional_editing_group_000",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "red car",
+            "value": "blue electric car"
+          },
+          {
+            "operation": "remove",
+            "target": "red hardback book"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_000",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0622",
+      "prompt": "Produce a consistent edit of the source video in the crowded railway station: replace only the red car with a blue electric car and remove the red hardback book. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "train",
+        "scenario_group": "compositional_editing_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "red car",
+            "value": "blue electric car"
+          },
+          {
+            "operation": "remove",
+            "target": "red hardback book"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_000",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0690",
+      "prompt": "Create a consistent edit of the source video in the industrial film studio: replace only the red car with a blue electric car and remove the black umbrella. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "validation",
+        "scenario_group": "compositional_editing_group_014",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "red car",
+            "value": "blue electric car"
+          },
+          {
+            "operation": "remove",
+            "target": "black umbrella"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_014",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0715",
+      "prompt": "Create a consistent edit of the source video in the windswept coastal pier: replace only the wooden chair with a acrylic chair and remove the wooden music box. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "test",
+        "scenario_group": "compositional_editing_group_019",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "wooden chair",
+            "value": "acrylic chair"
+          },
+          {
+            "operation": "remove",
+            "target": "wooden music box"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_019",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-cam-0740",
+      "prompt": "Create one coherent shot of a woman with short black hair in the crowded railway station. Begin with a extreme close-up, transition into a slow dolly out, continue with a 90-degree right orbit, and end on a rack focus to the prop emphasizing the black umbrella. Keep the subject, round silver glasses, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "train",
+        "scenario_group": "camera_control_group_000",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "extreme close-up",
+          "slow dolly out",
+          "90-degree right orbit",
+          "rack focus to the prop"
+        ],
+        "focus_target": "black umbrella",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-cam-0741",
+      "prompt": "Generate one coherent shot of a woman with short black hair in the crowded railway station. Begin with a extreme close-up, transition into a slow dolly out, continue with a 90-degree right orbit, and end on a rack focus to the prop emphasizing the black umbrella. Keep the subject, round silver glasses, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "train",
+        "scenario_group": "camera_control_group_000",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "extreme close-up",
+          "slow dolly out",
+          "90-degree right orbit",
+          "rack focus to the prop"
+        ],
+        "focus_target": "black umbrella",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-cam-0742",
+      "prompt": "Produce one coherent shot of a woman with short black hair in the crowded railway station. Begin with a extreme close-up, transition into a slow dolly out, continue with a 90-degree right orbit, and end on a rack focus to the prop emphasizing the black umbrella. Keep the subject, round silver glasses, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "train",
+        "scenario_group": "camera_control_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "extreme close-up",
+          "slow dolly out",
+          "90-degree right orbit",
+          "rack focus to the prop"
+        ],
+        "focus_target": "black umbrella",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-cam-0800",
+      "prompt": "Create one coherent shot of a dancer with long platinum hair in the rain-soaked neon street. Begin with a top-down opening, transition into a spiral descent, continue with a eye-level follow, and end on a slow pull-back reveal emphasizing the antique camera. Keep the subject, a crescent-shaped earring, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "validation",
+        "scenario_group": "camera_control_group_012",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "top-down opening",
+          "spiral descent",
+          "eye-level follow",
+          "slow pull-back reveal"
+        ],
+        "focus_target": "antique camera",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-cam-0820",
+      "prompt": "Create one coherent shot of a girl with two braided pigtails in the snow-covered village square. Begin with a wide establishing shot, transition into a forward crane, continue with a low-angle tracking, and end on a overhead finish emphasizing the yellow suitcase. Keep the subject, a star-shaped hair clip, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "test",
+        "scenario_group": "camera_control_group_016",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "wide establishing shot",
+          "forward crane",
+          "low-angle tracking",
+          "overhead finish"
+        ],
+        "focus_target": "yellow suitcase",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-phy-0840",
+      "prompt": "Create a continuous physically plausible video in the crowded railway station where a glass falls from a table. Show states in order: intact; falling; floor contact; broken fragments; settled fragments. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "train",
+        "scenario_group": "physical_dynamics_group_000",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "intact"
+          },
+          {
+            "step": 1,
+            "state": "falling"
+          },
+          {
+            "step": 2,
+            "state": "floor contact"
+          },
+          {
+            "step": 3,
+            "state": "broken fragments"
+          },
+          {
+            "step": 4,
+            "state": "settled fragments"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-phy-0841",
+      "prompt": "Generate a continuous physically plausible video in the crowded railway station where a glass falls from a table. Show states in order: intact; falling; floor contact; broken fragments; settled fragments. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "train",
+        "scenario_group": "physical_dynamics_group_000",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "intact"
+          },
+          {
+            "step": 1,
+            "state": "falling"
+          },
+          {
+            "step": 2,
+            "state": "floor contact"
+          },
+          {
+            "step": 3,
+            "state": "broken fragments"
+          },
+          {
+            "step": 4,
+            "state": "settled fragments"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-phy-0842",
+      "prompt": "Produce a continuous physically plausible video in the crowded railway station where a glass falls from a table. Show states in order: intact; falling; floor contact; broken fragments; settled fragments. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "train",
+        "scenario_group": "physical_dynamics_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "intact"
+          },
+          {
+            "step": 1,
+            "state": "falling"
+          },
+          {
+            "step": 2,
+            "state": "floor contact"
+          },
+          {
+            "step": 3,
+            "state": "broken fragments"
+          },
+          {
+            "step": 4,
+            "state": "settled fragments"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-phy-0890",
+      "prompt": "Create a continuous physically plausible video in the orchid greenhouse where blue liquid is poured into two cups. Show states in order: pitcher full; first cup fills; pitcher drops; second cup fills; flow stops. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "validation",
+        "scenario_group": "physical_dynamics_group_010",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "pitcher full"
+          },
+          {
+            "step": 1,
+            "state": "first cup fills"
+          },
+          {
+            "step": 2,
+            "state": "pitcher drops"
+          },
+          {
+            "step": 3,
+            "state": "second cup fills"
+          },
+          {
+            "step": 4,
+            "state": "flow stops"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-phy-0905",
+      "prompt": "Create a continuous physically plausible video in the hospital corridor where a red ball collides with a blue ball. Show states in order: red approaches; contact; red slows; blue moves; separation. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "test",
+        "scenario_group": "physical_dynamics_group_013",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "red approaches"
+          },
+          {
+            "step": 1,
+            "state": "contact"
+          },
+          {
+            "step": 2,
+            "state": "red slows"
+          },
+          {
+            "step": 3,
+            "state": "blue moves"
+          },
+          {
+            "step": 4,
+            "state": "separation"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-avs-0920",
+      "prompt": "Create an audio-driven video in the crowded railway station where two people alternate a four-line conversation. Synchronization rule: only the current speaker moves their lips. Maintain identity, natural motion, stable framing, and exact audiovisual order without speaker swaps, anticipatory motion, or delayed impacts.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "audio_video_sync",
+        "task_family": "audio_video_sync",
+        "split": "train",
+        "scenario_group": "audio_video_sync_group_000",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "audio_event_alignment",
+          "speaker_attribution",
+          "event_order",
+          "identity_consistency"
+        ],
+        "evaluation": {
+          "audio_event_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "speaker_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "event_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "audio_analyzer",
+          "timeline_planner",
+          "audio_conditioned_video_generator",
+          "lip_sync_tool",
+          "av_sync_verifier",
+          "segment_repair"
+        ],
+        "input_assets": {
+          "audio": "audio_track_000",
+          "required": true
+        },
+        "asset_status": "manifest_required",
+        "sync_rule": "only the current speaker moves their lips"
+      }
+    },
+    {
+      "task_id": "cvb-avs-0921",
+      "prompt": "Generate an audio-driven video in the crowded railway station where two people alternate a four-line conversation. Synchronization rule: only the current speaker moves their lips. Maintain identity, natural motion, stable framing, and exact audiovisual order without speaker swaps, anticipatory motion, or delayed impacts.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "audio_video_sync",
+        "task_family": "audio_video_sync",
+        "split": "train",
+        "scenario_group": "audio_video_sync_group_000",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "audio_event_alignment",
+          "speaker_attribution",
+          "event_order",
+          "identity_consistency"
+        ],
+        "evaluation": {
+          "audio_event_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "speaker_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "event_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "audio_analyzer",
+          "timeline_planner",
+          "audio_conditioned_video_generator",
+          "lip_sync_tool",
+          "av_sync_verifier",
+          "segment_repair"
+        ],
+        "input_assets": {
+          "audio": "audio_track_000",
+          "required": true
+        },
+        "asset_status": "manifest_required",
+        "sync_rule": "only the current speaker moves their lips"
+      }
+    },
+    {
+      "task_id": "cvb-avs-0922",
+      "prompt": "Produce an audio-driven video in the crowded railway station where two people alternate a four-line conversation. Synchronization rule: only the current speaker moves their lips. Maintain identity, natural motion, stable framing, and exact audiovisual order without speaker swaps, anticipatory motion, or delayed impacts.",
+      "mode": "generation",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "audio_video_sync",
+        "task_family": "audio_video_sync",
+        "split": "train",
+        "scenario_group": "audio_video_sync_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "audio_event_alignment",
+          "speaker_attribution",
+          "event_order",
+          "identity_consistency"
+        ],
+        "evaluation": {
+          "audio_event_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "speaker_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "event_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "audio_analyzer",
+          "timeline_planner",
+          "audio_conditioned_video_generator",
+          "lip_sync_tool",
+          "av_sync_verifier",
+          "segment_repair"
+        ],
+        "input_assets": {
+          "audio": "audio_track_000",
+          "required": true
+        },
+        "asset_status": "manifest_required",
+        "sync_rule": "only the current speaker moves their lips"
+      }
+    },
+    {
+      "task_id": "cvb-avs-0970",
+      "prompt": "Create an audio-driven video in the glass-roofed cafe where a dancer performs to an electronic track. Synchronization rule: action peaks and cuts align to beats. Maintain identity, natural motion, stable framing, and exact audiovisual order without speaker swaps, anticipatory motion, or delayed impacts.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "audio_video_sync",
+        "task_family": "audio_video_sync",
+        "split": "validation",
+        "scenario_group": "audio_video_sync_group_010",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "audio_event_alignment",
+          "speaker_attribution",
+          "event_order",
+          "identity_consistency"
+        ],
+        "evaluation": {
+          "audio_event_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "speaker_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "event_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "audio_analyzer",
+          "timeline_planner",
+          "audio_conditioned_video_generator",
+          "lip_sync_tool",
+          "av_sync_verifier",
+          "segment_repair"
+        ],
+        "input_assets": {
+          "audio": "audio_track_010",
+          "required": true
+        },
+        "asset_status": "manifest_required",
+        "sync_rule": "action peaks and cuts align to beats"
+      }
+    },
+    {
+      "task_id": "cvb-avs-0985",
+      "prompt": "Create an audio-driven video in the windswept coastal pier where a drummer performs a rhythmic phrase. Synchronization rule: each drum hit lands on a strong beat. Maintain identity, natural motion, stable framing, and exact audiovisual order without speaker swaps, anticipatory motion, or delayed impacts.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "audio_video_sync",
+        "task_family": "audio_video_sync",
+        "split": "test",
+        "scenario_group": "audio_video_sync_group_013",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "audio_event_alignment",
+          "speaker_attribution",
+          "event_order",
+          "identity_consistency"
+        ],
+        "evaluation": {
+          "audio_event_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "speaker_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "event_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "audio_analyzer",
+          "timeline_planner",
+          "audio_conditioned_video_generator",
+          "lip_sync_tool",
+          "av_sync_verifier",
+          "segment_repair"
+        ],
+        "input_assets": {
+          "audio": "audio_track_013",
+          "required": true
+        },
+        "asset_status": "manifest_required",
+        "sync_rule": "each drum hit lands on a strong beat"
+      }
+    }
+  ]
+}

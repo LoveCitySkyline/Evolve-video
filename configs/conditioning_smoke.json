@@ -1,0 +1,10 @@
+{
+  "task_file": "examples/research_smoke_tasks.json",
+  "output_dir": "outputs/conditioning_smoke",
+  "max_searches": 2,
+  "searches_per_task": 1,
+  "max_generation_calls": 200,
+  "max_generated_seconds": 2000,
+  "evaluation_seeds": [42, 123, 456],
+  "runtime": {"provider": "local-fake", "enable_vlm_eval": false, "enable_llm_mutation": false}
+}

@@ -1,0 +1,4857 @@
+{
+  "name": "complex_video_bench_mini50",
+  "version": "1.0",
+  "description": "A 50-task stratified subset of ComplexVideoBench-1K for faster real-model evaluation.",
+  "tags": [
+    "multi-shot",
+    "long-horizon",
+    "video-editing",
+    "stylization",
+    "tool-path-evolution",
+    "mini50",
+    "stratified"
+  ],
+  "license": "Research-only task specifications; source media assets are not bundled.",
+  "selection": {
+    "source": "benchmarks/complex_video_bench_1k/complex_video_bench_1k.json",
+    "family_allocation": {
+      "multi_shot_identity": 10,
+      "multi_character_interaction": 6,
+      "long_horizon_causal": 8,
+      "video_stylization": 8,
+      "compositional_editing": 6,
+      "camera_control": 5,
+      "physical_dynamics": 4,
+      "audio_video_sync": 3
+    },
+    "selection_version": 2,
+    "selection_seed": "complex-video-bench-subsets-v2",
+    "split_policy": "per-family approximately 60/20/20 with scenario groups isolated to one split",
+    "difficulty_policy": "exactly balanced over difficulty levels 1-5",
+    "scenario_policy": "at most one difficulty variant per scenario group",
+    "nesting_policy": "mini15 is a strict subset of mini50, which is a strict subset of mini100"
+  },
+  "tasks": [
+    {
+      "task_id": "cvb-avs-0954",
+      "prompt": "Make an audio-driven video in the windswept coastal pier where three objects fall at different times. Synchronization rule: each impact matches its sound. Maintain identity, natural motion, stable framing, and exact audiovisual order without speaker swaps, anticipatory motion, or delayed impacts.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "audio_video_sync",
+        "task_family": "audio_video_sync",
+        "split": "train",
+        "scenario_group": "audio_video_sync_group_006",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "audio_event_alignment",
+          "speaker_attribution",
+          "event_order",
+          "identity_consistency"
+        ],
+        "evaluation": {
+          "audio_event_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "speaker_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "event_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "audio_analyzer",
+          "timeline_planner",
+          "audio_conditioned_video_generator",
+          "lip_sync_tool",
+          "av_sync_verifier",
+          "segment_repair"
+        ],
+        "input_assets": {
+          "audio": "audio_track_006",
+          "required": true
+        },
+        "asset_status": "manifest_required",
+        "sync_rule": "each impact matches its sound"
+      }
+    },
+    {
+      "task_id": "cvb-avs-0971",
+      "prompt": "Generate an audio-driven video in the glass-roofed cafe where a dancer performs to an electronic track. Synchronization rule: action peaks and cuts align to beats. Maintain identity, natural motion, stable framing, and exact audiovisual order without speaker swaps, anticipatory motion, or delayed impacts.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "audio_video_sync",
+        "task_family": "audio_video_sync",
+        "split": "validation",
+        "scenario_group": "audio_video_sync_group_010",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "audio_event_alignment",
+          "speaker_attribution",
+          "event_order",
+          "identity_consistency"
+        ],
+        "evaluation": {
+          "audio_event_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "speaker_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "event_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "audio_analyzer",
+          "timeline_planner",
+          "audio_conditioned_video_generator",
+          "lip_sync_tool",
+          "av_sync_verifier",
+          "segment_repair"
+        ],
+        "input_assets": {
+          "audio": "audio_track_010",
+          "required": true
+        },
+        "asset_status": "manifest_required",
+        "sync_rule": "action peaks and cuts align to beats"
+      }
+    },
+    {
+      "task_id": "cvb-avs-0995",
+      "prompt": "Create an audio-driven video in the sunlit public library where a singer performs one verse. Synchronization rule: mouth shapes follow the vocal line. Maintain identity, natural motion, stable framing, and exact audiovisual order without speaker swaps, anticipatory motion, or delayed impacts.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "audio_video_sync",
+        "task_family": "audio_video_sync",
+        "split": "test",
+        "scenario_group": "audio_video_sync_group_015",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "audio_event_alignment",
+          "speaker_attribution",
+          "event_order",
+          "identity_consistency"
+        ],
+        "evaluation": {
+          "audio_event_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "speaker_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "event_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "audio_analyzer",
+          "timeline_planner",
+          "audio_conditioned_video_generator",
+          "lip_sync_tool",
+          "av_sync_verifier",
+          "segment_repair"
+        ],
+        "input_assets": {
+          "audio": "audio_track_015",
+          "required": true
+        },
+        "asset_status": "manifest_required",
+        "sync_rule": "mouth shapes follow the vocal line"
+      }
+    },
+    {
+      "task_id": "cvb-cam-0760",
+      "prompt": "Create one coherent shot of a chef with closely cropped gray hair in the hospital corridor. Begin with a medium profile, transition into a lateral tracking, continue with a 180-degree arc, and end on a static close-up emphasizing the wooden music box. Keep the subject, a navy neckerchief, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "train",
+        "scenario_group": "camera_control_group_004",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "medium profile",
+          "lateral tracking",
+          "180-degree arc",
+          "static close-up"
+        ],
+        "focus_target": "wooden music box",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-cam-0769",
+      "prompt": "Make one coherent shot of a boy with straight auburn hair in the rain-soaked neon street. Begin with a wide establishing shot, transition into a forward crane, continue with a low-angle tracking, and end on a overhead finish emphasizing the yellow suitcase. Keep the subject, a small green backpack, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "train",
+        "scenario_group": "camera_control_group_005",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "wide establishing shot",
+          "forward crane",
+          "low-angle tracking",
+          "overhead finish"
+        ],
+        "focus_target": "yellow suitcase",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-cam-0783",
+      "prompt": "Render one coherent shot of a man with curly brown hair in the sunlit public library. Begin with a extreme close-up, transition into a slow dolly out, continue with a 90-degree right orbit, and end on a rack focus to the prop emphasizing the silver thermos. Keep the subject, a narrow left-eyebrow scar, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 11,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "train",
+        "scenario_group": "camera_control_group_008",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "extreme close-up",
+          "slow dolly out",
+          "90-degree right orbit",
+          "rack focus to the prop"
+        ],
+        "focus_target": "silver thermos",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-cam-0817",
+      "prompt": "Produce one coherent shot of a girl with two braided pigtails in the sunlit public library. Begin with a top-down opening, transition into a spiral descent, continue with a eye-level follow, and end on a slow pull-back reveal emphasizing the wooden music box. Keep the subject, a star-shaped hair clip, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "validation",
+        "scenario_group": "camera_control_group_015",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "top-down opening",
+          "spiral descent",
+          "eye-level follow",
+          "slow pull-back reveal"
+        ],
+        "focus_target": "wooden music box",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-cam-0836",
+      "prompt": "Generate one coherent shot of a musician with shoulder-length red hair in the crowded railway station. Begin with a extreme close-up, transition into a slow dolly out, continue with a 90-degree right orbit, and end on a rack focus to the prop emphasizing the silver thermos. Keep the subject, a black guitar case, geometry, screen direction, and focus stable.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "camera_control",
+        "task_family": "camera_control",
+        "split": "test",
+        "scenario_group": "camera_control_group_019",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "identity_drift",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "camera_path_order",
+          "subject_lock",
+          "focus_target",
+          "screen_direction"
+        ],
+        "evaluation": {
+          "camera_motion_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "camera_path_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "focus_target_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "camera_planner",
+          "trajectory_conditioner",
+          "text_to_video",
+          "motion_verifier",
+          "endpoint_repair"
+        ],
+        "camera_plan": [
+          "extreme close-up",
+          "slow dolly out",
+          "90-degree right orbit",
+          "rack focus to the prop"
+        ],
+        "focus_target": "silver thermos",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-ced-0629",
+      "prompt": "Make a consistent edit of the source video in the industrial film studio: replace only the daytime sky with a star-filled night sky and remove the white envelope. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "train",
+        "scenario_group": "compositional_editing_group_001",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "daytime sky",
+            "value": "star-filled night sky"
+          },
+          {
+            "operation": "remove",
+            "target": "white envelope"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_001",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0642",
+      "prompt": "Produce a consistent edit of the source video in the hospital corridor: replace only the wooden chair with a acrylic chair and remove the antique camera. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "train",
+        "scenario_group": "compositional_editing_group_004",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "wooden chair",
+            "value": "acrylic chair"
+          },
+          {
+            "operation": "remove",
+            "target": "antique camera"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_004",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0670",
+      "prompt": "Create a consistent edit of the source video in the glass-roofed cafe: replace only the black umbrella with a yellow umbrella and remove the silver thermos. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 8,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "train",
+        "scenario_group": "compositional_editing_group_010",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "black umbrella",
+            "value": "yellow umbrella"
+          },
+          {
+            "operation": "remove",
+            "target": "silver thermos"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_010",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0682",
+      "prompt": "Produce a consistent edit of the source video in the rain-soaked neon street: replace only the wooden chair with a acrylic chair and remove the wooden music box. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "train",
+        "scenario_group": "compositional_editing_group_012",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "wooden chair",
+            "value": "acrylic chair"
+          },
+          {
+            "operation": "remove",
+            "target": "wooden music box"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_012",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0711",
+      "prompt": "Generate a consistent edit of the source video in the modern art museum: replace only the black umbrella with a yellow umbrella and remove the antique camera. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "validation",
+        "scenario_group": "compositional_editing_group_018",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "black umbrella",
+            "value": "yellow umbrella"
+          },
+          {
+            "operation": "remove",
+            "target": "antique camera"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_018",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-ced-0718",
+      "prompt": "Render a consistent edit of the source video in the windswept coastal pier: replace only the wooden chair with a acrylic chair and remove the wooden music box. Preserve every face, action, shadow, reflection, camera movement, background object, and non-target region. Track edits through motion and occlusion.",
+      "mode": "editing",
+      "duration_seconds": 11,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "compositional_editing",
+        "task_family": "compositional_editing",
+        "split": "test",
+        "scenario_group": "compositional_editing_group_019",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "editing_leakage",
+          "object_persistence_failure",
+          "temporal_flicker"
+        ],
+        "constraints": [
+          "multi_target_edit",
+          "non_target_preservation",
+          "mask_tracking",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "target_edit_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_removal_success": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "non_target_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "boundary_stability": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "object_detector",
+          "mask_tracker",
+          "region_video_editor",
+          "leakage_verifier",
+          "boundary_refiner",
+          "segment_repair"
+        ],
+        "edit_operations": [
+          {
+            "operation": "replace",
+            "target": "wooden chair",
+            "value": "acrylic chair"
+          },
+          {
+            "operation": "remove",
+            "target": "wooden music box"
+          }
+        ],
+        "input_assets": {
+          "source_video": "edit_source_019",
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0338",
+      "prompt": "Render one continuous video in the snow-covered village square: a mechanic begins with detached bicycle wheel, then aligns it, then tightens the axle, then connects the brake, then tests the spin, then rides away. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a yellow round wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "train",
+        "scenario_group": "long_horizon_causal_group_003",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "aligns it",
+          "tightens the axle",
+          "connects the brake",
+          "tests the spin",
+          "rides away"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "aligns it",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "tightens the axle",
+            "must_follow": "aligns it"
+          },
+          {
+            "step": 2,
+            "description": "connects the brake",
+            "must_follow": "tightens the axle"
+          },
+          {
+            "step": 3,
+            "description": "tests the spin",
+            "must_follow": "connects the brake"
+          },
+          {
+            "step": 4,
+            "description": "rides away",
+            "must_follow": "tests the spin"
+          }
+        ],
+        "continuity_marker": "yellow round wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0340",
+      "prompt": "Create one continuous video in the sunlit public library: a florist begins with loose flowers, then sorts them, then trims the stems, then arranges a vase. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a white round wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "train",
+        "scenario_group": "long_horizon_causal_group_004",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "sorts them",
+          "trims the stems",
+          "arranges a vase"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "sorts them",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "trims the stems",
+            "must_follow": "sorts them"
+          },
+          {
+            "step": 2,
+            "description": "arranges a vase",
+            "must_follow": "trims the stems"
+          }
+        ],
+        "continuity_marker": "white round wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0370",
+      "prompt": "Create one continuous video in the orchid greenhouse: a mechanic begins with detached bicycle wheel, then aligns it, then tightens the axle, then connects the brake. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a red square wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "train",
+        "scenario_group": "long_horizon_causal_group_010",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "aligns it",
+          "tightens the axle",
+          "connects the brake"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "aligns it",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "tightens the axle",
+            "must_follow": "aligns it"
+          },
+          {
+            "step": 2,
+            "description": "connects the brake",
+            "must_follow": "tightens the axle"
+          }
+        ],
+        "continuity_marker": "red square wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0386",
+      "prompt": "Generate one continuous video in the hospital corridor: a carpenter begins with wooden boards, then measures them, then cuts them, then joins a frame, then sands it. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a yellow square wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 14,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "train",
+        "scenario_group": "long_horizon_causal_group_013",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "measures them",
+          "cuts them",
+          "joins a frame",
+          "sands it"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "measures them",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "cuts them",
+            "must_follow": "measures them"
+          },
+          {
+            "step": 2,
+            "description": "joins a frame",
+            "must_follow": "cuts them"
+          },
+          {
+            "step": 3,
+            "description": "sands it",
+            "must_follow": "joins a frame"
+          }
+        ],
+        "continuity_marker": "yellow square wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0412",
+      "prompt": "Produce one continuous video in the modern art museum: a mechanic begins with detached bicycle wheel, then aligns it, then tightens the axle, then connects the brake, then tests the spin, then rides away. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a silver square wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 16,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "validation",
+        "scenario_group": "long_horizon_causal_group_018",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "aligns it",
+          "tightens the axle",
+          "connects the brake",
+          "tests the spin",
+          "rides away"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "aligns it",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "tightens the axle",
+            "must_follow": "aligns it"
+          },
+          {
+            "step": 2,
+            "description": "connects the brake",
+            "must_follow": "tightens the axle"
+          },
+          {
+            "step": 3,
+            "description": "tests the spin",
+            "must_follow": "connects the brake"
+          },
+          {
+            "step": 4,
+            "description": "rides away",
+            "must_follow": "tests the spin"
+          }
+        ],
+        "continuity_marker": "silver square wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0429",
+      "prompt": "Make one continuous video in the sunlit public library: a chef begins with whole tomato, then places it on a board, then slices it, then moves the slices into a pan, then stirs until cooked, then serves it on a plate. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a blue triangular wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 20,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "validation",
+        "scenario_group": "long_horizon_causal_group_021",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "places it on a board",
+          "slices it",
+          "moves the slices into a pan",
+          "stirs until cooked",
+          "serves it on a plate"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "places it on a board",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "slices it",
+            "must_follow": "places it on a board"
+          },
+          {
+            "step": 2,
+            "description": "moves the slices into a pan",
+            "must_follow": "slices it"
+          },
+          {
+            "step": 3,
+            "description": "stirs until cooked",
+            "must_follow": "moves the slices into a pan"
+          },
+          {
+            "step": 4,
+            "description": "serves it on a plate",
+            "must_follow": "stirs until cooked"
+          }
+        ],
+        "continuity_marker": "blue triangular wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0451",
+      "prompt": "Generate one continuous video in the sunlit public library: a florist begins with loose flowers, then sorts them, then trims the stems, then arranges a vase, then adds water. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a orange triangular wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 14,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "test",
+        "scenario_group": "long_horizon_causal_group_026",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "sorts them",
+          "trims the stems",
+          "arranges a vase",
+          "adds water"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "sorts them",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "trims the stems",
+            "must_follow": "sorts them"
+          },
+          {
+            "step": 2,
+            "description": "arranges a vase",
+            "must_follow": "trims the stems"
+          },
+          {
+            "step": 3,
+            "description": "adds water",
+            "must_follow": "arranges a vase"
+          }
+        ],
+        "continuity_marker": "orange triangular wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-lhc-0462",
+      "prompt": "Produce one continuous video in the windswept coastal pier: a chef begins with whole tomato, then places it on a board, then slices it, then moves the slices into a pan, then stirs until cooked, then serves it on a plate. Show every transition in exactly this order without resetting, duplicating, skipping, or reversing state. Preserve the actor and workspace, with a silver triangular wall clock remaining visible as a continuity marker.",
+      "mode": "generation",
+      "duration_seconds": 16,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "long_horizon_causal",
+        "task_family": "long_horizon_causal",
+        "split": "test",
+        "scenario_group": "long_horizon_causal_group_028",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "ordered_actions",
+          "causal_state_transition",
+          "no_state_reset",
+          "long_horizon_identity"
+        ],
+        "evaluation": {
+          "action_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "subject_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "temporal_planner",
+          "state_tracker",
+          "keyframe_generator",
+          "text_to_video",
+          "image_to_video",
+          "overlap_verifier",
+          "segment_repair"
+        ],
+        "temporal_steps": [
+          "places it on a board",
+          "slices it",
+          "moves the slices into a pan",
+          "stirs until cooked",
+          "serves it on a plate"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "description": "places it on a board",
+            "must_follow": null
+          },
+          {
+            "step": 1,
+            "description": "slices it",
+            "must_follow": "places it on a board"
+          },
+          {
+            "step": 2,
+            "description": "moves the slices into a pan",
+            "must_follow": "slices it"
+          },
+          {
+            "step": 3,
+            "description": "stirs until cooked",
+            "must_follow": "moves the slices into a pan"
+          },
+          {
+            "step": 4,
+            "description": "serves it on a plate",
+            "must_follow": "stirs until cooked"
+          }
+        ],
+        "continuity_marker": "silver triangular wall clock",
+        "input_assets": {
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0206",
+      "prompt": "Generate a three-shot interaction in the old-town market. A boy with straight auburn hair, a small green backpack, and a white linen suit starts with a green glass bottle and places it on a table for a boy with straight auburn hair, a small green backpack, and a bright red trench coat. The second character uses the green glass bottle and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "train",
+        "scenario_group": "multi_character_interaction_group_001",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "boy",
+            "appearance": "straight auburn hair",
+            "clothing": "white linen suit"
+          },
+          {
+            "id": "actor_b",
+            "role": "boy",
+            "appearance": "straight auburn hair",
+            "clothing": "bright red trench coat"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "green glass bottle": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "green glass bottle": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "green glass bottle": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "green glass bottle": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0232",
+      "prompt": "Produce a three-shot interaction in the windswept coastal pier. A girl with two braided pigtails, a star-shaped hair clip, and a bright red trench coat starts with a silver thermos and rolls it toward a musician with shoulder-length red hair, a black guitar case, and a yellow raincoat with black buttons. The second character uses the silver thermos and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "train",
+        "scenario_group": "multi_character_interaction_group_006",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "girl",
+            "appearance": "two braided pigtails",
+            "clothing": "bright red trench coat"
+          },
+          {
+            "id": "actor_b",
+            "role": "musician",
+            "appearance": "shoulder-length red hair",
+            "clothing": "yellow raincoat with black buttons"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "silver thermos": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "silver thermos": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "silver thermos": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "silver thermos": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0249",
+      "prompt": "Make a three-shot interaction in the snow-covered village square. A chef with closely cropped gray hair, a navy neckerchief, and a yellow raincoat with black buttons starts with a blue ceramic cup and passes it through a crowd to a chef with closely cropped gray hair, a navy neckerchief, and a yellow raincoat with black buttons. The second character uses the blue ceramic cup and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "train",
+        "scenario_group": "multi_character_interaction_group_009",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "clothing": "yellow raincoat with black buttons"
+          },
+          {
+            "id": "actor_b",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "clothing": "yellow raincoat with black buttons"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "blue ceramic cup": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "blue ceramic cup": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "blue ceramic cup": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "blue ceramic cup": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0268",
+      "prompt": "Render a three-shot interaction in the windswept coastal pier. A woman with short black hair, round silver glasses, and a forest-green hoodie starts with a silver thermos and hides it briefly before returning it to a man with curly brown hair, a narrow left-eyebrow scar, and a cobalt denim jacket. The second character uses the silver thermos and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "train",
+        "scenario_group": "multi_character_interaction_group_013",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "woman",
+            "appearance": "short black hair",
+            "clothing": "forest-green hoodie"
+          },
+          {
+            "id": "actor_b",
+            "role": "man",
+            "appearance": "curly brown hair",
+            "clothing": "cobalt denim jacket"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "silver thermos": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "silver thermos": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "silver thermos": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "silver thermos": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0270",
+      "prompt": "Create a three-shot interaction in the industrial film studio. A boy with straight auburn hair, a small green backpack, and a orange windbreaker starts with a antique camera and hands it to a woman with short black hair, round silver glasses, and a cobalt denim jacket. The second character uses the antique camera and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "validation",
+        "scenario_group": "multi_character_interaction_group_014",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "boy",
+            "appearance": "straight auburn hair",
+            "clothing": "orange windbreaker"
+          },
+          {
+            "id": "actor_b",
+            "role": "woman",
+            "appearance": "short black hair",
+            "clothing": "cobalt denim jacket"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "antique camera": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "antique camera": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "antique camera": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "antique camera": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-mci-0313",
+      "prompt": "Render a three-shot interaction in the underground metro platform. A chef with closely cropped gray hair, a navy neckerchief, and a purple patterned dress starts with a wooden music box and hides it briefly before returning it to a man with curly brown hair, a narrow left-eyebrow scar, and a white linen suit. The second character uses the wooden music box and returns it. Never swap faces, clothing, actions, positions, or prop ownership.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_character_interaction",
+        "task_family": "multi_character_interaction",
+        "split": "test",
+        "scenario_group": "multi_character_interaction_group_022",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "identity_drift",
+          "object_persistence_failure",
+          "motion_mismatch"
+        ],
+        "constraints": [
+          "character_binding",
+          "action_attribution",
+          "prop_ownership",
+          "interaction_order"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "action_attribution": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_ownership": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "interaction_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          }
+        },
+        "allowed_tools": [
+          "interaction_planner",
+          "character_memory",
+          "trajectory_planner",
+          "multi_shot_i2v",
+          "entity_state_verifier",
+          "segment_repair"
+        ],
+        "characters": [
+          {
+            "id": "actor_a",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "clothing": "purple patterned dress"
+          },
+          {
+            "id": "actor_b",
+            "role": "man",
+            "appearance": "curly brown hair",
+            "clothing": "white linen suit"
+          }
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": {
+              "wooden music box": "owned_by_a"
+            }
+          },
+          {
+            "step": 1,
+            "state": {
+              "wooden music box": "in_transfer"
+            }
+          },
+          {
+            "step": 2,
+            "state": {
+              "wooden music box": "owned_by_b"
+            }
+          },
+          {
+            "step": 3,
+            "state": {
+              "wooden music box": "returned_to_a"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0022",
+      "prompt": "Produce a coherent 4-shot sequence about the same chef with closely cropped gray hair, a navy neckerchief, and a yellow raincoat with black buttons. The character walks through the hospital corridor carrying a wooden music box, then turns toward the camera in the rain-soaked neon street, then sets the wooden music box down briefly in the rain-soaked neon street, then leaves the frame and reappears from behind a crowd in the rain-soaked neon street. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_004",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_004",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "accessory": "a navy neckerchief",
+            "clothing": "yellow raincoat with black buttons"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the hospital corridor carrying a wooden music box",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_004"
+            ],
+            "required_state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the rain-soaked neon street",
+            "camera": "close-up",
+            "active_characters": [
+              "character_004"
+            ],
+            "required_state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the wooden music box down briefly in the rain-soaked neon street",
+            "camera": "wide",
+            "active_characters": [
+              "character_004"
+            ],
+            "required_state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the rain-soaked neon street",
+            "camera": "follow",
+            "active_characters": [
+              "character_004"
+            ],
+            "required_state": {
+              "wooden music box": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_004",
+              "wooden music box"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_004",
+              "wooden music box"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_004",
+              "wooden music box"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_004",
+              "wooden music box"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "wooden music box": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0025",
+      "prompt": "Create a coherent 3-shot sequence about the same musician with shoulder-length red hair, a black guitar case, and a cream sweater with a blue stripe. The character walks through the rain-soaked neon street carrying a yellow suitcase, then turns toward the camera in the hospital corridor, then sets the yellow suitcase down briefly in the rain-soaked neon street. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_005",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_005",
+            "role": "musician",
+            "appearance": "shoulder-length red hair",
+            "accessory": "a black guitar case",
+            "clothing": "cream sweater with a blue stripe"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the rain-soaked neon street carrying a yellow suitcase",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_005"
+            ],
+            "required_state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the hospital corridor",
+            "camera": "close-up",
+            "active_characters": [
+              "character_005"
+            ],
+            "required_state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the yellow suitcase down briefly in the rain-soaked neon street",
+            "camera": "wide",
+            "active_characters": [
+              "character_005"
+            ],
+            "required_state": {
+              "yellow suitcase": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_005",
+              "yellow suitcase"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_005",
+              "yellow suitcase"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_005",
+              "yellow suitcase"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "yellow suitcase": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0033",
+      "prompt": "Render a coherent 4-shot sequence about the same girl with two braided pigtails, a star-shaped hair clip, and a charcoal overalls. The character walks through the windswept coastal pier carrying a folded paper map, then turns toward the camera in the underground metro platform, then sets the folded paper map down briefly in the crowded railway station, then leaves the frame and reappears from behind a crowd in the underground metro platform. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_006",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_006",
+            "role": "girl",
+            "appearance": "two braided pigtails",
+            "accessory": "a star-shaped hair clip",
+            "clothing": "charcoal overalls"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the windswept coastal pier carrying a folded paper map",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_006"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the underground metro platform",
+            "camera": "close-up",
+            "active_characters": [
+              "character_006"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the folded paper map down briefly in the crowded railway station",
+            "camera": "wide",
+            "active_characters": [
+              "character_006"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the underground metro platform",
+            "camera": "follow",
+            "active_characters": [
+              "character_006"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_006",
+              "folded paper map"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_006",
+              "folded paper map"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_006",
+              "folded paper map"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_006",
+              "folded paper map"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0043",
+      "prompt": "Render a coherent 4-shot sequence about the same man with curly brown hair, a narrow left-eyebrow scar, and a cobalt denim jacket. The character walks through the sunlit public library carrying a silver thermos, then turns toward the camera in the old-town market, then sets the silver thermos down briefly in the orchid greenhouse, then leaves the frame and reappears from behind a crowd in the old-town market. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_008",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_008",
+            "role": "man",
+            "appearance": "curly brown hair",
+            "accessory": "a narrow left-eyebrow scar",
+            "clothing": "cobalt denim jacket"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the sunlit public library carrying a silver thermos",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_008"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the old-town market",
+            "camera": "close-up",
+            "active_characters": [
+              "character_008"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the silver thermos down briefly in the orchid greenhouse",
+            "camera": "wide",
+            "active_characters": [
+              "character_008"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the old-town market",
+            "camera": "follow",
+            "active_characters": [
+              "character_008"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_008",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_008",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_008",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_008",
+              "silver thermos"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0045",
+      "prompt": "Create a coherent 3-shot sequence about the same chef with closely cropped gray hair, a navy neckerchief, and a yellow raincoat with black buttons. The character walks through the snow-covered village square carrying a red hardback book, then turns toward the camera in the rain-soaked neon street, then sets the red hardback book down briefly in the snow-covered village square. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_009",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_009",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "accessory": "a navy neckerchief",
+            "clothing": "yellow raincoat with black buttons"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the snow-covered village square carrying a red hardback book",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_009"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the rain-soaked neon street",
+            "camera": "close-up",
+            "active_characters": [
+              "character_009"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the red hardback book down briefly in the snow-covered village square",
+            "camera": "wide",
+            "active_characters": [
+              "character_009"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_009",
+              "red hardback book"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_009",
+              "red hardback book"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_009",
+              "red hardback book"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0116",
+      "prompt": "Generate a coherent 3-shot sequence about the same musician with shoulder-length red hair, a black guitar case, and a yellow raincoat with black buttons. The character walks through the hospital corridor carrying a antique camera, then turns toward the camera in the sunlit public library, then sets the antique camera down briefly in the hospital corridor. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_023",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_023",
+            "role": "musician",
+            "appearance": "shoulder-length red hair",
+            "accessory": "a black guitar case",
+            "clothing": "yellow raincoat with black buttons"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the hospital corridor carrying a antique camera",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_023"
+            ],
+            "required_state": {
+              "antique camera": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the sunlit public library",
+            "camera": "close-up",
+            "active_characters": [
+              "character_023"
+            ],
+            "required_state": {
+              "antique camera": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the antique camera down briefly in the hospital corridor",
+            "camera": "wide",
+            "active_characters": [
+              "character_023"
+            ],
+            "required_state": {
+              "antique camera": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_023",
+              "antique camera"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_023",
+              "antique camera"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_023",
+              "antique camera"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "antique camera": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "antique camera": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "antique camera": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0125",
+      "prompt": "Create a coherent 3-shot sequence about the same detective with wavy dark hair, a brass pocket watch, and a charcoal overalls. The character walks through the modern art museum carrying a green glass bottle, then turns toward the camera in the windswept coastal pier, then sets the green glass bottle down briefly in the windswept coastal pier. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "validation",
+        "scenario_group": "multi_shot_identity_group_025",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_025",
+            "role": "detective",
+            "appearance": "wavy dark hair",
+            "accessory": "a brass pocket watch",
+            "clothing": "charcoal overalls"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the modern art museum carrying a green glass bottle",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_025"
+            ],
+            "required_state": {
+              "green glass bottle": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the windswept coastal pier",
+            "camera": "close-up",
+            "active_characters": [
+              "character_025"
+            ],
+            "required_state": {
+              "green glass bottle": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the green glass bottle down briefly in the windswept coastal pier",
+            "camera": "wide",
+            "active_characters": [
+              "character_025"
+            ],
+            "required_state": {
+              "green glass bottle": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_025",
+              "green glass bottle"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_025",
+              "green glass bottle"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_025",
+              "green glass bottle"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "green glass bottle": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "green glass bottle": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "green glass bottle": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0159",
+      "prompt": "Make a coherent 5-shot sequence about the same woman with short black hair, round silver glasses, and a forest-green hoodie. The character walks through the rain-soaked neon street carrying a silver thermos, then turns toward the camera in the crowded railway station, then sets the silver thermos down briefly in the rain-soaked neon street, then leaves the frame and reappears from behind a crowd in the crowded railway station, then retrieves the same silver thermos and waves in the rain-soaked neon street. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 15,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "validation",
+        "scenario_group": "multi_shot_identity_group_031",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_031",
+            "role": "woman",
+            "appearance": "short black hair",
+            "accessory": "round silver glasses",
+            "clothing": "forest-green hoodie"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the rain-soaked neon street carrying a silver thermos",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_031"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the crowded railway station",
+            "camera": "close-up",
+            "active_characters": [
+              "character_031"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the silver thermos down briefly in the rain-soaked neon street",
+            "camera": "wide",
+            "active_characters": [
+              "character_031"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the crowded railway station",
+            "camera": "follow",
+            "active_characters": [
+              "character_031"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_05",
+            "prompt": "retrieves the same silver thermos and waves in the rain-soaked neon street",
+            "camera": "slow push-in",
+            "active_characters": [
+              "character_031"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_031",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_031",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_031",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_031",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_05",
+            "entities": [
+              "character_031",
+              "silver thermos"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_05",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0167",
+      "prompt": "Produce a coherent 4-shot sequence about the same musician with shoulder-length red hair, a black guitar case, and a bright red trench coat. The character walks through the industrial film studio carrying a black umbrella, then turns toward the camera in the underground metro platform, then sets the black umbrella down briefly in the industrial film studio, then leaves the frame and reappears from behind a crowd in the underground metro platform. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "test",
+        "scenario_group": "multi_shot_identity_group_033",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_033",
+            "role": "musician",
+            "appearance": "shoulder-length red hair",
+            "accessory": "a black guitar case",
+            "clothing": "bright red trench coat"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the industrial film studio carrying a black umbrella",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_033"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the underground metro platform",
+            "camera": "close-up",
+            "active_characters": [
+              "character_033"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the black umbrella down briefly in the industrial film studio",
+            "camera": "wide",
+            "active_characters": [
+              "character_033"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the underground metro platform",
+            "camera": "follow",
+            "active_characters": [
+              "character_033"
+            ],
+            "required_state": {
+              "black umbrella": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_033",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_033",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_033",
+              "black umbrella"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_033",
+              "black umbrella"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "black umbrella": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-msi-0199",
+      "prompt": "Make a coherent 5-shot sequence about the same man with curly brown hair, a narrow left-eyebrow scar, and a orange windbreaker. The character walks through the windswept coastal pier carrying a folded paper map, then turns toward the camera in the snow-covered village square, then sets the folded paper map down briefly in the old-town market, then leaves the frame and reappears from behind a crowd in the snow-covered village square, then retrieves the same folded paper map and waves in the windswept coastal pier. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 15,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "test",
+        "scenario_group": "multi_shot_identity_group_039",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_039",
+            "role": "man",
+            "appearance": "curly brown hair",
+            "accessory": "a narrow left-eyebrow scar",
+            "clothing": "orange windbreaker"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the windswept coastal pier carrying a folded paper map",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_039"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the snow-covered village square",
+            "camera": "close-up",
+            "active_characters": [
+              "character_039"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the folded paper map down briefly in the old-town market",
+            "camera": "wide",
+            "active_characters": [
+              "character_039"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the snow-covered village square",
+            "camera": "follow",
+            "active_characters": [
+              "character_039"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_05",
+            "prompt": "retrieves the same folded paper map and waves in the windswept coastal pier",
+            "camera": "slow push-in",
+            "active_characters": [
+              "character_039"
+            ],
+            "required_state": {
+              "folded paper map": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_039",
+              "folded paper map"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_039",
+              "folded paper map"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_039",
+              "folded paper map"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_039",
+              "folded paper map"
+            ]
+          },
+          {
+            "shot_id": "shot_05",
+            "entities": [
+              "character_039",
+              "folded paper map"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_05",
+            "state": {
+              "folded paper map": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        }
+      }
+    },
+    {
+      "task_id": "cvb-phy-0842",
+      "prompt": "Produce a continuous physically plausible video in the crowded railway station where a glass falls from a table. Show states in order: intact; falling; floor contact; broken fragments; settled fragments. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "train",
+        "scenario_group": "physical_dynamics_group_000",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "intact"
+          },
+          {
+            "step": 1,
+            "state": "falling"
+          },
+          {
+            "step": 2,
+            "state": "floor contact"
+          },
+          {
+            "step": 3,
+            "state": "broken fragments"
+          },
+          {
+            "step": 4,
+            "state": "settled fragments"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-phy-0866",
+      "prompt": "Generate a continuous physically plausible video in the industrial film studio where a red ball collides with a blue ball. Show states in order: red approaches; contact; red slows; blue moves; separation. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "train",
+        "scenario_group": "physical_dynamics_group_005",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "red approaches"
+          },
+          {
+            "step": 1,
+            "state": "contact"
+          },
+          {
+            "step": 2,
+            "state": "red slows"
+          },
+          {
+            "step": 3,
+            "state": "blue moves"
+          },
+          {
+            "step": 4,
+            "state": "separation"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-phy-0903",
+      "prompt": "Render a continuous physically plausible video in the rain-soaked neon street where a candle melts beside a clock. Show states in order: candle tall; flame stable; wax softens; candle shortens; wax pools. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 11,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "validation",
+        "scenario_group": "physical_dynamics_group_012",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "candle tall"
+          },
+          {
+            "step": 1,
+            "state": "flame stable"
+          },
+          {
+            "step": 2,
+            "state": "wax softens"
+          },
+          {
+            "step": 3,
+            "state": "candle shortens"
+          },
+          {
+            "step": 4,
+            "state": "wax pools"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-phy-0919",
+      "prompt": "Make a continuous physically plausible video in the orchid greenhouse where a candle melts beside a clock. Show states in order: candle tall; flame stable; wax softens; candle shortens; wax pools. Preserve identity and material, avoid interpenetration or resets, and make motion, collision, gravity, and the final state agree.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "physical_dynamics",
+        "task_family": "physical_dynamics",
+        "split": "test",
+        "scenario_group": "physical_dynamics_group_015",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "constraints": [
+          "physical_plausibility",
+          "causal_order",
+          "material_consistency",
+          "conservation"
+        ],
+        "evaluation": {
+          "physical_plausibility": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "causal_order": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "state_transition_accuracy": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "object_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "physics_state_planner",
+          "key_state_generator",
+          "trajectory_conditioner",
+          "video_generator",
+          "physics_verifier",
+          "segment_repair"
+        ],
+        "state_timeline": [
+          {
+            "step": 0,
+            "state": "candle tall"
+          },
+          {
+            "step": 1,
+            "state": "flame stable"
+          },
+          {
+            "step": 2,
+            "state": "wax softens"
+          },
+          {
+            "step": 3,
+            "state": "candle shortens"
+          },
+          {
+            "step": 4,
+            "state": "wax pools"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-vst-0492",
+      "prompt": "Produce a faithful clay stop motion transformation of the provided travel clip. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 14,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "train",
+        "scenario_group": "video_stylization_group_004",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "clay stop motion",
+        "input_assets": {
+          "source_video": "source_video_004",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0504",
+      "prompt": "Make a faithful woodblock-print animation transformation of the provided street interview. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 18,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "train",
+        "scenario_group": "video_stylization_group_006",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "woodblock-print animation",
+        "input_assets": {
+          "source_video": "source_video_006",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0548",
+      "prompt": "Render a faithful high-detail cyberpunk anime transformation of the provided dance performance. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 16,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "train",
+        "scenario_group": "video_stylization_group_015",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "high-detail cyberpunk anime",
+        "input_assets": {
+          "source_video": "source_video_015",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0554",
+      "prompt": "Make a faithful charcoal sketch animation transformation of the provided street interview. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 18,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "train",
+        "scenario_group": "video_stylization_group_016",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "charcoal sketch animation",
+        "input_assets": {
+          "source_video": "source_video_016",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0561",
+      "prompt": "Generate a faithful pastel storybook illustration transformation of the provided cooking demonstration. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "validation",
+        "scenario_group": "video_stylization_group_018",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "pastel storybook illustration",
+        "input_assets": {
+          "source_video": "source_video_018",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0573",
+      "prompt": "Render a faithful clay stop motion transformation of the provided dance performance. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 16,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "validation",
+        "scenario_group": "video_stylization_group_020",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "clay stop motion",
+        "input_assets": {
+          "source_video": "source_video_020",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0605",
+      "prompt": "Create a faithful ink-wash animation transformation of the provided martial-arts routine. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "test",
+        "scenario_group": "video_stylization_group_027",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "ink-wash animation",
+        "input_assets": {
+          "source_video": "source_video_027",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0611",
+      "prompt": "Generate a faithful high-detail cyberpunk anime transformation of the provided cooking demonstration. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "test",
+        "scenario_group": "video_stylization_group_028",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "source_structure_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "motion_preservation": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "temporal_flicker": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "identity_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "scene_splitter",
+          "pose_depth_flow_extractor",
+          "style_encoder",
+          "video_style_transfer",
+          "temporal_deflicker",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "target_style": "high-detail cyberpunk anime",
+        "input_assets": {
+          "source_video": "source_video_028",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    }
+  ]
+}

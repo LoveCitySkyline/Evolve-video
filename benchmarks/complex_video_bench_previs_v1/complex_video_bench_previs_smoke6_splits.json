@@ -1,0 +1,14 @@
+{
+  "train": [
+    "cvb-previs-gallery-doorway-orbit",
+    "cvb-previs-porter-pillar-luggage"
+  ],
+  "validation": [
+    "cvb-previs-model-street-crane",
+    "cvb-previs-conveyor-tunnel-marked-crate"
+  ],
+  "test": [
+    "cvb-previs-desk-object-parallax",
+    "cvb-previs-cart-behind-divider"
+  ]
+}

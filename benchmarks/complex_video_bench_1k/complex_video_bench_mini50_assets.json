@@ -1,0 +1,90 @@
+{
+  "description": "Logical source-video/audio assets referenced by this ComplexVideoBench subset.",
+  "assets": [
+    {
+      "asset_id": "audio_track_006",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_010",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_015",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_001",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_004",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_010",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_012",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_018",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_019",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_004",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_006",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_015",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_016",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_018",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_020",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_027",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_028",
+      "type": "source_video",
+      "path": null
+    }
+  ]
+}

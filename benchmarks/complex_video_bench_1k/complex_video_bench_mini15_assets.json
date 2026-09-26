@@ -1,0 +1,30 @@
+{
+  "description": "Logical source-video/audio assets referenced by this ComplexVideoBench subset.",
+  "assets": [
+    {
+      "asset_id": "audio_track_006",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_010",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_018",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_016",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_027",
+      "type": "source_video",
+      "path": null
+    }
+  ]
+}

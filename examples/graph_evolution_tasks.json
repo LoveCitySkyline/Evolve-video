@@ -1,0 +1,44 @@
+[
+  {
+    "task_id": "graph-red-coat-multishot-identity",
+    "prompt": "The same woman in a bright red coat appears across three scenes: she walks through a station, then turns to camera, then waves while keeping the same face and coat color.",
+    "mode": "generation",
+    "duration_seconds": 6,
+    "metadata": {
+      "vbench_dimension": "subject_consistency",
+      "expected_failure_modes": ["identity_drift", "clothing_color_drift"]
+    }
+  },
+  {
+    "task_id": "graph-chef-ordered-actions",
+    "prompt": "A chef places a tomato on a board, slices it, pushes it into a pan, and stirs in the correct order with no skipped action.",
+    "mode": "generation",
+    "duration_seconds": 6,
+    "metadata": {
+      "vbench_dimension": "human_action",
+      "expected_failure_modes": ["motion_mismatch"]
+    }
+  },
+  {
+    "task_id": "graph-source-video-to-anime-style",
+    "prompt": "Convert the source video into a clean anime style while preserving the original person, camera motion, action timing, and background layout without temporal flicker.",
+    "mode": "editing",
+    "duration_seconds": 6,
+    "reference_video": "examples/assets/source_video_placeholder.mp4",
+    "metadata": {
+      "vbench_dimension": "appearance_style",
+      "target_style": "anime",
+      "expected_failure_modes": ["style_drift", "temporal_flicker"]
+    }
+  },
+  {
+    "task_id": "graph-region-car-edit-preserve-background",
+    "prompt": "Change only the red car to blue while keeping every person, building, sign, shadow, and background region unchanged.",
+    "mode": "editing",
+    "duration_seconds": 6,
+    "metadata": {
+      "vbench_dimension": "background_consistency",
+      "expected_failure_modes": ["editing_leakage"]
+    }
+  }
+]

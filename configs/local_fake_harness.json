@@ -1,0 +1,33 @@
+{
+  "name": "local_fake_harness",
+  "output_dir": "outputs/harness_local_fake",
+  "task_files": [
+    "benchmarks/video_skill_graph_core.json"
+  ],
+  "limit_per_suite": 4,
+  "max_candidates": 8,
+  "min_quality_gain": 0.02,
+  "evolution_iterations": 5,
+  "frontier_size": 3,
+  "no_improvement_limit": 3,
+  "selection_strategy": "round_robin",
+  "categories_per_batch": 3,
+  "samples_per_category": 1,
+  "cache_enabled": true,
+  "auto_consolidate_foundation": true,
+  "min_support": 2,
+  "min_utility": 0.0,
+  "max_motif_size": 4,
+  "max_foundation_skills": 5,
+  "ablations": [
+    "full",
+    "no_foundation",
+    "low_threshold"
+  ],
+  "runtime": {
+    "provider": "local-fake",
+    "duration": 6,
+    "strict_eval": true,
+    "evolve_on_lte_095": true
+  }
+}

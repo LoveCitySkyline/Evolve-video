@@ -1,0 +1,32 @@
+{
+  "task_count": 50,
+  "family_counts": {
+    "audio_video_sync": 3,
+    "camera_control": 5,
+    "compositional_editing": 6,
+    "long_horizon_causal": 8,
+    "multi_character_interaction": 6,
+    "multi_shot_identity": 10,
+    "physical_dynamics": 4,
+    "video_stylization": 8
+  },
+  "split_counts": {
+    "test": 11,
+    "train": 28,
+    "validation": 11
+  },
+  "mode_counts": {
+    "editing": 14,
+    "generation": 36
+  },
+  "difficulty_counts": {
+    "1": 10,
+    "2": 10,
+    "3": 10,
+    "4": 10,
+    "5": 10
+  },
+  "asset_required_count": 17,
+  "scenario_group_count": 50,
+  "prompt_sha256": "351b8c92e9680cdd1d5cc8461a0aa434ce715e3399674ba2e1ddbeb0c8727ce0"
+}

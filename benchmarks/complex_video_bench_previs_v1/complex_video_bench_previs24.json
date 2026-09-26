@@ -1,0 +1,2510 @@
+{
+  "name": "complex_video_bench_previs24",
+  "version": "previs-briefs-v1.0",
+  "description": "Original public-brief tasks for evaluating controllable video tool paths. No solver is prescribed, no reference assets are required, no Blender integration is installed by this pack.",
+  "tags": [
+    "complexbench-extension",
+    "previs",
+    "operator-neutral",
+    "semantic-proxy",
+    "pilot"
+  ],
+  "provenance": {
+    "ai_assisted": true,
+    "original_synthetic_briefs": true,
+    "measured_results": false,
+    "source_example_prompts_copied": false,
+    "workflow_sources": [
+      {
+        "url": "https://seed.bytedance.com/en/blog/one-take-creation-flexible-referencing-introducing-seedance-2-5",
+        "role": "Official white-model, multimodal reference and editing workflow motivation"
+      },
+      {
+        "url": "https://github.com/wassermanproductions/blockout",
+        "role": "Author-maintained example of exportable previs motion-reference assets and agent-facing controls"
+      },
+      {
+        "url": "https://arxiv.org/abs/2311.12631",
+        "role": "Earlier GPT4Motion precedent for LLM-scripted Blender conditioning; not a novel idea claimed here"
+      }
+    ]
+  },
+  "protocol": {
+    "split_policy": "independent_scenarios_one_per_family_per_split",
+    "assets_track": "text_brief_only",
+    "quality_weight": 0.6,
+    "semantic_task_weight": 0.4,
+    "blender_or_seedance_required": false,
+    "official_leaderboard_comparable": false,
+    "same_brief_and_budget_for_all_methods": true,
+    "automatic_precision_verifier_implemented": false
+  },
+  "tasks": [
+    {
+      "task_id": "cvb-previs-gallery-doorway-orbit",
+      "prompt": "Create a 12-second video. A compact gallery has one rectangular doorway, a stationary spiral sculpture on a round plinth, and a red bench behind it. The sculpture never moves.\nUse a single continuous take with no cuts.\n0-4 seconds: Start outside the doorway and dolly through its center toward the sculpture.\n4-8 seconds: Arc around the sculpture to the viewer's right, revealing the red bench behind it.\n8-12 seconds: Rise gently to a high oblique view while keeping the same plinth in frame; settle without a cut.\nRequired invariants: Only the camera moves; the sculpture, plinth and bench stay fixed in world space. The doorway is crossed once, not replaced by a different opening. Perspective and occlusion change continuously rather than by morphing the room.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_camera_choreography",
+        "task_family": "previs_camera_choreography",
+        "split": "train",
+        "scenario_group": "previs_gallery-doorway-orbit",
+        "title": "Doorway entry and sculpture orbit",
+        "constraints": [
+          "Only the camera moves; the sculpture, plinth and bench stay fixed in world space.",
+          "The doorway is crossed once, not replaced by a different opening.",
+          "Perspective and occlusion change continuously rather than by morphing the room."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Start outside the doorway and dolly through its center toward the sculpture."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Arc around the sculpture to the viewer's right, revealing the red bench behind it."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Rise gently to a high oblique view while keeping the same plinth in frame; settle without a cut."
+          }
+        ],
+        "temporal_steps": [
+          "Start outside the doorway and dolly through its center toward the sculpture.",
+          "Arc around the sculpture to the viewer's right, revealing the red bench behind it.",
+          "Rise gently to a high oblique view while keeping the same plinth in frame; settle without a cut."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "camera_stage_order": {
+            "description": "The doorway entry, lateral arc and rise occur in the requested order; penalize missing or reversed stages. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "world_layout_stability": {
+            "description": "The bench and plinth retain their room-relative positions; penalize sliding furniture or rebuilt walls. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "continuous_perspective": {
+            "description": "Views evolve through coherent perspective with the sculpture retained; penalize cuts and geometric morphs. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "camera_stage_order",
+          "world_layout_stability",
+          "continuous_perspective"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-model-street-crane",
+      "prompt": "Create a 12-second video. A miniature street contains a blue kiosk in front of a low brick building. A yellow water tank sits on the building's flat roof. All objects are stationary.\nUse a single continuous take with no cuts.\n0-4 seconds: Track laterally at kiosk height with the roof tank hidden by the building edge.\n4-8 seconds: Crane upward without crossing through the building until the tank becomes visible.\n8-12 seconds: Move slightly forward into a downward-looking view containing kiosk, roof and tank together.\nRequired invariants: The tank must be revealed by the viewpoint change, not appear from nowhere. The kiosk remains outside and in front of the same building. The camera never passes through solid walls or the roof.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_camera_choreography",
+        "task_family": "previs_camera_choreography",
+        "split": "validation",
+        "scenario_group": "previs_model-street-crane",
+        "title": "Street-level to rooftop reveal",
+        "constraints": [
+          "The tank must be revealed by the viewpoint change, not appear from nowhere.",
+          "The kiosk remains outside and in front of the same building.",
+          "The camera never passes through solid walls or the roof."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Track laterally at kiosk height with the roof tank hidden by the building edge."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Crane upward without crossing through the building until the tank becomes visible."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Move slightly forward into a downward-looking view containing kiosk, roof and tank together."
+          }
+        ],
+        "temporal_steps": [
+          "Track laterally at kiosk height with the roof tank hidden by the building edge.",
+          "Crane upward without crossing through the building until the tank becomes visible.",
+          "Move slightly forward into a downward-looking view containing kiosk, roof and tank together."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "motivated_reveal": {
+            "description": "The rise explains the tank's progressive appearance; penalize spontaneous appearance. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "camera_stage_order": {
+            "description": "Lateral tracking precedes rising and the final downward view. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "solid_scene_continuity": {
+            "description": "The camera route and building remain visually coherent without wall penetration or layout resets. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "motivated_reveal",
+          "camera_stage_order",
+          "solid_scene_continuity"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-desk-object-parallax",
+      "prompt": "Create a 12-second video. A desk holds a tall glass bottle near the front edge, a small brass clock behind it, and a closed notebook farther back. The desk and its objects remain motionless.\nUse a single continuous take with no cuts.\n0-4 seconds: Begin low with the bottle partly hiding the clock, then slide left to uncover the clock through parallax.\n4-8 seconds: Push toward the clock while keeping the bottle visible near the frame edge.\n8-12 seconds: Lift and tilt down into a near-overhead view that shows all three objects and their original spacing.\nRequired invariants: The clock is uncovered by camera motion, not object motion. Bottle, clock and notebook keep their desk-relative arrangement. The final view comes from the same continuous camera move.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_camera_choreography",
+        "task_family": "previs_camera_choreography",
+        "split": "test",
+        "scenario_group": "previs_desk-object-parallax",
+        "title": "Foreground parallax and terminal overhead view",
+        "constraints": [
+          "The clock is uncovered by camera motion, not object motion.",
+          "Bottle, clock and notebook keep their desk-relative arrangement.",
+          "The final view comes from the same continuous camera move."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Begin low with the bottle partly hiding the clock, then slide left to uncover the clock through parallax."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Push toward the clock while keeping the bottle visible near the frame edge."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Lift and tilt down into a near-overhead view that shows all three objects and their original spacing."
+          }
+        ],
+        "temporal_steps": [
+          "Begin low with the bottle partly hiding the clock, then slide left to uncover the clock through parallax.",
+          "Push toward the clock while keeping the bottle visible near the frame edge.",
+          "Lift and tilt down into a near-overhead view that shows all three objects and their original spacing."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "parallax_reveal": {
+            "description": "The foreground bottle and rear clock shift coherently with camera motion; penalize moving the objects to fake a reveal. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "camera_stage_order": {
+            "description": "Uncover, push toward the clock and overhead reveal occur in order. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "object_layout_persistence": {
+            "description": "Exactly the same three objects retain their arrangement and appearance. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "parallax_reveal",
+          "camera_stage_order",
+          "object_layout_persistence"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-porter-pillar-luggage",
+      "prompt": "Create a 12-second video. A porter in a red jacket pulls one yellow suitcase from screen left to right through a station. A wide foreground stone pillar blocks the middle of the route. The camera is fixed.\nUse a single continuous take with no cuts.\n0-4 seconds: The porter and suitcase approach the pillar, with a black stripe on the suitcase clearly visible.\n4-8 seconds: The porter and then the suitcase become completely hidden behind the pillar.\n8-12 seconds: They emerge from the opposite side in the same walking order, and the porter stops beside a fixed blue bench.\nRequired invariants: The same porter, jacket and striped suitcase reappear. There is exactly one suitcase throughout visible intervals. The route continues left to right; nobody returns from the entry side.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_occlusion_reentry",
+        "task_family": "previs_occlusion_reentry",
+        "split": "train",
+        "scenario_group": "previs_porter-pillar-luggage",
+        "title": "Porter reappears with unchanged luggage",
+        "constraints": [
+          "The same porter, jacket and striped suitcase reappear.",
+          "There is exactly one suitcase throughout visible intervals.",
+          "The route continues left to right; nobody returns from the entry side."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The porter and suitcase approach the pillar, with a black stripe on the suitcase clearly visible."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The porter and then the suitcase become completely hidden behind the pillar."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "They emerge from the opposite side in the same walking order, and the porter stops beside a fixed blue bench."
+          }
+        ],
+        "temporal_steps": [
+          "The porter and suitcase approach the pillar, with a black stripe on the suitcase clearly visible.",
+          "The porter and then the suitcase become completely hidden behind the pillar.",
+          "They emerge from the opposite side in the same walking order, and the porter stops beside a fixed blue bench."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "occlusion_identity": {
+            "description": "Visible appearance before and after the hidden interval matches. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "route_continuity": {
+            "description": "Approach, complete occlusion and exit occur on a single consistent route. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "prop_persistence": {
+            "description": "The porter retains the same single suitcase without duplication or disappearance after re-entry. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "occlusion_identity",
+          "route_continuity",
+          "prop_persistence"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-conveyor-tunnel-marked-crate",
+      "prompt": "Create a 12-second video. A fixed side view shows one conveyor entering a short opaque tunnel. A square wooden crate with a red diagonal stripe travels toward it. A blue inspection tray sits beyond the exit.\nUse a single continuous take with no cuts.\n0-4 seconds: Show the striped crate moving toward the tunnel with its orientation clearly visible.\n4-8 seconds: The crate disappears fully inside; the tunnel remains opaque and the belt continues moving.\n8-12 seconds: The same crate exits without rotating and comes to rest beside the inspection tray.\nRequired invariants: The tunnel does not become transparent or open to show the hidden crate. The crate retains its stripe, dimensions and orientation when it emerges. No second crate appears.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_occlusion_reentry",
+        "task_family": "previs_occlusion_reentry",
+        "split": "validation",
+        "scenario_group": "previs_conveyor-tunnel-marked-crate",
+        "title": "Marked crate through an opaque conveyor tunnel",
+        "constraints": [
+          "The tunnel does not become transparent or open to show the hidden crate.",
+          "The crate retains its stripe, dimensions and orientation when it emerges.",
+          "No second crate appears."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Show the striped crate moving toward the tunnel with its orientation clearly visible."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The crate disappears fully inside; the tunnel remains opaque and the belt continues moving."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The same crate exits without rotating and comes to rest beside the inspection tray."
+          }
+        ],
+        "temporal_steps": [
+          "Show the striped crate moving toward the tunnel with its orientation clearly visible.",
+          "The crate disappears fully inside; the tunnel remains opaque and the belt continues moving.",
+          "The same crate exits without rotating and comes to rest beside the inspection tray."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "hidden_interval": {
+            "description": "A genuine fully hidden interval occurs between entry and exit. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "occlusion_identity": {
+            "description": "The crate's visible markings and shape match across occlusion. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "route_and_count": {
+            "description": "One crate follows the conveyor to the exit and stops without teleporting or multiplying. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "hidden_interval",
+          "occlusion_identity",
+          "route_and_count"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-cart-behind-divider",
+      "prompt": "Create a 12-second video. A fixed wide view shows a green service cart carrying a tall red cylinder and a short blue box. A worker pushes it behind an opaque room divider toward an open exit on the right.\nUse a single continuous take with no cuts.\n0-4 seconds: The cart approaches the divider with the red cylinder nearer the worker than the blue box.\n4-8 seconds: The whole cart is hidden behind the divider while the worker also passes behind it.\n8-12 seconds: Worker and cart emerge on the right and turn slightly toward the camera without disturbing the load.\nRequired invariants: The two carried objects retain their order on the cart. The worker and cart keep their identities across the hidden interval. The load remains supported rather than floating beside the cart.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_occlusion_reentry",
+        "task_family": "previs_occlusion_reentry",
+        "split": "test",
+        "scenario_group": "previs_cart-behind-divider",
+        "title": "Loaded cart behind a room divider",
+        "constraints": [
+          "The two carried objects retain their order on the cart.",
+          "The worker and cart keep their identities across the hidden interval.",
+          "The load remains supported rather than floating beside the cart."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The cart approaches the divider with the red cylinder nearer the worker than the blue box."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The whole cart is hidden behind the divider while the worker also passes behind it."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Worker and cart emerge on the right and turn slightly toward the camera without disturbing the load."
+          }
+        ],
+        "temporal_steps": [
+          "The cart approaches the divider with the red cylinder nearer the worker than the blue box.",
+          "The whole cart is hidden behind the divider while the worker also passes behind it.",
+          "Worker and cart emerge on the right and turn slightly toward the camera without disturbing the load."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "load_state_persistence": {
+            "description": "Both objects reappear in their original cart-relative positions. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "occlusion_identity": {
+            "description": "Worker and cart match before and after the divider. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "supported_motion": {
+            "description": "Visible objects move with the cart and remain supported through the turn. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "load_state_persistence",
+          "occlusion_identity",
+          "supported_motion"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-workshop-three-routes",
+      "prompt": "Create a 12-second video. A fixed elevated view shows a rectangular workbench. A worker in red starts at its left end, one in blue at its right end, and one in green at its far side.\nUse a single continuous take with no cuts.\n0-4 seconds: Red walks along the near side toward the right end while blue waits.\n4-8 seconds: Blue walks around the far side toward the left end as green steps backward to give space.\n8-12 seconds: Red and blue stop at opposite ends; green returns to the far-side center and raises one hand.\nRequired invariants: Clothing colors stay bound to their original people. Workers route around the table, never through it or each other. The workbench remains fixed and the actions stay assigned to the named colors.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_multi_actor_blocking",
+        "task_family": "previs_multi_actor_blocking",
+        "split": "train",
+        "scenario_group": "previs_workshop-three-routes",
+        "title": "Three workers around one fixed workbench",
+        "constraints": [
+          "Clothing colors stay bound to their original people.",
+          "Workers route around the table, never through it or each other.",
+          "The workbench remains fixed and the actions stay assigned to the named colors."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Red walks along the near side toward the right end while blue waits."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Blue walks around the far side toward the left end as green steps backward to give space."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Red and blue stop at opposite ends; green returns to the far-side center and raises one hand."
+          }
+        ],
+        "temporal_steps": [
+          "Red walks along the near side toward the right end while blue waits.",
+          "Blue walks around the far side toward the left end as green steps backward to give space.",
+          "Red and blue stop at opposite ends; green returns to the far-side center and raises one hand."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "actor_action_binding": {
+            "description": "Each colored worker performs only the assigned actions. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "collision_free_blocking": {
+            "description": "Visible walking routes respect the table and other people. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "final_arrangement": {
+            "description": "The requested opposite-end and far-side arrangement is visibly reached. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "actor_action_binding",
+          "collision_free_blocking",
+          "final_arrangement"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-dance-crossing-lanes",
+      "prompt": "Create a 12-second video. A fixed front view shows two performers on a stage: a white-jacket performer at front-left and a black-jacket performer at rear-right. A single yellow floor disc marks center stage.\nUse a single continuous take with no cuts.\n0-4 seconds: White travels toward front-right while black travels toward rear-left.\n4-8 seconds: They cross in screen projection near the disc, with white visibly passing in front of black and no physical contact.\n8-12 seconds: Both stop at their new sides, turn toward the center disc and bow together.\nRequired invariants: The performers remain on separate front and rear lanes during the crossing. Their jackets and identities never swap. The center disc stays fixed; the camera does not move.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_multi_actor_blocking",
+        "task_family": "previs_multi_actor_blocking",
+        "split": "validation",
+        "scenario_group": "previs_dance-crossing-lanes",
+        "title": "Depth-separated crossing and synchronized stop",
+        "constraints": [
+          "The performers remain on separate front and rear lanes during the crossing.",
+          "Their jackets and identities never swap.",
+          "The center disc stays fixed; the camera does not move."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "White travels toward front-right while black travels toward rear-left."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "They cross in screen projection near the disc, with white visibly passing in front of black and no physical contact."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Both stop at their new sides, turn toward the center disc and bow together."
+          }
+        ],
+        "temporal_steps": [
+          "White travels toward front-right while black travels toward rear-left.",
+          "They cross in screen projection near the disc, with white visibly passing in front of black and no physical contact.",
+          "Both stop at their new sides, turn toward the center disc and bow together."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "depth_order": {
+            "description": "The white performer visibly occludes the black performer at the projected crossing. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "identity_and_route_binding": {
+            "description": "Each performer reaches the correct opposite side without identity swaps. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "coordinated_finish": {
+            "description": "Both stop, turn toward the same disc and visibly bow together. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "depth_order",
+          "identity_and_route_binding",
+          "coordinated_finish"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-cafe-yield-at-door",
+      "prompt": "Create a 12-second video. A fixed oblique view shows a narrow cafe doorway. A server in a blue apron approaches from inside carrying an empty tray. A customer in a yellow coat approaches from outside, and a seated customer in red remains beside the door.\nUse a single continuous take with no cuts.\n0-4 seconds: Server and yellow-coated customer approach from opposite sides and notice the narrow passage.\n4-8 seconds: The yellow-coated customer steps aside and waits while the server exits with the tray.\n8-12 seconds: Only after the server clears the doorway does the yellow-coated customer enter; the red customer remains seated.\nRequired invariants: The two walking people never overlap in the doorway. The blue-apron server keeps the tray; the yellow customer never takes it. The seated red customer does not join either walking route.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_multi_actor_blocking",
+        "task_family": "previs_multi_actor_blocking",
+        "split": "test",
+        "scenario_group": "previs_cafe-yield-at-door",
+        "title": "Yielding at a narrow doorway",
+        "constraints": [
+          "The two walking people never overlap in the doorway.",
+          "The blue-apron server keeps the tray; the yellow customer never takes it.",
+          "The seated red customer does not join either walking route."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Server and yellow-coated customer approach from opposite sides and notice the narrow passage."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The yellow-coated customer steps aside and waits while the server exits with the tray."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Only after the server clears the doorway does the yellow-coated customer enter; the red customer remains seated."
+          }
+        ],
+        "temporal_steps": [
+          "Server and yellow-coated customer approach from opposite sides and notice the narrow passage.",
+          "The yellow-coated customer steps aside and waits while the server exits with the tray.",
+          "Only after the server clears the doorway does the yellow-coated customer enter; the red customer remains seated."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "yielding_order": {
+            "description": "Waiting, server exit and customer entry occur in that causal order. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "actor_action_binding": {
+            "description": "Each person retains the assigned role, appearance and prop relationship. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "passage_plausibility": {
+            "description": "Both routes visibly respect the doorway's limited space. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "yielding_order",
+          "actor_action_binding",
+          "passage_plausibility"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-cup-handover",
+      "prompt": "Create a 12-second video. A fixed medium view shows a red-sleeved person holding one blue cup by its handle and a green-sleeved person with empty hands. Both hands and the cup remain visible.\nUse a single continuous take with no cuts.\n0-4 seconds: Red extends the cup toward green while still supporting it.\n4-8 seconds: Green grasps the cup body before red releases the handle.\n8-12 seconds: Red withdraws an empty hand; green places the same cup on a small table.\nRequired invariants: There is exactly one blue cup. The cup stays supported through the handover. Ownership changes only after a visible receiving grasp.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_contact_and_transfer",
+        "task_family": "previs_contact_and_transfer",
+        "split": "train",
+        "scenario_group": "previs_cup-handover",
+        "title": "Visible two-person cup handover",
+        "constraints": [
+          "There is exactly one blue cup.",
+          "The cup stays supported through the handover.",
+          "Ownership changes only after a visible receiving grasp."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Red extends the cup toward green while still supporting it."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Green grasps the cup body before red releases the handle."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Red withdraws an empty hand; green places the same cup on a small table."
+          }
+        ],
+        "temporal_steps": [
+          "Red extends the cup toward green while still supporting it.",
+          "Green grasps the cup body before red releases the handle.",
+          "Red withdraws an empty hand; green places the same cup on a small table."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "contact_order": {
+            "description": "Receiving grasp precedes donor release in the visible sequence. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "ownership_transition": {
+            "description": "Support passes from red to green and then to the table. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "single_prop_persistence": {
+            "description": "One unchanged cup persists without duplication, disappearance or long unsupported flight. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "contact_order",
+          "ownership_transition",
+          "single_prop_persistence"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-magnet-lift-and-release",
+      "prompt": "Create a 12-second video. A fixed close view shows a small electromagnet on a vertical arm above one steel washer on a wooden platform. A shallow receiving dish is beside the platform.\nUse a single continuous take with no cuts.\n0-4 seconds: The arm lowers until the magnet contacts the washer.\n4-8 seconds: The arm lifts with the washer attached and translates over the receiving dish.\n8-12 seconds: The magnet releases the washer into the dish; the arm rises empty.\nRequired invariants: The washer is picked up only after contact. One washer stays attached during the supported transfer. After release, the washer remains in the dish and the magnet is empty.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_contact_and_transfer",
+        "task_family": "previs_contact_and_transfer",
+        "split": "validation",
+        "scenario_group": "previs_magnet-lift-and-release",
+        "title": "Magnetic pickup with a controlled release",
+        "constraints": [
+          "The washer is picked up only after contact.",
+          "One washer stays attached during the supported transfer.",
+          "After release, the washer remains in the dish and the magnet is empty."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The arm lowers until the magnet contacts the washer."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The arm lifts with the washer attached and translates over the receiving dish."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The magnet releases the washer into the dish; the arm rises empty."
+          }
+        ],
+        "temporal_steps": [
+          "The arm lowers until the magnet contacts the washer.",
+          "The arm lifts with the washer attached and translates over the receiving dish.",
+          "The magnet releases the washer into the dish; the arm rises empty."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "contact_order": {
+            "description": "Lowering and contact occur before pickup, followed by transport and release. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "attachment_state": {
+            "description": "The washer remains attached during travel and detaches only over the dish. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "object_conservation": {
+            "description": "The same single washer ends in the receiving dish. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "contact_order",
+          "attachment_state",
+          "object_conservation"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-book-shelf-support",
+      "prompt": "Create a 12-second video. A fixed close oblique view shows a person holding one thick red book horizontally with both hands in front of an empty low shelf. Its blue bookmark ribbon is visible.\nUse a single continuous take with no cuts.\n0-4 seconds: The person moves the book toward the shelf with both hands supporting it.\n4-8 seconds: The book's lower surface contacts the shelf, then the far hand withdraws while the near hand steadies it.\n8-12 seconds: The near hand releases last; both hands move away while the book stays on the shelf.\nRequired invariants: Shelf contact precedes the final hand release. The book retains its red cover and blue ribbon. The book neither passes through the shelf nor remains suspended after release.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_contact_and_transfer",
+        "task_family": "previs_contact_and_transfer",
+        "split": "test",
+        "scenario_group": "previs_book-shelf-support",
+        "title": "Two-handed book placement onto a shelf",
+        "constraints": [
+          "Shelf contact precedes the final hand release.",
+          "The book retains its red cover and blue ribbon.",
+          "The book neither passes through the shelf nor remains suspended after release."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The person moves the book toward the shelf with both hands supporting it."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The book's lower surface contacts the shelf, then the far hand withdraws while the near hand steadies it."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The near hand releases last; both hands move away while the book stays on the shelf."
+          }
+        ],
+        "temporal_steps": [
+          "The person moves the book toward the shelf with both hands supporting it.",
+          "The book's lower surface contacts the shelf, then the far hand withdraws while the near hand steadies it.",
+          "The near hand releases last; both hands move away while the book stays on the shelf."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "support_transition": {
+            "description": "Support visibly transfers from two hands to shelf plus hand and finally shelf only. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "contact_plausibility": {
+            "description": "The book rests on the shelf rather than intersecting or floating beside it. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "prop_identity": {
+            "description": "One book with the same cover and ribbon persists throughout. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "support_transition",
+          "contact_plausibility",
+          "prop_identity"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-domino-ramp-bell",
+      "prompt": "Create a 12-second video. A fixed tabletop view shows a short row of upright dominoes leading to a hinged gate. One ball waits behind the gate at the top of a short ramp, with a catch tray below.\nUse a single continuous take with no cuts.\n0-4 seconds: A finger taps the first domino; the others start falling in sequence.\n4-8 seconds: The last domino knocks the gate open, releasing the previously stationary ball.\n8-12 seconds: The ball rolls down the ramp into the catch tray while the fallen dominoes remain down.\nRequired invariants: The ball cannot leave before the gate opens. The domino wave moves from the tapped end toward the gate. No mechanism resets after it has triggered.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_causal_mechanisms",
+        "task_family": "previs_causal_mechanisms",
+        "split": "train",
+        "scenario_group": "previs_domino-ramp-bell",
+        "title": "Domino trigger releases a ramp ball",
+        "constraints": [
+          "The ball cannot leave before the gate opens.",
+          "The domino wave moves from the tapped end toward the gate.",
+          "No mechanism resets after it has triggered."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "A finger taps the first domino; the others start falling in sequence."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The last domino knocks the gate open, releasing the previously stationary ball."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The ball rolls down the ramp into the catch tray while the fallen dominoes remain down."
+          }
+        ],
+        "temporal_steps": [
+          "A finger taps the first domino; the others start falling in sequence.",
+          "The last domino knocks the gate open, releasing the previously stationary ball.",
+          "The ball rolls down the ramp into the catch tray while the fallen dominoes remain down."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "causal_order": {
+            "description": "Domino fall, gate opening and ball release follow the required dependency order. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "state_persistence": {
+            "description": "Fallen dominoes and opened gate retain their final state. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "continuous_object_motion": {
+            "description": "The single ball visibly traverses the ramp into the tray without teleportation. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "causal_order",
+          "state_persistence",
+          "continuous_object_motion"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-lever-lifts-barrier",
+      "prompt": "Create a 12-second video. A fixed side view shows a miniature trolley stopped behind a lowered barrier. A visible connecting rod links the barrier to a lever beside the track.\nUse a single continuous take with no cuts.\n0-4 seconds: The trolley remains still while a hand approaches and grips the lever.\n4-8 seconds: The hand pulls the lever; the rod moves and the barrier rises fully.\n8-12 seconds: The trolley moves under the raised barrier and stops on the other side.\nRequired invariants: The trolley waits until there is visible clearance. Lever, rod and barrier remain connected throughout their motion. The trolley does not pass through the barrier.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_causal_mechanisms",
+        "task_family": "previs_causal_mechanisms",
+        "split": "validation",
+        "scenario_group": "previs_lever-lifts-barrier",
+        "title": "Lever opens a barrier before a trolley moves",
+        "constraints": [
+          "The trolley waits until there is visible clearance.",
+          "Lever, rod and barrier remain connected throughout their motion.",
+          "The trolley does not pass through the barrier."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The trolley remains still while a hand approaches and grips the lever."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The hand pulls the lever; the rod moves and the barrier rises fully."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The trolley moves under the raised barrier and stops on the other side."
+          }
+        ],
+        "temporal_steps": [
+          "The trolley remains still while a hand approaches and grips the lever.",
+          "The hand pulls the lever; the rod moves and the barrier rises fully.",
+          "The trolley moves under the raised barrier and stops on the other side."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "causal_order": {
+            "description": "Lever movement precedes barrier opening and trolley passage. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "mechanical_linkage": {
+            "description": "Visible connected parts move coherently rather than independently teleporting. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "barrier_clearance": {
+            "description": "The trolley passes only through the open gap and retains its shape. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "causal_order",
+          "mechanical_linkage",
+          "barrier_clearance"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-waterwheel-drives-flag",
+      "prompt": "Create a 12-second video. A fixed view shows a small waterwheel connected by two visibly meshing gears to a flag spindle. A closed tap is above the wheel, and the flag is initially still.\nUse a single continuous take with no cuts.\n0-4 seconds: The tap opens and a stream descends toward the stationary wheel.\n4-8 seconds: Water reaches the paddles; the wheel and connected gears begin turning.\n8-12 seconds: The flag spindle turns with the gears while water continues to drive the wheel.\nRequired invariants: The mechanism stays still before water reaches the paddles. The gears remain meshed rather than drifting apart. The flag's motion is mechanically connected to the wheel, not an unrelated animation.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_causal_mechanisms",
+        "task_family": "previs_causal_mechanisms",
+        "split": "test",
+        "scenario_group": "previs_waterwheel-drives-flag",
+        "title": "Water flow starts a visible geared mechanism",
+        "constraints": [
+          "The mechanism stays still before water reaches the paddles.",
+          "The gears remain meshed rather than drifting apart.",
+          "The flag's motion is mechanically connected to the wheel, not an unrelated animation."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The tap opens and a stream descends toward the stationary wheel."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Water reaches the paddles; the wheel and connected gears begin turning."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The flag spindle turns with the gears while water continues to drive the wheel."
+          }
+        ],
+        "temporal_steps": [
+          "The tap opens and a stream descends toward the stationary wheel.",
+          "Water reaches the paddles; the wheel and connected gears begin turning.",
+          "The flag spindle turns with the gears while water continues to drive the wheel."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "trigger_order": {
+            "description": "Water arrival precedes wheel, gear and flag motion. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "linked_motion": {
+            "description": "The visible wheel, gears and spindle maintain a coherent connected motion. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "scene_persistence": {
+            "description": "The same mechanism remains spatially stable without disappearing components. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "trigger_order",
+          "linked_motion",
+          "scene_persistence"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-workshop-three-views",
+      "prompt": "Create a 12-second video. A workshop contains a central square table, a window on its north wall and a blue cabinet on its east wall. A mechanic in gray places a red toolbox on the table's east edge.\nUse the shot transitions explicitly requested in the timeline.\n0-4 seconds: Shot one, from the south: establish the window, cabinet and mechanic approaching with the toolbox.\n4-8 seconds: Shot two, from the west: show the mechanic setting the toolbox on the table's east edge beside the cabinet side.\n8-12 seconds: Shot three, from above: show the same table, toolbox at its east edge, cabinet to its east and window to its north.\nRequired invariants: North and east denote fixed room directions, not screen directions. The toolbox changes location only through the visible placement action. The mechanic and furniture retain their identities across all three cuts.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_multishot_spatial_continuity",
+        "task_family": "previs_multishot_spatial_continuity",
+        "split": "train",
+        "scenario_group": "previs_workshop-three-views",
+        "title": "One workshop action across three viewpoints",
+        "constraints": [
+          "North and east denote fixed room directions, not screen directions.",
+          "The toolbox changes location only through the visible placement action.",
+          "The mechanic and furniture retain their identities across all three cuts."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Shot one, from the south: establish the window, cabinet and mechanic approaching with the toolbox."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Shot two, from the west: show the mechanic setting the toolbox on the table's east edge beside the cabinet side."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Shot three, from above: show the same table, toolbox at its east edge, cabinet to its east and window to its north."
+          }
+        ],
+        "temporal_steps": [
+          "Shot one, from the south: establish the window, cabinet and mechanic approaching with the toolbox.",
+          "Shot two, from the west: show the mechanic setting the toolbox on the table's east edge beside the cabinet side.",
+          "Shot three, from above: show the same table, toolbox at its east edge, cabinet to its east and window to its north."
+        ],
+        "camera_plan": {
+          "continuous_take": false
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "world_layout_consistency": {
+            "description": "The three views describe the same room-relative window, cabinet and table arrangement. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "prop_state_continuity": {
+            "description": "The toolbox is carried before placement and stays at the east edge afterward. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "view_and_action_coverage": {
+            "description": "The south, west and overhead shots depict their assigned action stages. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "world_layout_consistency",
+          "prop_state_continuity",
+          "view_and_action_coverage"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": false,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        },
+        "h3_global_constraints": "A workshop contains a central square table, a window on its north wall and a blue cabinet on its east wall. A mechanic in gray places a red toolbox on the table's east edge. North and east denote fixed room directions, not screen directions. The toolbox changes location only through the visible placement action. The mechanic and furniture retain their identities across all three cuts.",
+        "h3_shots": [
+          {
+            "prompt": "Shot one, from the south: establish the window, cabinet and mechanic approaching with the toolbox.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot two, from the west: show the mechanic setting the toolbox on the table's east edge beside the cabinet side.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot three, from above: show the same table, toolbox at its east edge, cabinet to its east and window to its north.",
+            "duration_seconds": 4
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-previs-platform-bench-orientation",
+      "prompt": "Create a 12-second video. A station platform has a clock tower at its north end and a ticket booth at its south end. A green bench faces the tracks to the east. One passenger with a yellow bag walks north beside the bench.\nUse the shot transitions explicitly requested in the timeline.\n0-4 seconds: Shot one, looking north: establish the passenger moving away from the ticket booth toward the clock tower.\n4-8 seconds: Shot two, looking south from beyond the bench: show the same northbound passenger approaching the camera and stopping beside the bench.\n8-12 seconds: Shot three, a high view: reveal the clock north, booth south, tracks east and passenger beside the unchanged bench.\nRequired invariants: The passenger remains northbound despite the reversed screen-facing direction. The bench continues facing the same tracks. The yellow bag remains with the passenger across the cuts.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_multishot_spatial_continuity",
+        "task_family": "previs_multishot_spatial_continuity",
+        "split": "validation",
+        "scenario_group": "previs_platform-bench-orientation",
+        "title": "Platform geography across reverse views",
+        "constraints": [
+          "The passenger remains northbound despite the reversed screen-facing direction.",
+          "The bench continues facing the same tracks.",
+          "The yellow bag remains with the passenger across the cuts."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Shot one, looking north: establish the passenger moving away from the ticket booth toward the clock tower."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Shot two, looking south from beyond the bench: show the same northbound passenger approaching the camera and stopping beside the bench."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Shot three, a high view: reveal the clock north, booth south, tracks east and passenger beside the unchanged bench."
+          }
+        ],
+        "temporal_steps": [
+          "Shot one, looking north: establish the passenger moving away from the ticket booth toward the clock tower.",
+          "Shot two, looking south from beyond the bench: show the same northbound passenger approaching the camera and stopping beside the bench.",
+          "Shot three, a high view: reveal the clock north, booth south, tracks east and passenger beside the unchanged bench."
+        ],
+        "camera_plan": {
+          "continuous_take": false
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "world_direction_consistency": {
+            "description": "The reverse view changes screen direction without reversing the passenger's world route. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "landmark_layout": {
+            "description": "Clock, booth, bench and tracks retain one coherent arrangement. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "identity_and_prop_continuity": {
+            "description": "The same passenger and bag persist through all three views. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "world_direction_consistency",
+          "landmark_layout",
+          "identity_and_prop_continuity"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": false,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        },
+        "h3_global_constraints": "A station platform has a clock tower at its north end and a ticket booth at its south end. A green bench faces the tracks to the east. One passenger with a yellow bag walks north beside the bench. The passenger remains northbound despite the reversed screen-facing direction. The bench continues facing the same tracks. The yellow bag remains with the passenger across the cuts.",
+        "h3_shots": [
+          {
+            "prompt": "Shot one, looking north: establish the passenger moving away from the ticket booth toward the clock tower.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot two, looking south from beyond the bench: show the same northbound passenger approaching the camera and stopping beside the bench.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot three, a high view: reveal the clock north, booth south, tracks east and passenger beside the unchanged bench.",
+            "duration_seconds": 4
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-previs-kitchen-open-drawer",
+      "prompt": "Create a 12-second video. A kitchen island has one drawer on its south face. A red kettle sits at the island's northeast corner and a blue bowl at the northwest corner. A cook stands on the south side.\nUse the shot transitions explicitly requested in the timeline.\n0-4 seconds: Shot one, from the south: show the cook opening the drawer and reaching into it.\n4-8 seconds: Shot two, from the east: show the cook withdrawing a folded white cloth; the drawer stays open.\n8-12 seconds: Shot three, from above: show the cloth in the cook's hands, the open drawer projecting south, and kettle and bowl in their original corners.\nRequired invariants: Drawer, kettle and bowl use fixed island-relative directions. The drawer does not close or move to another face during a cut. There is one cloth, acquired visibly from the drawer.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_multishot_spatial_continuity",
+        "task_family": "previs_multishot_spatial_continuity",
+        "split": "test",
+        "scenario_group": "previs_kitchen-open-drawer",
+        "title": "Persistent drawer state across camera cuts",
+        "constraints": [
+          "Drawer, kettle and bowl use fixed island-relative directions.",
+          "The drawer does not close or move to another face during a cut.",
+          "There is one cloth, acquired visibly from the drawer."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Shot one, from the south: show the cook opening the drawer and reaching into it."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Shot two, from the east: show the cook withdrawing a folded white cloth; the drawer stays open."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Shot three, from above: show the cloth in the cook's hands, the open drawer projecting south, and kettle and bowl in their original corners."
+          }
+        ],
+        "temporal_steps": [
+          "Shot one, from the south: show the cook opening the drawer and reaching into it.",
+          "Shot two, from the east: show the cook withdrawing a folded white cloth; the drawer stays open.",
+          "Shot three, from above: show the cloth in the cook's hands, the open drawer projecting south, and kettle and bowl in their original corners."
+        ],
+        "camera_plan": {
+          "continuous_take": false
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "persistent_mechanical_state": {
+            "description": "The drawer stays open after the opening action across all views. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "world_layout_consistency": {
+            "description": "The drawer face and corner objects remain geometrically coherent across viewpoints. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "action_and_prop_continuity": {
+            "description": "The cloth appears through retrieval and remains with the same cook. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "persistent_mechanical_state",
+          "world_layout_consistency",
+          "action_and_prop_continuity"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": false,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        },
+        "h3_global_constraints": "A kitchen island has one drawer on its south face. A red kettle sits at the island's northeast corner and a blue bowl at the northwest corner. A cook stands on the south side. Drawer, kettle and bowl use fixed island-relative directions. The drawer does not close or move to another face during a cut. There is one cloth, acquired visibly from the drawer.",
+        "h3_shots": [
+          {
+            "prompt": "Shot one, from the south: show the cook opening the drawer and reaching into it.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot two, from the east: show the cook withdrawing a folded white cloth; the drawer stays open.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot three, from above: show the cloth in the cook's hands, the open drawer projecting south, and kettle and bowl in their original corners.",
+            "duration_seconds": 4
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-previs-courtyard-three-mediums",
+      "prompt": "Create a 12-second video. A locked camera frames a courtyard with one central circular fountain, a square doorway behind it and two columns flanking the doorway. No people or moving props are present.\nUse the shot transitions explicitly requested in the timeline.\n0-4 seconds: Shot one shows this composition as photorealistic stone architecture.\n4-8 seconds: At the cut, shot two shows the identical framing and architectural arrangement as clean cel animation.\n8-12 seconds: At the next cut, shot three shows the same arrangement as textured watercolor illustration.\nRequired invariants: The fountain, doorway and two columns keep their count and relative placement. Only the visual medium changes at the two cuts; the camera does not move. Each shot sustains its requested style without reverting mid-shot.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_geometry_style_disentanglement",
+        "task_family": "previs_geometry_style_disentanglement",
+        "split": "train",
+        "scenario_group": "previs_courtyard-three-mediums",
+        "title": "Fixed courtyard rendered in three visual mediums",
+        "constraints": [
+          "The fountain, doorway and two columns keep their count and relative placement.",
+          "Only the visual medium changes at the two cuts; the camera does not move.",
+          "Each shot sustains its requested style without reverting mid-shot."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Shot one shows this composition as photorealistic stone architecture."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "At the cut, shot two shows the identical framing and architectural arrangement as clean cel animation."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "At the next cut, shot three shows the same arrangement as textured watercolor illustration."
+          }
+        ],
+        "temporal_steps": [
+          "Shot one shows this composition as photorealistic stone architecture.",
+          "At the cut, shot two shows the identical framing and architectural arrangement as clean cel animation.",
+          "At the next cut, shot three shows the same arrangement as textured watercolor illustration."
+        ],
+        "camera_plan": {
+          "continuous_take": false
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "structural_invariance": {
+            "description": "Landmark counts, silhouettes and relative placement remain semantically consistent across styles. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "style_sequence": {
+            "description": "Photorealism, cel animation and watercolor are visibly distinct and occur in order. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "framing_and_style_stability": {
+            "description": "Framing remains matched and each shot has stable visual treatment. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "structural_invariance",
+          "style_sequence",
+          "framing_and_style_stability"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": false,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        },
+        "h3_global_constraints": "A locked camera frames a courtyard with one central circular fountain, a square doorway behind it and two columns flanking the doorway. No people or moving props are present. The fountain, doorway and two columns keep their count and relative placement. Only the visual medium changes at the two cuts; the camera does not move. Each shot sustains its requested style without reverting mid-shot.",
+        "h3_shots": [
+          {
+            "prompt": "Shot one shows this composition as photorealistic stone architecture.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "At the cut, shot two shows the identical framing and architectural arrangement as clean cel animation.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "At the next cut, shot three shows the same arrangement as textured watercolor illustration.",
+            "duration_seconds": 4
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-previs-chair-material-variants",
+      "prompt": "Create a 12-second video. A fixed three-quarter studio view shows one chair with a circular seat, a single curved backrest and exactly three legs. A small floor marker lies just in front of its nearest leg.\nUse the shot transitions explicitly requested in the timeline.\n0-4 seconds: Shot one presents the chair in polished walnut with natural grain.\n4-8 seconds: Shot two preserves the design and camera but changes the chair surface to brushed aluminum.\n8-12 seconds: Shot three preserves the design and camera but changes the chair to opaque white ceramic.\nRequired invariants: The chair keeps its three legs, circular seat and curved backrest. Chair pose, camera and floor marker stay fixed across the cuts. Material changes must not add cushions, arms or structural pieces.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_geometry_style_disentanglement",
+        "task_family": "previs_geometry_style_disentanglement",
+        "split": "validation",
+        "scenario_group": "previs_chair-material-variants",
+        "title": "One chair design in three materials",
+        "constraints": [
+          "The chair keeps its three legs, circular seat and curved backrest.",
+          "Chair pose, camera and floor marker stay fixed across the cuts.",
+          "Material changes must not add cushions, arms or structural pieces."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Shot one presents the chair in polished walnut with natural grain."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Shot two preserves the design and camera but changes the chair surface to brushed aluminum."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Shot three preserves the design and camera but changes the chair to opaque white ceramic."
+          }
+        ],
+        "temporal_steps": [
+          "Shot one presents the chair in polished walnut with natural grain.",
+          "Shot two preserves the design and camera but changes the chair surface to brushed aluminum.",
+          "Shot three preserves the design and camera but changes the chair to opaque white ceramic."
+        ],
+        "camera_plan": {
+          "continuous_take": false
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "design_invariance": {
+            "description": "The distinctive three-leg design and other structural features persist. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "material_sequence": {
+            "description": "Wood, brushed metal and white ceramic are visibly expressed in order. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "pose_and_framing": {
+            "description": "The object pose, floor contact and framing remain consistent across shots. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "design_invariance",
+          "material_sequence",
+          "pose_and_framing"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": false,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        },
+        "h3_global_constraints": "A fixed three-quarter studio view shows one chair with a circular seat, a single curved backrest and exactly three legs. A small floor marker lies just in front of its nearest leg. The chair keeps its three legs, circular seat and curved backrest. Chair pose, camera and floor marker stay fixed across the cuts. Material changes must not add cushions, arms or structural pieces.",
+        "h3_shots": [
+          {
+            "prompt": "Shot one presents the chair in polished walnut with natural grain.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot two preserves the design and camera but changes the chair surface to brushed aluminum.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot three preserves the design and camera but changes the chair to opaque white ceramic.",
+            "duration_seconds": 4
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-previs-train-set-style-triptych",
+      "prompt": "Create a 12-second video. A locked elevated view shows a stationary toy locomotive on a curved track, one short bridge behind it and a small station building outside the curve. The locomotive has a circular front plate and one chimney.\nUse the shot transitions explicitly requested in the timeline.\n0-4 seconds: Shot one depicts the scene with realistic painted miniature surfaces.\n4-8 seconds: Shot two repeats the same composition as a paper-cut collage.\n8-12 seconds: Shot three repeats the same composition as a black-and-white ink drawing.\nRequired invariants: The locomotive and landmarks do not move when the style changes. The track curve, single bridge and station remain in the same relative arrangement. The chimney and front plate retain their identities despite simplified rendering.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_geometry_style_disentanglement",
+        "task_family": "previs_geometry_style_disentanglement",
+        "split": "test",
+        "scenario_group": "previs_train-set-style-triptych",
+        "title": "Train-set layout through three illustration styles",
+        "constraints": [
+          "The locomotive and landmarks do not move when the style changes.",
+          "The track curve, single bridge and station remain in the same relative arrangement.",
+          "The chimney and front plate retain their identities despite simplified rendering."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Shot one depicts the scene with realistic painted miniature surfaces."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Shot two repeats the same composition as a paper-cut collage."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Shot three repeats the same composition as a black-and-white ink drawing."
+          }
+        ],
+        "temporal_steps": [
+          "Shot one depicts the scene with realistic painted miniature surfaces.",
+          "Shot two repeats the same composition as a paper-cut collage.",
+          "Shot three repeats the same composition as a black-and-white ink drawing."
+        ],
+        "camera_plan": {
+          "continuous_take": false
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "layout_invariance": {
+            "description": "Track, locomotive, bridge and station form the same recognizable layout in all three shots. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "style_sequence": {
+            "description": "Miniature realism, paper collage and ink drawing appear in order. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "object_design_preservation": {
+            "description": "The locomotive's distinguishing structure survives changes in visual treatment. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "layout_invariance",
+          "style_sequence",
+          "object_design_preservation"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": false,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        },
+        "h3_global_constraints": "A locked elevated view shows a stationary toy locomotive on a curved track, one short bridge behind it and a small station building outside the curve. The locomotive has a circular front plate and one chimney. The locomotive and landmarks do not move when the style changes. The track curve, single bridge and station remain in the same relative arrangement. The chimney and front plate retain their identities despite simplified rendering.",
+        "h3_shots": [
+          {
+            "prompt": "Shot one depicts the scene with realistic painted miniature surfaces.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot two repeats the same composition as a paper-cut collage.",
+            "duration_seconds": 4
+          },
+          {
+            "prompt": "Shot three repeats the same composition as a black-and-white ink drawing.",
+            "duration_seconds": 4
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "cvb-previs-footstep-spotlight-follow",
+      "prompt": "Create a 12-second video. A fixed front camera observes a performer in white on a dark stage with three floor marks arranged from screen left to right. One narrow spotlight illuminates the performer.\nUse a single continuous take with no cuts.\n0-4 seconds: The performer pauses on the left mark with the spotlight centered there.\n4-8 seconds: The performer walks to the middle mark while the same light follows and stops with them.\n8-12 seconds: The performer moves to the right mark and raises both hands; the light follows and remains centered on the final pose.\nRequired invariants: There is one performer and one moving spotlight pool. The light follows the visible route rather than jumping ahead to the final mark. The dark background and camera remain stable.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_event_lighting_synchronization",
+        "task_family": "previs_event_lighting_synchronization",
+        "split": "train",
+        "scenario_group": "previs_footstep-spotlight-follow",
+        "title": "Spotlight follows successive stage positions",
+        "constraints": [
+          "There is one performer and one moving spotlight pool.",
+          "The light follows the visible route rather than jumping ahead to the final mark.",
+          "The dark background and camera remain stable."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The performer pauses on the left mark with the spotlight centered there."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The performer walks to the middle mark while the same light follows and stops with them."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The performer moves to the right mark and raises both hands; the light follows and remains centered on the final pose."
+          }
+        ],
+        "temporal_steps": [
+          "The performer pauses on the left mark with the spotlight centered there.",
+          "The performer walks to the middle mark while the same light follows and stops with them.",
+          "The performer moves to the right mark and raises both hands; the light follows and remains centered on the final pose."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "light_subject_alignment": {
+            "description": "The illuminated region stays meaningfully aligned with the performer throughout the route. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "event_order": {
+            "description": "Left pause, middle pause and right raised-hands pose occur in order. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "scene_and_identity_stability": {
+            "description": "Performer identity, camera and stage layout remain unchanged. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "light_subject_alignment",
+          "event_order",
+          "scene_and_identity_stability"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-door-light-spill",
+      "prompt": "Create a 12-second video. A fixed camera views a dim room with one closed door and a bright warm corridor beyond it. A red box rests motionless on the floor beside the door's sweep, not in its path.\nUse a single continuous take with no cuts.\n0-4 seconds: Hold on the closed door and dim room, with no broad corridor-light wedge on the floor.\n4-8 seconds: The door opens slowly and a widening warm light wedge spreads onto the floor and reaches the red box.\n8-12 seconds: The door closes again and the wedge shrinks until the room returns to its original dim state.\nRequired invariants: The changing floor light is tied to the door opening, not a global scene-color swap. The box stays fixed and is illuminated only as the spill reaches it. The door remains on its hinges and never intersects the box.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_event_lighting_synchronization",
+        "task_family": "previs_event_lighting_synchronization",
+        "split": "validation",
+        "scenario_group": "previs_door-light-spill",
+        "title": "Door opening controls a wedge of light",
+        "constraints": [
+          "The changing floor light is tied to the door opening, not a global scene-color swap.",
+          "The box stays fixed and is illuminated only as the spill reaches it.",
+          "The door remains on its hinges and never intersects the box."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Hold on the closed door and dim room, with no broad corridor-light wedge on the floor."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The door opens slowly and a widening warm light wedge spreads onto the floor and reaches the red box."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The door closes again and the wedge shrinks until the room returns to its original dim state."
+          }
+        ],
+        "temporal_steps": [
+          "Hold on the closed door and dim room, with no broad corridor-light wedge on the floor.",
+          "The door opens slowly and a widening warm light wedge spreads onto the floor and reaches the red box.",
+          "The door closes again and the wedge shrinks until the room returns to its original dim state."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "light_event_coupling": {
+            "description": "Opening expands the light spill and closing removes it in the correct sequence. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "localized_illumination": {
+            "description": "Light visibly spreads over floor and box rather than changing the entire room uniformly. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "geometry_persistence": {
+            "description": "Door, box and room retain their identities and positions. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "light_event_coupling",
+          "localized_illumination",
+          "geometry_persistence"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-swinging-lamp-shadow",
+      "prompt": "Create a 12-second video. A fixed view shows an opaque vertical cylinder on a matte tabletop. One small lamp is visible behind and to the left of the cylinder; no other bright light source is present.\nUse a single continuous take with no cuts.\n0-4 seconds: Hold the lamp at the left position and show the cylinder casting a shadow toward the opposite side.\n4-8 seconds: Move the lamp slowly behind the cylinder toward the right; the cast shadow changes direction continuously.\n8-12 seconds: Stop the lamp on the right and hold the new shadow while the cylinder stays still.\nRequired invariants: The cylinder never rotates or slides to imitate a shadow change. The main shadow points away from the lamp in the visible tabletop geometry. Shadow motion stops when the lamp stops.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_event_lighting_synchronization",
+        "task_family": "previs_event_lighting_synchronization",
+        "split": "test",
+        "scenario_group": "previs_swinging-lamp-shadow",
+        "title": "Moving lamp produces a corresponding cast shadow",
+        "constraints": [
+          "The cylinder never rotates or slides to imitate a shadow change.",
+          "The main shadow points away from the lamp in the visible tabletop geometry.",
+          "Shadow motion stops when the lamp stops."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Hold the lamp at the left position and show the cylinder casting a shadow toward the opposite side."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Move the lamp slowly behind the cylinder toward the right; the cast shadow changes direction continuously."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Stop the lamp on the right and hold the new shadow while the cylinder stays still."
+          }
+        ],
+        "temporal_steps": [
+          "Hold the lamp at the left position and show the cylinder casting a shadow toward the opposite side.",
+          "Move the lamp slowly behind the cylinder toward the right; the cast shadow changes direction continuously.",
+          "Stop the lamp on the right and hold the new shadow while the cylinder stays still."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "light_shadow_relation": {
+            "description": "The shadow changes in a visually plausible direction relative to the moving lamp. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "event_coupling": {
+            "description": "Shadow motion follows the lamp movement and settles after it stops. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "object_and_camera_stability": {
+            "description": "Cylinder, table and framing stay unchanged during the light motion. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "light_shadow_relation",
+          "event_coupling",
+          "object_and_camera_stability"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    }
+  ]
+}

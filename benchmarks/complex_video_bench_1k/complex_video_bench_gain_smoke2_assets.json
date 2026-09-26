@@ -1,0 +1,15 @@
+{
+  "description": "Source videos shared with the Mini15 asset store for the gain smoke test.",
+  "assets": [
+    {
+      "asset_id": "source_video_016",
+      "type": "source_video",
+      "path": "assets/mini15/source_video_016.mp4"
+    },
+    {
+      "asset_id": "source_video_027",
+      "type": "source_video",
+      "path": "assets/mini15/source_video_027.mp4"
+    }
+  ]
+}

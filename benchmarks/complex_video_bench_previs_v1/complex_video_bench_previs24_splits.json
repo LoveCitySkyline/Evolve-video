@@ -1,0 +1,32 @@
+{
+  "train": [
+    "cvb-previs-gallery-doorway-orbit",
+    "cvb-previs-porter-pillar-luggage",
+    "cvb-previs-workshop-three-routes",
+    "cvb-previs-cup-handover",
+    "cvb-previs-domino-ramp-bell",
+    "cvb-previs-workshop-three-views",
+    "cvb-previs-courtyard-three-mediums",
+    "cvb-previs-footstep-spotlight-follow"
+  ],
+  "validation": [
+    "cvb-previs-model-street-crane",
+    "cvb-previs-conveyor-tunnel-marked-crate",
+    "cvb-previs-dance-crossing-lanes",
+    "cvb-previs-magnet-lift-and-release",
+    "cvb-previs-lever-lifts-barrier",
+    "cvb-previs-platform-bench-orientation",
+    "cvb-previs-chair-material-variants",
+    "cvb-previs-door-light-spill"
+  ],
+  "test": [
+    "cvb-previs-desk-object-parallax",
+    "cvb-previs-cart-behind-divider",
+    "cvb-previs-cafe-yield-at-door",
+    "cvb-previs-book-shelf-support",
+    "cvb-previs-waterwheel-drives-flag",
+    "cvb-previs-kitchen-open-drawer",
+    "cvb-previs-train-set-style-triptych",
+    "cvb-previs-swinging-lamp-shadow"
+  ]
+}

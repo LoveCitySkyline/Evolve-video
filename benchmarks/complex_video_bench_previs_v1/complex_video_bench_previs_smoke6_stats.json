@@ -1,0 +1,17 @@
+{
+  "task_count": 6,
+  "sha256": "78a3f786d46739280ce07c95f3c985c9948894325df266ab1e30d0679c469481",
+  "family_counts": {
+    "previs_camera_choreography": 3,
+    "previs_occlusion_reentry": 3
+  },
+  "split_counts": {
+    "train": 2,
+    "validation": 2,
+    "test": 2
+  },
+  "external_asset_count": 0,
+  "duration_seconds": 12,
+  "is_precision_benchmark": false,
+  "ai_assisted_briefs": true
+}

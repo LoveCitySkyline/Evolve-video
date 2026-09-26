@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "description": "Repository capabilities prepared once before frozen mini15 graph evolution.",
+  "capabilities": [
+    {
+      "capability": "image_conditioned_video_generation",
+      "required_input_types": ["image"],
+      "reason": "Anchor identity and bridge extracted keyframes into I2V generation.",
+      "required": true
+    },
+    {
+      "capability": "multi_shot_identity_conditioned_generation",
+      "required_input_types": ["image"],
+      "reason": "Maintain the same character across independently generated shots and long sequences.",
+      "required": false
+    },
+    {
+      "capability": "motion_conditioned_video_generation",
+      "required_input_types": ["video"],
+      "reason": "Use extracted camera, trajectory, pose, or motion evidence to repair ordered actions and camera control.",
+      "required": false
+    },
+    {
+      "capability": "global_video_editing",
+      "required_input_types": ["video"],
+      "reason": "Support source-video editing and whole-video repair paths.",
+      "required": false
+    },
+    {
+      "capability": "region_video_editing",
+      "required_input_types": ["video"],
+      "reason": "Apply object-level edits while preserving non-target regions and source motion.",
+      "required": false
+    },
+    {
+      "capability": "failed_segment_repair",
+      "required_input_types": ["video"],
+      "reason": "Repair localized failed intervals without replacing healthy Wan draft content.",
+      "required": false
+    },
+    {
+      "capability": "video_style_transfer",
+      "required_input_types": ["video"],
+      "reason": "Support faithful video-to-animation and sketch-style transformations.",
+      "required": false
+    },
+    {
+      "capability": "temporal_deflickering",
+      "required_input_types": ["video"],
+      "reason": "Stabilize style and appearance after generation or editing.",
+      "required": false
+    },
+    {
+      "capability": "audio_conditioned_video_generation",
+      "required_input_types": ["audio"],
+      "reason": "Cover the audio-video synchronization category when a local repository is executable.",
+      "required": false
+    }
+  ]
+}

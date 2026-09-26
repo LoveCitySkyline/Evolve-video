@@ -1,0 +1,55 @@
+name = "llm_graph_harness"
+output_dir = "outputs/llm_graph_harness"
+ablations = ["full"]
+
+[dataset]
+task_files = ["benchmarks/video_skill_graph_core.json"]
+limit_per_suite = 4
+train_ratio = 0.50
+validation_ratio = 0.25
+seed = 17
+
+[evolution]
+iterations = 5
+frontier_size = 4
+no_improvement_limit = 3
+selection_strategy = "round_robin"
+categories_per_batch = 2
+samples_per_category = 1
+max_proposals = 4
+min_quality_gain = 0.02
+cache_enabled = true
+program_cost_weight = 0.03
+path_prior_weight = 0.5
+exploration_weight = 0.15
+historical_merge_candidates = 2
+
+[foundation]
+enabled = true
+min_support = 2
+min_utility = 0.02
+max_motif_size = 5
+max_skills = 5
+online_enabled = true
+online_interval = 1
+online_min_support = 2
+online_min_advantage = 0.0
+online_min_stability = 0.8
+online_min_gain = 0.0
+online_max_per_category = 2
+
+[runtime]
+provider = "local-fake"
+strict_eval = true
+evolve_on_lte_095 = true
+enable_llm_mutation = true
+enable_mcp_tools = false
+mcp_servers_config = "configs/mcp_servers.json"
+tool_acquisition_policy = "local_first"
+template_mutations_enabled = true
+graph_llm_model = "openai/gpt-5.6-sol"
+graph_llm_base_url = "https://openrouter.ai/api/v1"
+graph_llm_timeout_seconds = 300
+graph_llm_reasoning_effort = "medium"
+graph_llm_max_candidates = 3
+graph_llm_max_edits = 12

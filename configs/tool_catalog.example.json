@@ -1,0 +1,66 @@
+{
+  "tools": [
+    {
+      "name": "local_video_style_transfer",
+      "capability": "video_style_transfer",
+      "input_types": ["video", "structure_motion_map"],
+      "output_type": "video",
+      "backend": "local-command",
+      "model": "configure-your-local-v2v-model",
+      "estimated_cost": 2.0,
+      "consumes_upstream": true,
+      "verified": false,
+      "description": "A trusted local V2V command that preserves source motion while changing style.",
+      "command": [
+        "${VIDEO_EDIT_PYTHON}",
+        "${VIDEO_STYLE_SCRIPT}",
+        "--input_video",
+        "{reference_video}",
+        "--prompt",
+        "{prompt}",
+        "--output_video",
+        "{output_video}"
+      ],
+      "input_bindings": {
+        "video": "reference_video"
+      },
+      "output_arg": "",
+      "preflight_paths": [
+        "${VIDEO_STYLE_SCRIPT}"
+      ],
+      "smoke_test_command": ["${VIDEO_EDIT_PYTHON}", "${VIDEO_STYLE_SCRIPT}", "--help"],
+      "smoke_timeout_seconds": 60
+    },
+    {
+      "name": "local_region_video_editor",
+      "capability": "region_video_editing",
+      "input_types": ["video", "tracked_regions"],
+      "output_type": "video",
+      "backend": "local-command",
+      "model": "configure-your-local-editing-model",
+      "estimated_cost": 1.8,
+      "consumes_upstream": true,
+      "verified": false,
+      "description": "A trusted local video editor that consumes an upstream video and edit instruction.",
+      "command": [
+        "${VIDEO_EDIT_PYTHON}",
+        "${VIDEO_EDIT_SCRIPT}",
+        "--input_video",
+        "{reference_video}",
+        "--instruction",
+        "{prompt}",
+        "--output_video",
+        "{output_video}"
+      ],
+      "input_bindings": {
+        "video": "reference_video"
+      },
+      "output_arg": "",
+      "preflight_paths": [
+        "${VIDEO_EDIT_SCRIPT}"
+      ],
+      "smoke_test_command": ["${VIDEO_EDIT_PYTHON}", "${VIDEO_EDIT_SCRIPT}", "--help"],
+      "smoke_timeout_seconds": 60
+    }
+  ]
+}

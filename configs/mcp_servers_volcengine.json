@@ -1,0 +1,50 @@
+{
+  "servers": [
+    {
+      "name": "volcengine_seedance",
+      "enabled": true,
+      "transport": "stdio",
+      "command": [
+        "uvx",
+        "--from",
+        "git+https://github.com/kevinten-ai/mcp-video-gen.git@2a841acc67e48a3004c10e6cd67a54dcf9198a95",
+        "video-gen"
+      ],
+      "timeout_seconds": 120,
+      "env": {
+        "ARK_API_KEY": "${ARK_API_KEY}",
+        "DEFAULT_VIDEO_PROVIDER": "ark"
+      },
+      "tool_overrides": {
+        "generate_video": {
+          "name": "mcp_volcengine_seedance_i2v",
+          "capability": "image_conditioned_video_generation",
+          "input_types": ["identity_reference", "keyframes", "image"],
+          "output_type": "video",
+          "model": "doubao-seedance-2-0-fast-260128",
+          "argument_bindings": {
+            "prompt": "prompt",
+            "reference_image": "image_url",
+            "duration": "duration",
+            "aspect_ratio": "aspect_ratio"
+          },
+          "static_arguments": {
+            "provider": "ark",
+            "model": "doubao-seedance-2-0-fast-260128"
+          },
+          "local_file_modes": {
+            "reference_image": "data_uri"
+          },
+          "poll_tool": "query_video_status",
+          "poll_task_argument": "task_id",
+          "poll_static_arguments": {
+            "provider": "ark"
+          },
+          "poll_interval_seconds": 10,
+          "timeout_seconds": 1200,
+          "estimated_cost": 8.0
+        }
+      }
+    }
+  ]
+}

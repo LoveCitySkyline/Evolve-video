@@ -1,0 +1,875 @@
+{
+  "name": "complex_video_bench_mini5",
+  "version": "1.0",
+  "description": "A 5-task focused subset of ComplexVideoBench-1K for faster real-model evolution.",
+  "tags": [
+    "multi-shot",
+    "long-horizon",
+    "video-editing",
+    "stylization",
+    "tool-path-evolution",
+    "mini5",
+    "focused"
+  ],
+  "license": "Research-only task specifications; source media assets are not bundled.",
+  "selection": {
+    "source": "benchmarks/complex_video_bench_1k/complex_video_bench_1k.json",
+    "family_allocation": {
+      "multi_shot_identity": 5
+    },
+    "selection_version": 2,
+    "selection_seed": "complex-video-bench-subsets-v2",
+    "split_policy": "focused 3/1/1 train/validation/test split",
+    "difficulty_policy": "one task at each difficulty level 1-5",
+    "scenario_policy": "at most one difficulty variant per scenario group",
+    "nesting_policy": "independent focused smoke suite; not part of the nested mini15/50/100 sequence"
+  },
+  "tasks": [
+    {
+      "task_id": "cvb-msi-0042",
+      "prompt": "Produce a coherent 4-shot sequence about the same man with curly brown hair, a narrow left-eyebrow scar, and a cobalt denim jacket. The character walks through the sunlit public library carrying a silver thermos, then turns toward the camera in the old-town market, then sets the silver thermos down briefly in the orchid greenhouse, then leaves the frame and reappears from behind a crowd in the old-town market. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_008",
+        "difficulty": 3,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_008",
+            "role": "man",
+            "appearance": "curly brown hair",
+            "accessory": "a narrow left-eyebrow scar",
+            "clothing": "cobalt denim jacket"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the sunlit public library carrying a silver thermos",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_008"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the old-town market",
+            "camera": "close-up",
+            "active_characters": [
+              "character_008"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the silver thermos down briefly in the orchid greenhouse",
+            "camera": "wide",
+            "active_characters": [
+              "character_008"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the old-town market",
+            "camera": "follow",
+            "active_characters": [
+              "character_008"
+            ],
+            "required_state": {
+              "silver thermos": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_008",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_008",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_008",
+              "silver thermos"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_008",
+              "silver thermos"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "silver thermos": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        },
+        "subset": "mini5"
+      }
+    },
+    {
+      "task_id": "cvb-msi-0046",
+      "prompt": "Generate a coherent 3-shot sequence about the same chef with closely cropped gray hair, a navy neckerchief, and a yellow raincoat with black buttons. The character walks through the snow-covered village square carrying a red hardback book, then turns toward the camera in the rain-soaked neon street, then sets the red hardback book down briefly in the snow-covered village square. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "validation",
+        "scenario_group": "multi_shot_identity_group_009",
+        "difficulty": 2,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_009",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "accessory": "a navy neckerchief",
+            "clothing": "yellow raincoat with black buttons"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the snow-covered village square carrying a red hardback book",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_009"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the rain-soaked neon street",
+            "camera": "close-up",
+            "active_characters": [
+              "character_009"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the red hardback book down briefly in the snow-covered village square",
+            "camera": "wide",
+            "active_characters": [
+              "character_009"
+            ],
+            "required_state": {
+              "red hardback book": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_009",
+              "red hardback book"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_009",
+              "red hardback book"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_009",
+              "red hardback book"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "red hardback book": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        },
+        "subset": "mini5"
+      }
+    },
+    {
+      "task_id": "cvb-msi-0115",
+      "prompt": "Create a coherent 3-shot sequence about the same musician with shoulder-length red hair, a black guitar case, and a yellow raincoat with black buttons. The character walks through the hospital corridor carrying a antique camera, then turns toward the camera in the sunlit public library, then sets the antique camera down briefly in the hospital corridor. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 9,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_023",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_023",
+            "role": "musician",
+            "appearance": "shoulder-length red hair",
+            "accessory": "a black guitar case",
+            "clothing": "yellow raincoat with black buttons"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the hospital corridor carrying a antique camera",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_023"
+            ],
+            "required_state": {
+              "antique camera": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the sunlit public library",
+            "camera": "close-up",
+            "active_characters": [
+              "character_023"
+            ],
+            "required_state": {
+              "antique camera": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the antique camera down briefly in the hospital corridor",
+            "camera": "wide",
+            "active_characters": [
+              "character_023"
+            ],
+            "required_state": {
+              "antique camera": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_023",
+              "antique camera"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_023",
+              "antique camera"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_023",
+              "antique camera"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "antique camera": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "antique camera": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "antique camera": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        },
+        "subset": "mini5"
+      }
+    },
+    {
+      "task_id": "cvb-msi-0139",
+      "prompt": "Make a coherent 5-shot sequence about the same chef with closely cropped gray hair, a navy neckerchief, and a white linen suit. The character walks through the old-town market carrying a yellow suitcase, then turns toward the camera in the hospital corridor, then sets the yellow suitcase down briefly in the sunlit public library, then leaves the frame and reappears from behind a crowd in the hospital corridor, then retrieves the same yellow suitcase and waves in the old-town market. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 15,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "train",
+        "scenario_group": "multi_shot_identity_group_027",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_027",
+            "role": "chef",
+            "appearance": "closely cropped gray hair",
+            "accessory": "a navy neckerchief",
+            "clothing": "white linen suit"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the old-town market carrying a yellow suitcase",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_027"
+            ],
+            "required_state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the hospital corridor",
+            "camera": "close-up",
+            "active_characters": [
+              "character_027"
+            ],
+            "required_state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the yellow suitcase down briefly in the sunlit public library",
+            "camera": "wide",
+            "active_characters": [
+              "character_027"
+            ],
+            "required_state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the hospital corridor",
+            "camera": "follow",
+            "active_characters": [
+              "character_027"
+            ],
+            "required_state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_05",
+            "prompt": "retrieves the same yellow suitcase and waves in the old-town market",
+            "camera": "slow push-in",
+            "active_characters": [
+              "character_027"
+            ],
+            "required_state": {
+              "yellow suitcase": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_027",
+              "yellow suitcase"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_027",
+              "yellow suitcase"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_027",
+              "yellow suitcase"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_027",
+              "yellow suitcase"
+            ]
+          },
+          {
+            "shot_id": "shot_05",
+            "entities": [
+              "character_027",
+              "yellow suitcase"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "yellow suitcase": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_05",
+            "state": {
+              "yellow suitcase": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        },
+        "subset": "mini5"
+      }
+    },
+    {
+      "task_id": "cvb-msi-0188",
+      "prompt": "Render a coherent 4-shot sequence about the same boy with straight auburn hair, a small green backpack, and a cobalt denim jacket. The character walks through the hospital corridor carrying a wooden music box, then turns toward the camera in the modern art museum, then sets the wooden music box down briefly in the modern art museum, then leaves the frame and reappears from behind a crowd in the modern art museum. Keep the face, body, clothing, accessory, and prop identity unchanged across every cut, including after occlusion and re-entry.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "multi_shot_identity",
+        "task_family": "multi_shot_identity",
+        "split": "test",
+        "scenario_group": "multi_shot_identity_group_037",
+        "difficulty": 4,
+        "expected_failure_modes": [
+          "identity_drift",
+          "clothing_color_drift",
+          "object_persistence_failure"
+        ],
+        "constraints": [
+          "cross_shot_identity",
+          "clothing_consistency",
+          "prop_persistence",
+          "occlusion_recovery"
+        ],
+        "evaluation": {
+          "cross_shot_identity": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "minimum_over_segments"
+          },
+          "clothing_consistency": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "prop_persistence": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          },
+          "transition_quality": {
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean"
+          }
+        },
+        "allowed_tools": [
+          "story_parser",
+          "shot_planner",
+          "character_memory",
+          "text_to_video",
+          "image_to_video",
+          "identity_verifier",
+          "segment_repair",
+          "video_stitcher"
+        ],
+        "characters": [
+          {
+            "id": "character_037",
+            "role": "boy",
+            "appearance": "straight auburn hair",
+            "accessory": "a small green backpack",
+            "clothing": "cobalt denim jacket"
+          }
+        ],
+        "shots": [
+          {
+            "shot_id": "shot_01",
+            "prompt": "walks through the hospital corridor carrying a wooden music box",
+            "camera": "tracking medium",
+            "active_characters": [
+              "character_037"
+            ],
+            "required_state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "prompt": "turns toward the camera in the modern art museum",
+            "camera": "close-up",
+            "active_characters": [
+              "character_037"
+            ],
+            "required_state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "prompt": "sets the wooden music box down briefly in the modern art museum",
+            "camera": "wide",
+            "active_characters": [
+              "character_037"
+            ],
+            "required_state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "prompt": "leaves the frame and reappears from behind a crowd in the modern art museum",
+            "camera": "follow",
+            "active_characters": [
+              "character_037"
+            ],
+            "required_state": {
+              "wooden music box": "persistent"
+            }
+          }
+        ],
+        "entity_schedule": [
+          {
+            "shot_id": "shot_01",
+            "entities": [
+              "character_037",
+              "wooden music box"
+            ]
+          },
+          {
+            "shot_id": "shot_02",
+            "entities": [
+              "character_037",
+              "wooden music box"
+            ]
+          },
+          {
+            "shot_id": "shot_03",
+            "entities": [
+              "character_037",
+              "wooden music box"
+            ]
+          },
+          {
+            "shot_id": "shot_04",
+            "entities": [
+              "character_037",
+              "wooden music box"
+            ]
+          }
+        ],
+        "state_timeline": [
+          {
+            "shot_id": "shot_01",
+            "state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_02",
+            "state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_03",
+            "state": {
+              "wooden music box": "persistent"
+            }
+          },
+          {
+            "shot_id": "shot_04",
+            "state": {
+              "wooden music box": "persistent"
+            }
+          }
+        ],
+        "input_assets": {
+          "character_references": [],
+          "source_video": null
+        },
+        "subset": "mini5"
+      }
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "name": "complex_video_bench_gain_smoke2",
+  "version": "1.0",
+  "description": "Two-task diagnostic subset for verifying source-video style-tool gains before longer benchmark runs.",
+  "tags": [
+    "diagnostic",
+    "video-stylization",
+    "source-video",
+    "gain-smoke"
+  ],
+  "tasks": [
+    {
+      "task_id": "cvb-vst-0554",
+      "prompt": "Make a faithful charcoal sketch animation transformation of the provided street interview. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 18,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "train",
+        "scenario_group": "video_stylization_group_016",
+        "difficulty": 5,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"},
+          "source_structure_preservation": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"},
+          "motion_preservation": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"},
+          "temporal_flicker": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"},
+          "identity_consistency": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"}
+        },
+        "target_style": "charcoal sketch animation",
+        "input_assets": {
+          "source_video": "source_video_016",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    },
+    {
+      "task_id": "cvb-vst-0605",
+      "prompt": "Create a faithful ink-wash animation transformation of the provided martial-arts routine. Preserve exact identity, poses, action timing, camera trajectory, object layout, and scene cuts. Keep line work, palette, and character design stable with no flicker, texture crawling, or style reversion.",
+      "mode": "editing",
+      "duration_seconds": 10,
+      "metadata": {
+        "benchmark": "complex_video_bench_1k",
+        "benchmark_version": "1.0",
+        "category": "video_stylization",
+        "task_family": "video_stylization",
+        "split": "validation",
+        "scenario_group": "video_stylization_group_027",
+        "difficulty": 1,
+        "expected_failure_modes": [
+          "style_drift",
+          "temporal_flicker",
+          "identity_drift",
+          "editing_leakage"
+        ],
+        "constraints": [
+          "source_structure_preservation",
+          "motion_preservation",
+          "style_consistency",
+          "temporal_stability"
+        ],
+        "evaluation": {
+          "style_alignment": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"},
+          "source_structure_preservation": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"},
+          "motion_preservation": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"},
+          "temporal_flicker": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"},
+          "identity_consistency": {"threshold": 0.9, "weight": 1.0, "aggregation": "mean"}
+        },
+        "target_style": "ink-wash animation",
+        "input_assets": {
+          "source_video": "source_video_027",
+          "style_references": [],
+          "required": true
+        },
+        "asset_status": "manifest_required"
+      }
+    }
+  ]
+}

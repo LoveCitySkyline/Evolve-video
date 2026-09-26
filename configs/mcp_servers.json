@@ -1,0 +1,68 @@
+{
+  "servers": [
+    {
+      "name": "kling",
+      "enabled": false,
+      "transport": "streamable-http",
+      "url": "https://kling.mcp.acedata.cloud/mcp",
+      "headers": {
+        "Authorization": "Bearer ${ACEDATACLOUD_API_TOKEN}"
+      },
+      "timeout_seconds": 120,
+      "tool_overrides": {
+        "kling_generate_video_from_image": {
+          "capability": "image_conditioned_video_generation",
+          "input_types": ["identity_reference", "keyframes", "image"],
+          "output_type": "video",
+          "argument_bindings": {
+            "prompt": "prompt",
+            "reference_image": "image_url",
+            "duration": "duration"
+          },
+          "local_file_modes": {
+            "reference_image": "data_uri"
+          },
+          "poll_tool": "kling_get_task",
+          "poll_task_argument": "task_id",
+          "poll_interval_seconds": 5,
+          "timeout_seconds": 900,
+          "estimated_cost": 4.0
+        },
+        "kling_extend_video": {
+          "capability": "video_extension",
+          "input_types": ["video"],
+          "output_type": "video",
+          "argument_bindings": {
+            "prompt": "prompt",
+            "reference_video": "video_url"
+          },
+          "poll_tool": "kling_get_task",
+          "poll_task_argument": "task_id",
+          "timeout_seconds": 900,
+          "estimated_cost": 4.0
+        },
+        "kling_generate_motion": {
+          "capability": "motion_transfer",
+          "input_types": ["video", "identity_reference", "image"],
+          "output_type": "video",
+          "poll_tool": "kling_get_task",
+          "poll_task_argument": "task_id",
+          "timeout_seconds": 900,
+          "estimated_cost": 4.0
+        }
+      }
+    },
+    {
+      "name": "local_video_gen",
+      "enabled": false,
+      "transport": "stdio",
+      "command": ["uvx", "mcp-video-gen"],
+      "timeout_seconds": 120,
+      "env": {
+        "DASHSCOPE_API_KEY": "${DASHSCOPE_API_KEY}",
+        "MINIMAX_API_KEY": "${MINIMAX_API_KEY}"
+      },
+      "tool_overrides": {}
+    }
+  ]
+}

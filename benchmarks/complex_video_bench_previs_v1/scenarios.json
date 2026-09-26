@@ -1,0 +1,170 @@
+[
+  {
+    "id": "gallery-doorway-orbit", "family": "camera_choreography", "split": "train", "title": "Doorway entry and sculpture orbit", "continuous": true,
+    "setup": "A compact gallery has one rectangular doorway, a stationary spiral sculpture on a round plinth, and a red bench behind it. The sculpture never moves.",
+    "beats": ["Start outside the doorway and dolly through its center toward the sculpture.", "Arc around the sculpture to the viewer's right, revealing the red bench behind it.", "Rise gently to a high oblique view while keeping the same plinth in frame; settle without a cut."],
+    "invariants": ["Only the camera moves; the sculpture, plinth and bench stay fixed in world space.", "The doorway is crossed once, not replaced by a different opening.", "Perspective and occlusion change continuously rather than by morphing the room."],
+    "criteria": {"camera_stage_order": "The doorway entry, lateral arc and rise occur in the requested order; penalize missing or reversed stages.", "world_layout_stability": "The bench and plinth retain their room-relative positions; penalize sliding furniture or rebuilt walls.", "continuous_perspective": "Views evolve through coherent perspective with the sculpture retained; penalize cuts and geometric morphs."}
+  },
+  {
+    "id": "model-street-crane", "family": "camera_choreography", "split": "validation", "title": "Street-level to rooftop reveal", "continuous": true,
+    "setup": "A miniature street contains a blue kiosk in front of a low brick building. A yellow water tank sits on the building's flat roof. All objects are stationary.",
+    "beats": ["Track laterally at kiosk height with the roof tank hidden by the building edge.", "Crane upward without crossing through the building until the tank becomes visible.", "Move slightly forward into a downward-looking view containing kiosk, roof and tank together."],
+    "invariants": ["The tank must be revealed by the viewpoint change, not appear from nowhere.", "The kiosk remains outside and in front of the same building.", "The camera never passes through solid walls or the roof."],
+    "criteria": {"motivated_reveal": "The rise explains the tank's progressive appearance; penalize spontaneous appearance.", "camera_stage_order": "Lateral tracking precedes rising and the final downward view.", "solid_scene_continuity": "The camera route and building remain visually coherent without wall penetration or layout resets."}
+  },
+  {
+    "id": "desk-object-parallax", "family": "camera_choreography", "split": "test", "title": "Foreground parallax and terminal overhead view", "continuous": true,
+    "setup": "A desk holds a tall glass bottle near the front edge, a small brass clock behind it, and a closed notebook farther back. The desk and its objects remain motionless.",
+    "beats": ["Begin low with the bottle partly hiding the clock, then slide left to uncover the clock through parallax.", "Push toward the clock while keeping the bottle visible near the frame edge.", "Lift and tilt down into a near-overhead view that shows all three objects and their original spacing."],
+    "invariants": ["The clock is uncovered by camera motion, not object motion.", "Bottle, clock and notebook keep their desk-relative arrangement.", "The final view comes from the same continuous camera move."],
+    "criteria": {"parallax_reveal": "The foreground bottle and rear clock shift coherently with camera motion; penalize moving the objects to fake a reveal.", "camera_stage_order": "Uncover, push toward the clock and overhead reveal occur in order.", "object_layout_persistence": "Exactly the same three objects retain their arrangement and appearance."}
+  },
+  {
+    "id": "porter-pillar-luggage", "family": "occlusion_reentry", "split": "train", "title": "Porter reappears with unchanged luggage", "continuous": true,
+    "setup": "A porter in a red jacket pulls one yellow suitcase from screen left to right through a station. A wide foreground stone pillar blocks the middle of the route. The camera is fixed.",
+    "beats": ["The porter and suitcase approach the pillar, with a black stripe on the suitcase clearly visible.", "The porter and then the suitcase become completely hidden behind the pillar.", "They emerge from the opposite side in the same walking order, and the porter stops beside a fixed blue bench."],
+    "invariants": ["The same porter, jacket and striped suitcase reappear.", "There is exactly one suitcase throughout visible intervals.", "The route continues left to right; nobody returns from the entry side."],
+    "criteria": {"occlusion_identity": "Visible appearance before and after the hidden interval matches.", "route_continuity": "Approach, complete occlusion and exit occur on a single consistent route.", "prop_persistence": "The porter retains the same single suitcase without duplication or disappearance after re-entry."}
+  },
+  {
+    "id": "conveyor-tunnel-marked-crate", "family": "occlusion_reentry", "split": "validation", "title": "Marked crate through an opaque conveyor tunnel", "continuous": true,
+    "setup": "A fixed side view shows one conveyor entering a short opaque tunnel. A square wooden crate with a red diagonal stripe travels toward it. A blue inspection tray sits beyond the exit.",
+    "beats": ["Show the striped crate moving toward the tunnel with its orientation clearly visible.", "The crate disappears fully inside; the tunnel remains opaque and the belt continues moving.", "The same crate exits without rotating and comes to rest beside the inspection tray."],
+    "invariants": ["The tunnel does not become transparent or open to show the hidden crate.", "The crate retains its stripe, dimensions and orientation when it emerges.", "No second crate appears."],
+    "criteria": {"hidden_interval": "A genuine fully hidden interval occurs between entry and exit.", "occlusion_identity": "The crate's visible markings and shape match across occlusion.", "route_and_count": "One crate follows the conveyor to the exit and stops without teleporting or multiplying."}
+  },
+  {
+    "id": "cart-behind-divider", "family": "occlusion_reentry", "split": "test", "title": "Loaded cart behind a room divider", "continuous": true,
+    "setup": "A fixed wide view shows a green service cart carrying a tall red cylinder and a short blue box. A worker pushes it behind an opaque room divider toward an open exit on the right.",
+    "beats": ["The cart approaches the divider with the red cylinder nearer the worker than the blue box.", "The whole cart is hidden behind the divider while the worker also passes behind it.", "Worker and cart emerge on the right and turn slightly toward the camera without disturbing the load."],
+    "invariants": ["The two carried objects retain their order on the cart.", "The worker and cart keep their identities across the hidden interval.", "The load remains supported rather than floating beside the cart."],
+    "criteria": {"load_state_persistence": "Both objects reappear in their original cart-relative positions.", "occlusion_identity": "Worker and cart match before and after the divider.", "supported_motion": "Visible objects move with the cart and remain supported through the turn."}
+  },
+  {
+    "id": "workshop-three-routes", "family": "multi_actor_blocking", "split": "train", "title": "Three workers around one fixed workbench", "continuous": true,
+    "setup": "A fixed elevated view shows a rectangular workbench. A worker in red starts at its left end, one in blue at its right end, and one in green at its far side.",
+    "beats": ["Red walks along the near side toward the right end while blue waits.", "Blue walks around the far side toward the left end as green steps backward to give space.", "Red and blue stop at opposite ends; green returns to the far-side center and raises one hand."],
+    "invariants": ["Clothing colors stay bound to their original people.", "Workers route around the table, never through it or each other.", "The workbench remains fixed and the actions stay assigned to the named colors."],
+    "criteria": {"actor_action_binding": "Each colored worker performs only the assigned actions.", "collision_free_blocking": "Visible walking routes respect the table and other people.", "final_arrangement": "The requested opposite-end and far-side arrangement is visibly reached."}
+  },
+  {
+    "id": "dance-crossing-lanes", "family": "multi_actor_blocking", "split": "validation", "title": "Depth-separated crossing and synchronized stop", "continuous": true,
+    "setup": "A fixed front view shows two performers on a stage: a white-jacket performer at front-left and a black-jacket performer at rear-right. A single yellow floor disc marks center stage.",
+    "beats": ["White travels toward front-right while black travels toward rear-left.", "They cross in screen projection near the disc, with white visibly passing in front of black and no physical contact.", "Both stop at their new sides, turn toward the center disc and bow together."],
+    "invariants": ["The performers remain on separate front and rear lanes during the crossing.", "Their jackets and identities never swap.", "The center disc stays fixed; the camera does not move."],
+    "criteria": {"depth_order": "The white performer visibly occludes the black performer at the projected crossing.", "identity_and_route_binding": "Each performer reaches the correct opposite side without identity swaps.", "coordinated_finish": "Both stop, turn toward the same disc and visibly bow together."}
+  },
+  {
+    "id": "cafe-yield-at-door", "family": "multi_actor_blocking", "split": "test", "title": "Yielding at a narrow doorway", "continuous": true,
+    "setup": "A fixed oblique view shows a narrow cafe doorway. A server in a blue apron approaches from inside carrying an empty tray. A customer in a yellow coat approaches from outside, and a seated customer in red remains beside the door.",
+    "beats": ["Server and yellow-coated customer approach from opposite sides and notice the narrow passage.", "The yellow-coated customer steps aside and waits while the server exits with the tray.", "Only after the server clears the doorway does the yellow-coated customer enter; the red customer remains seated."],
+    "invariants": ["The two walking people never overlap in the doorway.", "The blue-apron server keeps the tray; the yellow customer never takes it.", "The seated red customer does not join either walking route."],
+    "criteria": {"yielding_order": "Waiting, server exit and customer entry occur in that causal order.", "actor_action_binding": "Each person retains the assigned role, appearance and prop relationship.", "passage_plausibility": "Both routes visibly respect the doorway's limited space."}
+  },
+  {
+    "id": "cup-handover", "family": "contact_and_transfer", "split": "train", "title": "Visible two-person cup handover", "continuous": true,
+    "setup": "A fixed medium view shows a red-sleeved person holding one blue cup by its handle and a green-sleeved person with empty hands. Both hands and the cup remain visible.",
+    "beats": ["Red extends the cup toward green while still supporting it.", "Green grasps the cup body before red releases the handle.", "Red withdraws an empty hand; green places the same cup on a small table."],
+    "invariants": ["There is exactly one blue cup.", "The cup stays supported through the handover.", "Ownership changes only after a visible receiving grasp."],
+    "criteria": {"contact_order": "Receiving grasp precedes donor release in the visible sequence.", "ownership_transition": "Support passes from red to green and then to the table.", "single_prop_persistence": "One unchanged cup persists without duplication, disappearance or long unsupported flight."}
+  },
+  {
+    "id": "magnet-lift-and-release", "family": "contact_and_transfer", "split": "validation", "title": "Magnetic pickup with a controlled release", "continuous": true,
+    "setup": "A fixed close view shows a small electromagnet on a vertical arm above one steel washer on a wooden platform. A shallow receiving dish is beside the platform.",
+    "beats": ["The arm lowers until the magnet contacts the washer.", "The arm lifts with the washer attached and translates over the receiving dish.", "The magnet releases the washer into the dish; the arm rises empty."],
+    "invariants": ["The washer is picked up only after contact.", "One washer stays attached during the supported transfer.", "After release, the washer remains in the dish and the magnet is empty."],
+    "criteria": {"contact_order": "Lowering and contact occur before pickup, followed by transport and release.", "attachment_state": "The washer remains attached during travel and detaches only over the dish.", "object_conservation": "The same single washer ends in the receiving dish."}
+  },
+  {
+    "id": "book-shelf-support", "family": "contact_and_transfer", "split": "test", "title": "Two-handed book placement onto a shelf", "continuous": true,
+    "setup": "A fixed close oblique view shows a person holding one thick red book horizontally with both hands in front of an empty low shelf. Its blue bookmark ribbon is visible.",
+    "beats": ["The person moves the book toward the shelf with both hands supporting it.", "The book's lower surface contacts the shelf, then the far hand withdraws while the near hand steadies it.", "The near hand releases last; both hands move away while the book stays on the shelf."],
+    "invariants": ["Shelf contact precedes the final hand release.", "The book retains its red cover and blue ribbon.", "The book neither passes through the shelf nor remains suspended after release."],
+    "criteria": {"support_transition": "Support visibly transfers from two hands to shelf plus hand and finally shelf only.", "contact_plausibility": "The book rests on the shelf rather than intersecting or floating beside it.", "prop_identity": "One book with the same cover and ribbon persists throughout."}
+  },
+  {
+    "id": "domino-ramp-bell", "family": "causal_mechanisms", "split": "train", "title": "Domino trigger releases a ramp ball", "continuous": true,
+    "setup": "A fixed tabletop view shows a short row of upright dominoes leading to a hinged gate. One ball waits behind the gate at the top of a short ramp, with a catch tray below.",
+    "beats": ["A finger taps the first domino; the others start falling in sequence.", "The last domino knocks the gate open, releasing the previously stationary ball.", "The ball rolls down the ramp into the catch tray while the fallen dominoes remain down."],
+    "invariants": ["The ball cannot leave before the gate opens.", "The domino wave moves from the tapped end toward the gate.", "No mechanism resets after it has triggered."],
+    "criteria": {"causal_order": "Domino fall, gate opening and ball release follow the required dependency order.", "state_persistence": "Fallen dominoes and opened gate retain their final state.", "continuous_object_motion": "The single ball visibly traverses the ramp into the tray without teleportation."}
+  },
+  {
+    "id": "lever-lifts-barrier", "family": "causal_mechanisms", "split": "validation", "title": "Lever opens a barrier before a trolley moves", "continuous": true,
+    "setup": "A fixed side view shows a miniature trolley stopped behind a lowered barrier. A visible connecting rod links the barrier to a lever beside the track.",
+    "beats": ["The trolley remains still while a hand approaches and grips the lever.", "The hand pulls the lever; the rod moves and the barrier rises fully.", "The trolley moves under the raised barrier and stops on the other side."],
+    "invariants": ["The trolley waits until there is visible clearance.", "Lever, rod and barrier remain connected throughout their motion.", "The trolley does not pass through the barrier."],
+    "criteria": {"causal_order": "Lever movement precedes barrier opening and trolley passage.", "mechanical_linkage": "Visible connected parts move coherently rather than independently teleporting.", "barrier_clearance": "The trolley passes only through the open gap and retains its shape."}
+  },
+  {
+    "id": "waterwheel-drives-flag", "family": "causal_mechanisms", "split": "test", "title": "Water flow starts a visible geared mechanism", "continuous": true,
+    "setup": "A fixed view shows a small waterwheel connected by two visibly meshing gears to a flag spindle. A closed tap is above the wheel, and the flag is initially still.",
+    "beats": ["The tap opens and a stream descends toward the stationary wheel.", "Water reaches the paddles; the wheel and connected gears begin turning.", "The flag spindle turns with the gears while water continues to drive the wheel."],
+    "invariants": ["The mechanism stays still before water reaches the paddles.", "The gears remain meshed rather than drifting apart.", "The flag's motion is mechanically connected to the wheel, not an unrelated animation."],
+    "criteria": {"trigger_order": "Water arrival precedes wheel, gear and flag motion.", "linked_motion": "The visible wheel, gears and spindle maintain a coherent connected motion.", "scene_persistence": "The same mechanism remains spatially stable without disappearing components."}
+  },
+  {
+    "id": "workshop-three-views", "family": "multishot_spatial_continuity", "split": "train", "title": "One workshop action across three viewpoints", "continuous": false,
+    "setup": "A workshop contains a central square table, a window on its north wall and a blue cabinet on its east wall. A mechanic in gray places a red toolbox on the table's east edge.",
+    "beats": ["Shot one, from the south: establish the window, cabinet and mechanic approaching with the toolbox.", "Shot two, from the west: show the mechanic setting the toolbox on the table's east edge beside the cabinet side.", "Shot three, from above: show the same table, toolbox at its east edge, cabinet to its east and window to its north."],
+    "invariants": ["North and east denote fixed room directions, not screen directions.", "The toolbox changes location only through the visible placement action.", "The mechanic and furniture retain their identities across all three cuts."],
+    "criteria": {"world_layout_consistency": "The three views describe the same room-relative window, cabinet and table arrangement.", "prop_state_continuity": "The toolbox is carried before placement and stays at the east edge afterward.", "view_and_action_coverage": "The south, west and overhead shots depict their assigned action stages."}
+  },
+  {
+    "id": "platform-bench-orientation", "family": "multishot_spatial_continuity", "split": "validation", "title": "Platform geography across reverse views", "continuous": false,
+    "setup": "A station platform has a clock tower at its north end and a ticket booth at its south end. A green bench faces the tracks to the east. One passenger with a yellow bag walks north beside the bench.",
+    "beats": ["Shot one, looking north: establish the passenger moving away from the ticket booth toward the clock tower.", "Shot two, looking south from beyond the bench: show the same northbound passenger approaching the camera and stopping beside the bench.", "Shot three, a high view: reveal the clock north, booth south, tracks east and passenger beside the unchanged bench."],
+    "invariants": ["The passenger remains northbound despite the reversed screen-facing direction.", "The bench continues facing the same tracks.", "The yellow bag remains with the passenger across the cuts."],
+    "criteria": {"world_direction_consistency": "The reverse view changes screen direction without reversing the passenger's world route.", "landmark_layout": "Clock, booth, bench and tracks retain one coherent arrangement.", "identity_and_prop_continuity": "The same passenger and bag persist through all three views."}
+  },
+  {
+    "id": "kitchen-open-drawer", "family": "multishot_spatial_continuity", "split": "test", "title": "Persistent drawer state across camera cuts", "continuous": false,
+    "setup": "A kitchen island has one drawer on its south face. A red kettle sits at the island's northeast corner and a blue bowl at the northwest corner. A cook stands on the south side.",
+    "beats": ["Shot one, from the south: show the cook opening the drawer and reaching into it.", "Shot two, from the east: show the cook withdrawing a folded white cloth; the drawer stays open.", "Shot three, from above: show the cloth in the cook's hands, the open drawer projecting south, and kettle and bowl in their original corners."],
+    "invariants": ["Drawer, kettle and bowl use fixed island-relative directions.", "The drawer does not close or move to another face during a cut.", "There is one cloth, acquired visibly from the drawer."],
+    "criteria": {"persistent_mechanical_state": "The drawer stays open after the opening action across all views.", "world_layout_consistency": "The drawer face and corner objects remain geometrically coherent across viewpoints.", "action_and_prop_continuity": "The cloth appears through retrieval and remains with the same cook."}
+  },
+  {
+    "id": "courtyard-three-mediums", "family": "geometry_style_disentanglement", "split": "train", "title": "Fixed courtyard rendered in three visual mediums", "continuous": false,
+    "setup": "A locked camera frames a courtyard with one central circular fountain, a square doorway behind it and two columns flanking the doorway. No people or moving props are present.",
+    "beats": ["Shot one shows this composition as photorealistic stone architecture.", "At the cut, shot two shows the identical framing and architectural arrangement as clean cel animation.", "At the next cut, shot three shows the same arrangement as textured watercolor illustration."],
+    "invariants": ["The fountain, doorway and two columns keep their count and relative placement.", "Only the visual medium changes at the two cuts; the camera does not move.", "Each shot sustains its requested style without reverting mid-shot."],
+    "criteria": {"structural_invariance": "Landmark counts, silhouettes and relative placement remain semantically consistent across styles.", "style_sequence": "Photorealism, cel animation and watercolor are visibly distinct and occur in order.", "framing_and_style_stability": "Framing remains matched and each shot has stable visual treatment."}
+  },
+  {
+    "id": "chair-material-variants", "family": "geometry_style_disentanglement", "split": "validation", "title": "One chair design in three materials", "continuous": false,
+    "setup": "A fixed three-quarter studio view shows one chair with a circular seat, a single curved backrest and exactly three legs. A small floor marker lies just in front of its nearest leg.",
+    "beats": ["Shot one presents the chair in polished walnut with natural grain.", "Shot two preserves the design and camera but changes the chair surface to brushed aluminum.", "Shot three preserves the design and camera but changes the chair to opaque white ceramic."],
+    "invariants": ["The chair keeps its three legs, circular seat and curved backrest.", "Chair pose, camera and floor marker stay fixed across the cuts.", "Material changes must not add cushions, arms or structural pieces."],
+    "criteria": {"design_invariance": "The distinctive three-leg design and other structural features persist.", "material_sequence": "Wood, brushed metal and white ceramic are visibly expressed in order.", "pose_and_framing": "The object pose, floor contact and framing remain consistent across shots."}
+  },
+  {
+    "id": "train-set-style-triptych", "family": "geometry_style_disentanglement", "split": "test", "title": "Train-set layout through three illustration styles", "continuous": false,
+    "setup": "A locked elevated view shows a stationary toy locomotive on a curved track, one short bridge behind it and a small station building outside the curve. The locomotive has a circular front plate and one chimney.",
+    "beats": ["Shot one depicts the scene with realistic painted miniature surfaces.", "Shot two repeats the same composition as a paper-cut collage.", "Shot three repeats the same composition as a black-and-white ink drawing."],
+    "invariants": ["The locomotive and landmarks do not move when the style changes.", "The track curve, single bridge and station remain in the same relative arrangement.", "The chimney and front plate retain their identities despite simplified rendering."],
+    "criteria": {"layout_invariance": "Track, locomotive, bridge and station form the same recognizable layout in all three shots.", "style_sequence": "Miniature realism, paper collage and ink drawing appear in order.", "object_design_preservation": "The locomotive's distinguishing structure survives changes in visual treatment."}
+  },
+  {
+    "id": "footstep-spotlight-follow", "family": "event_lighting_synchronization", "split": "train", "title": "Spotlight follows successive stage positions", "continuous": true,
+    "setup": "A fixed front camera observes a performer in white on a dark stage with three floor marks arranged from screen left to right. One narrow spotlight illuminates the performer.",
+    "beats": ["The performer pauses on the left mark with the spotlight centered there.", "The performer walks to the middle mark while the same light follows and stops with them.", "The performer moves to the right mark and raises both hands; the light follows and remains centered on the final pose."],
+    "invariants": ["There is one performer and one moving spotlight pool.", "The light follows the visible route rather than jumping ahead to the final mark.", "The dark background and camera remain stable."],
+    "criteria": {"light_subject_alignment": "The illuminated region stays meaningfully aligned with the performer throughout the route.", "event_order": "Left pause, middle pause and right raised-hands pose occur in order.", "scene_and_identity_stability": "Performer identity, camera and stage layout remain unchanged."}
+  },
+  {
+    "id": "door-light-spill", "family": "event_lighting_synchronization", "split": "validation", "title": "Door opening controls a wedge of light", "continuous": true,
+    "setup": "A fixed camera views a dim room with one closed door and a bright warm corridor beyond it. A red box rests motionless on the floor beside the door's sweep, not in its path.",
+    "beats": ["Hold on the closed door and dim room, with no broad corridor-light wedge on the floor.", "The door opens slowly and a widening warm light wedge spreads onto the floor and reaches the red box.", "The door closes again and the wedge shrinks until the room returns to its original dim state."],
+    "invariants": ["The changing floor light is tied to the door opening, not a global scene-color swap.", "The box stays fixed and is illuminated only as the spill reaches it.", "The door remains on its hinges and never intersects the box."],
+    "criteria": {"light_event_coupling": "Opening expands the light spill and closing removes it in the correct sequence.", "localized_illumination": "Light visibly spreads over floor and box rather than changing the entire room uniformly.", "geometry_persistence": "Door, box and room retain their identities and positions."}
+  },
+  {
+    "id": "swinging-lamp-shadow", "family": "event_lighting_synchronization", "split": "test", "title": "Moving lamp produces a corresponding cast shadow", "continuous": true,
+    "setup": "A fixed view shows an opaque vertical cylinder on a matte tabletop. One small lamp is visible behind and to the left of the cylinder; no other bright light source is present.",
+    "beats": ["Hold the lamp at the left position and show the cylinder casting a shadow toward the opposite side.", "Move the lamp slowly behind the cylinder toward the right; the cast shadow changes direction continuously.", "Stop the lamp on the right and hold the new shadow while the cylinder stays still."],
+    "invariants": ["The cylinder never rotates or slides to imitate a shadow change.", "The main shadow points away from the lamp in the visible tabletop geometry.", "Shadow motion stops when the lamp stops."],
+    "criteria": {"light_shadow_relation": "The shadow changes in a visually plausible direction relative to the moving lamp.", "event_coupling": "Shadow motion follows the lamp movement and settles after it stops.", "object_and_camera_stability": "Cylinder, table and framing stay unchanged during the light motion."}
+  }
+]

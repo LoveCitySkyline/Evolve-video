@@ -1,0 +1,13 @@
+{
+  "train": [
+    "cvb-msi-0042",
+    "cvb-msi-0115",
+    "cvb-msi-0139"
+  ],
+  "validation": [
+    "cvb-msi-0046"
+  ],
+  "test": [
+    "cvb-msi-0188"
+  ]
+}

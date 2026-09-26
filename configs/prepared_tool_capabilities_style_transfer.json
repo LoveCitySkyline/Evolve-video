@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "description": "Resume the prepared-tool store while acquiring only video style-transfer implementations.",
+  "capabilities": [
+    {
+      "capability": "video_style_transfer",
+      "required_input_types": ["video"],
+      "reason": "Install a local temporally consistent video stylization tool without retrying unrelated capability families.",
+      "required": true
+    }
+  ]
+}

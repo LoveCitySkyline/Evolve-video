@@ -1,0 +1,20 @@
+{
+  "task_count": 1000,
+  "family_counts": {
+    "multi_shot_identity": 200,
+    "multi_character_interaction": 120,
+    "long_horizon_causal": 150,
+    "video_stylization": 150,
+    "compositional_editing": 120,
+    "camera_control": 100,
+    "physical_dynamics": 80,
+    "audio_video_sync": 80
+  },
+  "split_counts": {
+    "train": 600,
+    "validation": 200,
+    "test": 200
+  },
+  "scenario_group_count": 200,
+  "prompt_sha256": "d910ae748d1b9bf9b4e7e5d9c5d4e8a0eab4cfa7d1f46a723ab71c8108ef316e"
+}

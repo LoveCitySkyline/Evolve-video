@@ -1,0 +1,50 @@
+name = "complex_video_bench_1k"
+output_dir = "outputs/complex_video_bench_1k_evolution"
+ablations = ["full"]
+
+[dataset]
+task_files = ["benchmarks/complex_video_bench_1k/complex_video_bench_1k.json"]
+train_ratio = 0.60
+validation_ratio = 0.20
+seed = 20260731
+
+[evolution]
+iterations = 20
+frontier_size = 5
+no_improvement_limit = 5
+selection_strategy = "round_robin"
+categories_per_batch = 4
+samples_per_category = 2
+homogeneous_task_batches = true
+max_proposals = 5
+min_quality_gain = 0.02
+cache_enabled = true
+continue_mode = false
+program_cost_weight = 0.03
+path_prior_weight = 0.5
+exploration_weight = 0.15
+historical_merge_candidates = 3
+
+[foundation]
+enabled = true
+min_support = 5
+min_utility = 0.02
+max_motif_size = 5
+cost_weight = 0.08
+mdl_weight = 0.02
+max_skills = 10
+online_enabled = true
+online_interval = 2
+online_min_support = 5
+online_min_advantage = 0.02
+online_min_stability = 0.8
+online_min_gain = 0.0
+online_max_per_category = 3
+
+[runtime]
+provider = "local-fake"
+duration = 8
+sample_frames = 8
+enable_vlm_eval = false
+strict_eval = true
+evolve_on_lte_095 = true

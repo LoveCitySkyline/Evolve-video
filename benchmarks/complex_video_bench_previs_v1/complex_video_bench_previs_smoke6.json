@@ -1,0 +1,638 @@
+{
+  "name": "complex_video_bench_previs_smoke6",
+  "version": "previs-briefs-v1.0",
+  "description": "Original public-brief tasks for evaluating controllable video tool paths. No solver is prescribed, no reference assets are required, no Blender integration is installed by this pack.",
+  "tags": [
+    "complexbench-extension",
+    "previs",
+    "operator-neutral",
+    "semantic-proxy",
+    "pilot"
+  ],
+  "provenance": {
+    "ai_assisted": true,
+    "original_synthetic_briefs": true,
+    "measured_results": false,
+    "source_example_prompts_copied": false,
+    "workflow_sources": [
+      {
+        "url": "https://seed.bytedance.com/en/blog/one-take-creation-flexible-referencing-introducing-seedance-2-5",
+        "role": "Official white-model, multimodal reference and editing workflow motivation"
+      },
+      {
+        "url": "https://github.com/wassermanproductions/blockout",
+        "role": "Author-maintained example of exportable previs motion-reference assets and agent-facing controls"
+      },
+      {
+        "url": "https://arxiv.org/abs/2311.12631",
+        "role": "Earlier GPT4Motion precedent for LLM-scripted Blender conditioning; not a novel idea claimed here"
+      }
+    ]
+  },
+  "protocol": {
+    "split_policy": "independent_scenarios_one_per_family_per_split",
+    "assets_track": "text_brief_only",
+    "quality_weight": 0.6,
+    "semantic_task_weight": 0.4,
+    "blender_or_seedance_required": false,
+    "official_leaderboard_comparable": false,
+    "same_brief_and_budget_for_all_methods": true,
+    "automatic_precision_verifier_implemented": false
+  },
+  "tasks": [
+    {
+      "task_id": "cvb-previs-gallery-doorway-orbit",
+      "prompt": "Create a 12-second video. A compact gallery has one rectangular doorway, a stationary spiral sculpture on a round plinth, and a red bench behind it. The sculpture never moves.\nUse a single continuous take with no cuts.\n0-4 seconds: Start outside the doorway and dolly through its center toward the sculpture.\n4-8 seconds: Arc around the sculpture to the viewer's right, revealing the red bench behind it.\n8-12 seconds: Rise gently to a high oblique view while keeping the same plinth in frame; settle without a cut.\nRequired invariants: Only the camera moves; the sculpture, plinth and bench stay fixed in world space. The doorway is crossed once, not replaced by a different opening. Perspective and occlusion change continuously rather than by morphing the room.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_camera_choreography",
+        "task_family": "previs_camera_choreography",
+        "split": "train",
+        "scenario_group": "previs_gallery-doorway-orbit",
+        "title": "Doorway entry and sculpture orbit",
+        "constraints": [
+          "Only the camera moves; the sculpture, plinth and bench stay fixed in world space.",
+          "The doorway is crossed once, not replaced by a different opening.",
+          "Perspective and occlusion change continuously rather than by morphing the room."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Start outside the doorway and dolly through its center toward the sculpture."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Arc around the sculpture to the viewer's right, revealing the red bench behind it."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Rise gently to a high oblique view while keeping the same plinth in frame; settle without a cut."
+          }
+        ],
+        "temporal_steps": [
+          "Start outside the doorway and dolly through its center toward the sculpture.",
+          "Arc around the sculpture to the viewer's right, revealing the red bench behind it.",
+          "Rise gently to a high oblique view while keeping the same plinth in frame; settle without a cut."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "camera_stage_order": {
+            "description": "The doorway entry, lateral arc and rise occur in the requested order; penalize missing or reversed stages. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "world_layout_stability": {
+            "description": "The bench and plinth retain their room-relative positions; penalize sliding furniture or rebuilt walls. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "continuous_perspective": {
+            "description": "Views evolve through coherent perspective with the sculpture retained; penalize cuts and geometric morphs. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "camera_stage_order",
+          "world_layout_stability",
+          "continuous_perspective"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-model-street-crane",
+      "prompt": "Create a 12-second video. A miniature street contains a blue kiosk in front of a low brick building. A yellow water tank sits on the building's flat roof. All objects are stationary.\nUse a single continuous take with no cuts.\n0-4 seconds: Track laterally at kiosk height with the roof tank hidden by the building edge.\n4-8 seconds: Crane upward without crossing through the building until the tank becomes visible.\n8-12 seconds: Move slightly forward into a downward-looking view containing kiosk, roof and tank together.\nRequired invariants: The tank must be revealed by the viewpoint change, not appear from nowhere. The kiosk remains outside and in front of the same building. The camera never passes through solid walls or the roof.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_camera_choreography",
+        "task_family": "previs_camera_choreography",
+        "split": "validation",
+        "scenario_group": "previs_model-street-crane",
+        "title": "Street-level to rooftop reveal",
+        "constraints": [
+          "The tank must be revealed by the viewpoint change, not appear from nowhere.",
+          "The kiosk remains outside and in front of the same building.",
+          "The camera never passes through solid walls or the roof."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Track laterally at kiosk height with the roof tank hidden by the building edge."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Crane upward without crossing through the building until the tank becomes visible."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Move slightly forward into a downward-looking view containing kiosk, roof and tank together."
+          }
+        ],
+        "temporal_steps": [
+          "Track laterally at kiosk height with the roof tank hidden by the building edge.",
+          "Crane upward without crossing through the building until the tank becomes visible.",
+          "Move slightly forward into a downward-looking view containing kiosk, roof and tank together."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "motivated_reveal": {
+            "description": "The rise explains the tank's progressive appearance; penalize spontaneous appearance. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "camera_stage_order": {
+            "description": "Lateral tracking precedes rising and the final downward view. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "solid_scene_continuity": {
+            "description": "The camera route and building remain visually coherent without wall penetration or layout resets. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "motivated_reveal",
+          "camera_stage_order",
+          "solid_scene_continuity"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-desk-object-parallax",
+      "prompt": "Create a 12-second video. A desk holds a tall glass bottle near the front edge, a small brass clock behind it, and a closed notebook farther back. The desk and its objects remain motionless.\nUse a single continuous take with no cuts.\n0-4 seconds: Begin low with the bottle partly hiding the clock, then slide left to uncover the clock through parallax.\n4-8 seconds: Push toward the clock while keeping the bottle visible near the frame edge.\n8-12 seconds: Lift and tilt down into a near-overhead view that shows all three objects and their original spacing.\nRequired invariants: The clock is uncovered by camera motion, not object motion. Bottle, clock and notebook keep their desk-relative arrangement. The final view comes from the same continuous camera move.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_camera_choreography",
+        "task_family": "previs_camera_choreography",
+        "split": "test",
+        "scenario_group": "previs_desk-object-parallax",
+        "title": "Foreground parallax and terminal overhead view",
+        "constraints": [
+          "The clock is uncovered by camera motion, not object motion.",
+          "Bottle, clock and notebook keep their desk-relative arrangement.",
+          "The final view comes from the same continuous camera move."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Begin low with the bottle partly hiding the clock, then slide left to uncover the clock through parallax."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "Push toward the clock while keeping the bottle visible near the frame edge."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Lift and tilt down into a near-overhead view that shows all three objects and their original spacing."
+          }
+        ],
+        "temporal_steps": [
+          "Begin low with the bottle partly hiding the clock, then slide left to uncover the clock through parallax.",
+          "Push toward the clock while keeping the bottle visible near the frame edge.",
+          "Lift and tilt down into a near-overhead view that shows all three objects and their original spacing."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "parallax_reveal": {
+            "description": "The foreground bottle and rear clock shift coherently with camera motion; penalize moving the objects to fake a reveal. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "camera_stage_order": {
+            "description": "Uncover, push toward the clock and overhead reveal occur in order. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "object_layout_persistence": {
+            "description": "Exactly the same three objects retain their arrangement and appearance. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "parallax_reveal",
+          "camera_stage_order",
+          "object_layout_persistence"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-porter-pillar-luggage",
+      "prompt": "Create a 12-second video. A porter in a red jacket pulls one yellow suitcase from screen left to right through a station. A wide foreground stone pillar blocks the middle of the route. The camera is fixed.\nUse a single continuous take with no cuts.\n0-4 seconds: The porter and suitcase approach the pillar, with a black stripe on the suitcase clearly visible.\n4-8 seconds: The porter and then the suitcase become completely hidden behind the pillar.\n8-12 seconds: They emerge from the opposite side in the same walking order, and the porter stops beside a fixed blue bench.\nRequired invariants: The same porter, jacket and striped suitcase reappear. There is exactly one suitcase throughout visible intervals. The route continues left to right; nobody returns from the entry side.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_occlusion_reentry",
+        "task_family": "previs_occlusion_reentry",
+        "split": "train",
+        "scenario_group": "previs_porter-pillar-luggage",
+        "title": "Porter reappears with unchanged luggage",
+        "constraints": [
+          "The same porter, jacket and striped suitcase reappear.",
+          "There is exactly one suitcase throughout visible intervals.",
+          "The route continues left to right; nobody returns from the entry side."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The porter and suitcase approach the pillar, with a black stripe on the suitcase clearly visible."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The porter and then the suitcase become completely hidden behind the pillar."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "They emerge from the opposite side in the same walking order, and the porter stops beside a fixed blue bench."
+          }
+        ],
+        "temporal_steps": [
+          "The porter and suitcase approach the pillar, with a black stripe on the suitcase clearly visible.",
+          "The porter and then the suitcase become completely hidden behind the pillar.",
+          "They emerge from the opposite side in the same walking order, and the porter stops beside a fixed blue bench."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "occlusion_identity": {
+            "description": "Visible appearance before and after the hidden interval matches. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "route_continuity": {
+            "description": "Approach, complete occlusion and exit occur on a single consistent route. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "prop_persistence": {
+            "description": "The porter retains the same single suitcase without duplication or disappearance after re-entry. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "occlusion_identity",
+          "route_continuity",
+          "prop_persistence"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-conveyor-tunnel-marked-crate",
+      "prompt": "Create a 12-second video. A fixed side view shows one conveyor entering a short opaque tunnel. A square wooden crate with a red diagonal stripe travels toward it. A blue inspection tray sits beyond the exit.\nUse a single continuous take with no cuts.\n0-4 seconds: Show the striped crate moving toward the tunnel with its orientation clearly visible.\n4-8 seconds: The crate disappears fully inside; the tunnel remains opaque and the belt continues moving.\n8-12 seconds: The same crate exits without rotating and comes to rest beside the inspection tray.\nRequired invariants: The tunnel does not become transparent or open to show the hidden crate. The crate retains its stripe, dimensions and orientation when it emerges. No second crate appears.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_occlusion_reentry",
+        "task_family": "previs_occlusion_reentry",
+        "split": "validation",
+        "scenario_group": "previs_conveyor-tunnel-marked-crate",
+        "title": "Marked crate through an opaque conveyor tunnel",
+        "constraints": [
+          "The tunnel does not become transparent or open to show the hidden crate.",
+          "The crate retains its stripe, dimensions and orientation when it emerges.",
+          "No second crate appears."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "Show the striped crate moving toward the tunnel with its orientation clearly visible."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The crate disappears fully inside; the tunnel remains opaque and the belt continues moving."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "The same crate exits without rotating and comes to rest beside the inspection tray."
+          }
+        ],
+        "temporal_steps": [
+          "Show the striped crate moving toward the tunnel with its orientation clearly visible.",
+          "The crate disappears fully inside; the tunnel remains opaque and the belt continues moving.",
+          "The same crate exits without rotating and comes to rest beside the inspection tray."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "hidden_interval": {
+            "description": "A genuine fully hidden interval occurs between entry and exit. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "occlusion_identity": {
+            "description": "The crate's visible markings and shape match across occlusion. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "route_and_count": {
+            "description": "One crate follows the conveyor to the exit and stops without teleporting or multiplying. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "hidden_interval",
+          "occlusion_identity",
+          "route_and_count"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    },
+    {
+      "task_id": "cvb-previs-cart-behind-divider",
+      "prompt": "Create a 12-second video. A fixed wide view shows a green service cart carrying a tall red cylinder and a short blue box. A worker pushes it behind an opaque room divider toward an open exit on the right.\nUse a single continuous take with no cuts.\n0-4 seconds: The cart approaches the divider with the red cylinder nearer the worker than the blue box.\n4-8 seconds: The whole cart is hidden behind the divider while the worker also passes behind it.\n8-12 seconds: Worker and cart emerge on the right and turn slightly toward the camera without disturbing the load.\nRequired invariants: The two carried objects retain their order on the cart. The worker and cart keep their identities across the hidden interval. The load remains supported rather than floating beside the cart.\nDo not add captions, watermarks, motion-path guides, axes or debug overlays. Audio is not evaluated.",
+      "mode": "generation",
+      "duration_seconds": 12,
+      "metadata": {
+        "benchmark": "complex_video_bench_previs24",
+        "benchmark_version": "previs-briefs-v1.0",
+        "category": "previs_occlusion_reentry",
+        "task_family": "previs_occlusion_reentry",
+        "split": "test",
+        "scenario_group": "previs_cart-behind-divider",
+        "title": "Loaded cart behind a room divider",
+        "constraints": [
+          "The two carried objects retain their order on the cart.",
+          "The worker and cart keep their identities across the hidden interval.",
+          "The load remains supported rather than floating beside the cart."
+        ],
+        "expected_failure_modes": [
+          "motion_mismatch",
+          "object_persistence_failure",
+          "prompt_omission"
+        ],
+        "state_timeline": [
+          {
+            "start_seconds": 0,
+            "end_seconds": 4,
+            "description": "The cart approaches the divider with the red cylinder nearer the worker than the blue box."
+          },
+          {
+            "start_seconds": 4,
+            "end_seconds": 8,
+            "description": "The whole cart is hidden behind the divider while the worker also passes behind it."
+          },
+          {
+            "start_seconds": 8,
+            "end_seconds": 12,
+            "description": "Worker and cart emerge on the right and turn slightly toward the camera without disturbing the load."
+          }
+        ],
+        "temporal_steps": [
+          "The cart approaches the divider with the red cylinder nearer the worker than the blue box.",
+          "The whole cart is hidden behind the divider while the worker also passes behind it.",
+          "Worker and cart emerge on the right and turn slightly toward the camera without disturbing the load."
+        ],
+        "camera_plan": {
+          "continuous_take": true
+        },
+        "h3_references": [],
+        "input_assets": {
+          "required": false
+        },
+        "evaluation": {
+          "load_state_persistence": {
+            "description": "Both objects reappear in their original cart-relative positions. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "occlusion_identity": {
+            "description": "Worker and cart match before and after the divider. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          },
+          "supported_motion": {
+            "description": "Visible objects move with the cart and remain supported through the turn. Judge visible semantic compliance only. If evidence is insufficient, do not assume success; describe the missing evidence. Do not report measured 3D errors or sub-frame timing from sparse frames.",
+            "threshold": 0.9,
+            "weight": 1.0,
+            "aggregation": "mean",
+            "measurement_type": "vlm_semantic_proxy"
+          }
+        },
+        "eval_focus": [
+          "load_state_persistence",
+          "occlusion_identity",
+          "supported_motion"
+        ],
+        "reward": {
+          "objective": "task_conditioned_multimodal_reward",
+          "video_quality_weight": 0.6
+        },
+        "production_brief": {
+          "representation": "public_outcome_constraints_not_a_solution_scene",
+          "continuous_take": true,
+          "allowed_solver": "any_registered_executable_path",
+          "generated_references": "agent_outputs_not_ground_truth"
+        },
+        "evaluation_protocol": "previs_visual_proxy_v1",
+        "measurement_limits": {
+          "exact_camera_pose_verified": false,
+          "exact_contact_timing_verified": false,
+          "blender_scene_correctness_implies_final_video_correctness": false,
+          "requires_dense_or_human_audit_for_precision_claims": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "train": [
+    "cvb-avs-0954",
+    "cvb-cam-0783",
+    "cvb-ced-0670",
+    "cvb-lhc-0338",
+    "cvb-mci-0232",
+    "cvb-msi-0116",
+    "cvb-phy-0842",
+    "cvb-vst-0554"
+  ],
+  "validation": [
+    "cvb-ced-0711",
+    "cvb-lhc-0429",
+    "cvb-msi-0125"
+  ],
+  "test": [
+    "cvb-cam-0836",
+    "cvb-mci-0313",
+    "cvb-msi-0167",
+    "cvb-vst-0605"
+  ]
+}

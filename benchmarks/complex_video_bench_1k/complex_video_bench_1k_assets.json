@@ -1,0 +1,355 @@
+{
+  "description": "Map logical asset IDs to local paths or URLs before real provider evaluation.",
+  "assets": [
+    {
+      "asset_id": "audio_track_000",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_001",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_002",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_003",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_004",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_005",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_006",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_007",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_008",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_009",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_010",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_011",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_012",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_013",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_014",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "audio_track_015",
+      "type": "audio",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_000",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_001",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_002",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_003",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_004",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_005",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_006",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_007",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_008",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_009",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_010",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_011",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_012",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_013",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_014",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_015",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_016",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_017",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_018",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_019",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_020",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_021",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_022",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "edit_source_023",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_000",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_001",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_002",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_003",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_004",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_005",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_006",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_007",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_008",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_009",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_010",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_011",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_012",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_013",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_014",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_015",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_016",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_017",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_018",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_019",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_020",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_021",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_022",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_023",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_024",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_025",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_026",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_027",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_028",
+      "type": "source_video",
+      "path": null
+    },
+    {
+      "asset_id": "source_video_029",
+      "type": "source_video",
+      "path": null
+    }
+  ]
+}
