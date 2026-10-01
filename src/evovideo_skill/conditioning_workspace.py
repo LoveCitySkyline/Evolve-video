@@ -165,6 +165,7 @@ class ConditioningWorkspace:
         self.state.update(status="verified", stage="complete", quality={
             "score": record["score"], "criterion_scores": record["criterion_scores"],
             "scope": "whole_output", "selection_status": "not_decided_here"},
+            acceptance=deepcopy(record.get("acceptance", {"status": "not_applicable"})),
             process_diagnostics=self.diagnostics())
         self.event("verification_completed")
 
@@ -178,6 +179,7 @@ class ConditioningWorkspace:
                 value["status"] = "not_executed"
         self.state.update(status=status, failed_stage=stage,
                           error={"type": type(exc).__name__, "message": str(exc)[-2000:]},
+                          acceptance={"status": "unknown", "reason": "attempt did not complete verification"},
                           process_diagnostics=self.diagnostics())
         self.event("attempt_" + status, active_nodes=active, stage=stage, error=self.state["error"])
 

@@ -144,7 +144,8 @@ class RunnerTests(unittest.TestCase):
             committed = json.loads((root / "committed_selections.json").read_text())
             self.assertEqual(len(committed), len(self.dataset.test) * 3)
             seen.append(record["evaluation_id"])
-            return {"score": 1.0 if record["graph_id"] == self.runner.baseline.graph_id else .1}
+            return {"score": 1.0 if record["graph_id"] == self.runner.baseline.graph_id else .1,
+                    "acceptance": {"status": "not_applicable", "checks": {}}}
         with patch.object(self.runner, "final_score", side_effect=judge):
             result = self.runner.test(frozen)
         self.assertLess(result["heldout_gain"], 0)
@@ -236,7 +237,7 @@ class RunnerTests(unittest.TestCase):
             self.ev.tools.register(FixtureTool(name, output), ToolSpec(name=name, capability=name,
                 input_types=inputs, output_type=output, consumes_upstream=bool(inputs), backend="builtin"))
         graph = deepcopy(self.runner.baseline)
-        graph.nodes += [GraphNode("frame", "tool", "h3_frame_extract", {"position": "last"}),
+        graph.nodes += [GraphNode("frame", "tool", "h3_frame_extract", {"position": "last", "role": "reference_image"}),
                         GraphNode("repair", "tool", "h3_ref2va", {"prompt": "first strategy"})]
         graph.edges += [GraphEdge("a", "tool_t2v", "frame"), GraphEdge("b", "frame", "repair")]
         task = self.dataset.train[0]

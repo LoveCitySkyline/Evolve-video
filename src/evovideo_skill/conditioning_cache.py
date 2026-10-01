@@ -44,10 +44,12 @@ def material_hashes(value):
 
 
 class ConditioningNodeCache:
-    def __init__(self, root, namespace, charge):
+    def __init__(self, root, namespace, charge, complete=None):
         self.root = Path(root)
         self.namespace = namespace
         self.charge = charge
+        self.complete = complete
+        self.request_keys = {}
         self.hits = []
         self.misses = []
 
@@ -69,9 +71,11 @@ class ConditioningNodeCache:
         return stable_hash([data, material_hashes(data)])
 
     def lookup(self, task, plan, node, inputs, spec):
+        key = self.key(task, plan, node, inputs, spec)
+        self.request_keys[node.node_id] = stable_hash([str(self.root), key])
         if not self.eligible(spec):
             return None
-        path = self.root / (self.key(task, plan, node, inputs, spec) + ".json")
+        path = self.root / (key + ".json")
         if not path.exists():
             return None
         entry = json.loads(path.read_text())
@@ -82,7 +86,7 @@ class ConditioningNodeCache:
 
     def before_node(self, task, node, hit):
         calls, seconds = generation_credits(task, ToolPathGraph("budget", "budget", "", [], [node], []))
-        self.charge(calls, seconds, hit)
+        self.charge(calls, seconds, hit, self.request_keys[node.node_id])
         (self.hits if hit else self.misses).append(node.node_id)
 
     def store(self, task, plan, node, inputs, spec, artifact):
@@ -91,3 +95,5 @@ class ConditioningNodeCache:
         data = asdict(artifact)
         write_json(self.root / (self.key(task, plan, node, inputs, spec) + ".json"),
                    {"artifact": data, "files": material_hashes(data)})
+        if self.complete is not None:
+            self.complete(self.request_keys[node.node_id])

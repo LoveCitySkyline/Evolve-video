@@ -3,6 +3,7 @@ from __future__ import annotations
 import errno
 import io
 import json
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -145,6 +146,20 @@ class LocalH3Tests(unittest.TestCase):
         request = build_local_request("Move", "fl2va", refs, 4)
         self.assertEqual([condition["frame_index"] for condition in request["conditions"]], [0, -1])
         self.assertEqual(smoke_graph().tool_names(), ["h3_t2va", "h3_frame_extract", "h3_fl2va", "h3_reference_pack", "h3_ref2va"])
+
+    def test_copied_generation_directory_reuses_completed_video_without_post_or_download(self):
+        self.client.check_health()
+        identity = {"task_id": "camera", "node_id": "tool_t2v", "replicate_label": 42}
+        first = self.client.generate(self.payload, identity)
+        new_root = self.root / "new_run" / "videos"
+        shutil.copytree(self.client.root, new_root)
+        other = H3LocalClient(replace(self.config, output_dir=str(new_root)), self.http)
+        other.check_health()
+        with patch("evovideo_skill.h3_local._local_open", side_effect=AssertionError("must reuse local video")):
+            replay = other.generate(self.payload, identity)
+        self.assertEqual(len(self.http.posts), 1)
+        self.assertEqual(Path(replay[2]["local_video_path"]).parent, new_root)
+        self.assertEqual(Path(replay[2]["local_video_path"]).read_bytes(), Path(first[2]["local_video_path"]).read_bytes())
 
     def test_poll_resume_does_not_resubmit(self):
         original = self.http.request_json

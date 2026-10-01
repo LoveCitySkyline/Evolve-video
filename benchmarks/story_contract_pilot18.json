@@ -1,0 +1,2905 @@
+{
+  "name": "Story Contract Pilot 18",
+  "version": "draft-v1",
+  "description": "Authored contract fixtures for integration and pilot studies; not a validated public benchmark.",
+  "tasks": [
+    {
+      "task_id": "story-key_escape",
+      "prompt": "Create a coherent six-shot narrative. Mira shows the red key to Lin. Then Mira hands the key to Lin and releases it. Then Lin unlocks the iron door while holding the key. Then Lin leads Mira through the doorway with the key visible. Then Lin returns the key to Mira. Then Mira locks the door behind them with the key. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "train",
+        "scenario_group": "key_escape",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "Mira shows the red key to Lin. Show the whole action, keep the same people, object and scene layout. Before: key.owner=Mira. After: key.owner=Mira.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "Mira hands the key to Lin and releases it. Show the whole action, keep the same people, object and scene layout. Before: key.owner=Mira. After: key.owner=Lin.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "Lin unlocks the iron door while holding the key. Show the whole action, keep the same people, object and scene layout. Before: key.owner=Lin. After: key.owner=Lin.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "Lin leads Mira through the doorway with the key visible. Show the whole action, keep the same people, object and scene layout. Before: key.owner=Lin. After: key.owner=Lin.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "Lin returns the key to Mira. Show the whole action, keep the same people, object and scene layout. Before: key.owner=Lin. After: key.owner=Mira.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "Mira locks the door behind them with the key. Show the whole action, keep the same people, object and scene layout. Before: key.owner=Mira. After: key.owner=Mira.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. Mira shows the red key to Lin. Then Mira hands the key to Lin and releases it. Then Lin unlocks the iron door while holding the key. Then Lin leads Mira through the doorway with the key visible. Then Lin returns the key to Mira. Then Mira locks the door behind them with the key. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "key.owner": "Mira"
+          },
+          "final_state": {
+            "key.owner": "Mira"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "key.owner": "Mira"
+              },
+              "postconditions": {
+                "key.owner": "Mira"
+              },
+              "events": [
+                {
+                  "id": "key_escape_0",
+                  "description": "Mira shows the red key to Lin"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "key.owner": "Mira"
+              },
+              "postconditions": {
+                "key.owner": "Lin"
+              },
+              "events": [
+                {
+                  "id": "key_escape_1",
+                  "description": "Mira hands the key to Lin and releases it"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "key.owner": "Lin"
+              },
+              "postconditions": {
+                "key.owner": "Lin"
+              },
+              "events": [
+                {
+                  "id": "key_escape_2",
+                  "description": "Lin unlocks the iron door while holding the key"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "key.owner": "Lin"
+              },
+              "postconditions": {
+                "key.owner": "Lin"
+              },
+              "events": [
+                {
+                  "id": "key_escape_3",
+                  "description": "Lin leads Mira through the doorway with the key visible"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "key.owner": "Lin"
+              },
+              "postconditions": {
+                "key.owner": "Mira"
+              },
+              "events": [
+                {
+                  "id": "key_escape_4",
+                  "description": "Lin returns the key to Mira"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "key.owner": "Mira"
+              },
+              "postconditions": {
+                "key.owner": "Mira"
+              },
+              "events": [
+                {
+                  "id": "key_escape_5",
+                  "description": "Mira locks the door behind them with the key"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-paper_crane",
+      "prompt": "Create a coherent six-shot narrative. A child folds the square diagonally. Then The child folds it into a small diamond. Then The child opens one flap into a neck. Then The child folds a pointed head. Then The child spreads both wings. Then The child sets the same crane on a windowsill. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "train",
+        "scenario_group": "paper_crane",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A child folds the square diagonally. Show the whole action, keep the same people, object and scene layout. Before: paper.form=flat square. After: paper.form=triangle.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The child folds it into a small diamond. Show the whole action, keep the same people, object and scene layout. Before: paper.form=triangle. After: paper.form=diamond.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The child opens one flap into a neck. Show the whole action, keep the same people, object and scene layout. Before: paper.form=diamond. After: paper.form=partly formed crane.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The child folds a pointed head. Show the whole action, keep the same people, object and scene layout. Before: paper.form=partly formed crane. After: paper.form=crane with folded wings.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The child spreads both wings. Show the whole action, keep the same people, object and scene layout. Before: paper.form=crane with folded wings. After: paper.form=open-winged crane.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The child sets the same crane on a windowsill. Show the whole action, keep the same people, object and scene layout. Before: paper.form=open-winged crane. After: paper.form=open-winged crane on sill.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A child folds the square diagonally. Then The child folds it into a small diamond. Then The child opens one flap into a neck. Then The child folds a pointed head. Then The child spreads both wings. Then The child sets the same crane on a windowsill. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "paper.form": "flat square"
+          },
+          "final_state": {
+            "paper.form": "open-winged crane on sill"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "paper.form": "flat square"
+              },
+              "postconditions": {
+                "paper.form": "triangle"
+              },
+              "events": [
+                {
+                  "id": "paper_crane_0",
+                  "description": "A child folds the square diagonally"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "paper.form": "triangle"
+              },
+              "postconditions": {
+                "paper.form": "diamond"
+              },
+              "events": [
+                {
+                  "id": "paper_crane_1",
+                  "description": "The child folds it into a small diamond"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "paper.form": "diamond"
+              },
+              "postconditions": {
+                "paper.form": "partly formed crane"
+              },
+              "events": [
+                {
+                  "id": "paper_crane_2",
+                  "description": "The child opens one flap into a neck"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "paper.form": "partly formed crane"
+              },
+              "postconditions": {
+                "paper.form": "crane with folded wings"
+              },
+              "events": [
+                {
+                  "id": "paper_crane_3",
+                  "description": "The child folds a pointed head"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "paper.form": "crane with folded wings"
+              },
+              "postconditions": {
+                "paper.form": "open-winged crane"
+              },
+              "events": [
+                {
+                  "id": "paper_crane_4",
+                  "description": "The child spreads both wings"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "paper.form": "open-winged crane"
+              },
+              "postconditions": {
+                "paper.form": "open-winged crane on sill"
+              },
+              "events": [
+                {
+                  "id": "paper_crane_5",
+                  "description": "The child sets the same crane on a windowsill"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-lantern_rescue",
+      "prompt": "Create a coherent six-shot narrative. A sailor lifts a brass lantern. Then The sailor carries it down steps. Then The sailor places it by a stranded boat. Then A passenger lifts the lantern. Then The passenger hangs it on a hook aboard. Then The lantern illuminates both people as they depart. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "train",
+        "scenario_group": "lantern_rescue",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A sailor lifts a brass lantern. Show the whole action, keep the same people, object and scene layout. Before: lantern.location=table. After: lantern.location=sailor hand.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The sailor carries it down steps. Show the whole action, keep the same people, object and scene layout. Before: lantern.location=sailor hand. After: lantern.location=bottom of steps.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The sailor places it by a stranded boat. Show the whole action, keep the same people, object and scene layout. Before: lantern.location=bottom of steps. After: lantern.location=boat edge.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "A passenger lifts the lantern. Show the whole action, keep the same people, object and scene layout. Before: lantern.location=boat edge. After: lantern.location=passenger hand.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The passenger hangs it on a hook aboard. Show the whole action, keep the same people, object and scene layout. Before: lantern.location=passenger hand. After: lantern.location=boat hook.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The lantern illuminates both people as they depart. Show the whole action, keep the same people, object and scene layout. Before: lantern.location=boat hook. After: lantern.location=boat hook.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A sailor lifts a brass lantern. Then The sailor carries it down steps. Then The sailor places it by a stranded boat. Then A passenger lifts the lantern. Then The passenger hangs it on a hook aboard. Then The lantern illuminates both people as they depart. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "lantern.location": "table"
+          },
+          "final_state": {
+            "lantern.location": "boat hook"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "lantern.location": "table"
+              },
+              "postconditions": {
+                "lantern.location": "sailor hand"
+              },
+              "events": [
+                {
+                  "id": "lantern_rescue_0",
+                  "description": "A sailor lifts a brass lantern"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "lantern.location": "sailor hand"
+              },
+              "postconditions": {
+                "lantern.location": "bottom of steps"
+              },
+              "events": [
+                {
+                  "id": "lantern_rescue_1",
+                  "description": "The sailor carries it down steps"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "lantern.location": "bottom of steps"
+              },
+              "postconditions": {
+                "lantern.location": "boat edge"
+              },
+              "events": [
+                {
+                  "id": "lantern_rescue_2",
+                  "description": "The sailor places it by a stranded boat"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "lantern.location": "boat edge"
+              },
+              "postconditions": {
+                "lantern.location": "passenger hand"
+              },
+              "events": [
+                {
+                  "id": "lantern_rescue_3",
+                  "description": "A passenger lifts the lantern"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "lantern.location": "passenger hand"
+              },
+              "postconditions": {
+                "lantern.location": "boat hook"
+              },
+              "events": [
+                {
+                  "id": "lantern_rescue_4",
+                  "description": "The passenger hangs it on a hook aboard"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "lantern.location": "boat hook"
+              },
+              "postconditions": {
+                "lantern.location": "boat hook"
+              },
+              "events": [
+                {
+                  "id": "lantern_rescue_5",
+                  "description": "The lantern illuminates both people as they depart"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-train_ticket",
+      "prompt": "Create a coherent six-shot narrative. Iris displays a blue ticket. Then A gust pulls the ticket from her fingers. Then The ticket lands beside a bench. Then A porter picks it up. Then The porter returns it to Iris. Then Iris presents it to the conductor. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "train",
+        "scenario_group": "train_ticket",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "Iris displays a blue ticket. Show the whole action, keep the same people, object and scene layout. Before: ticket.holder=Iris. After: ticket.holder=Iris.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "A gust pulls the ticket from her fingers. Show the whole action, keep the same people, object and scene layout. Before: ticket.holder=Iris. After: ticket.holder=air.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The ticket lands beside a bench. Show the whole action, keep the same people, object and scene layout. Before: ticket.holder=air. After: ticket.holder=ground.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "A porter picks it up. Show the whole action, keep the same people, object and scene layout. Before: ticket.holder=ground. After: ticket.holder=porter.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The porter returns it to Iris. Show the whole action, keep the same people, object and scene layout. Before: ticket.holder=porter. After: ticket.holder=Iris.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "Iris presents it to the conductor. Show the whole action, keep the same people, object and scene layout. Before: ticket.holder=Iris. After: ticket.holder=conductor.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. Iris displays a blue ticket. Then A gust pulls the ticket from her fingers. Then The ticket lands beside a bench. Then A porter picks it up. Then The porter returns it to Iris. Then Iris presents it to the conductor. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "ticket.holder": "Iris"
+          },
+          "final_state": {
+            "ticket.holder": "conductor"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "ticket.holder": "Iris"
+              },
+              "postconditions": {
+                "ticket.holder": "Iris"
+              },
+              "events": [
+                {
+                  "id": "train_ticket_0",
+                  "description": "Iris displays a blue ticket"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "ticket.holder": "Iris"
+              },
+              "postconditions": {
+                "ticket.holder": "air"
+              },
+              "events": [
+                {
+                  "id": "train_ticket_1",
+                  "description": "A gust pulls the ticket from her fingers"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "ticket.holder": "air"
+              },
+              "postconditions": {
+                "ticket.holder": "ground"
+              },
+              "events": [
+                {
+                  "id": "train_ticket_2",
+                  "description": "The ticket lands beside a bench"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "ticket.holder": "ground"
+              },
+              "postconditions": {
+                "ticket.holder": "porter"
+              },
+              "events": [
+                {
+                  "id": "train_ticket_3",
+                  "description": "A porter picks it up"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "ticket.holder": "porter"
+              },
+              "postconditions": {
+                "ticket.holder": "Iris"
+              },
+              "events": [
+                {
+                  "id": "train_ticket_4",
+                  "description": "The porter returns it to Iris"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "ticket.holder": "Iris"
+              },
+              "postconditions": {
+                "ticket.holder": "conductor"
+              },
+              "events": [
+                {
+                  "id": "train_ticket_5",
+                  "description": "Iris presents it to the conductor"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-broken_bridge",
+      "prompt": "Create a coherent six-shot narrative. A worker lifts a wooden plank from the shed. Then The worker carries it to a stream. Then The worker lays it across two stones. Then The worker tests the plank with one foot. Then A cyclist walks across carrying a bicycle. Then The worker retrieves the plank after the cyclist crosses. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "train",
+        "scenario_group": "broken_bridge",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A worker lifts a wooden plank from the shed. Show the whole action, keep the same people, object and scene layout. Before: plank.location=shed. After: plank.location=worker hands.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The worker carries it to a stream. Show the whole action, keep the same people, object and scene layout. Before: plank.location=worker hands. After: plank.location=stream bank.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The worker lays it across two stones. Show the whole action, keep the same people, object and scene layout. Before: plank.location=stream bank. After: plank.location=across stream.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The worker tests the plank with one foot. Show the whole action, keep the same people, object and scene layout. Before: plank.location=across stream. After: plank.location=across stream.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "A cyclist walks across carrying a bicycle. Show the whole action, keep the same people, object and scene layout. Before: plank.location=across stream. After: plank.location=across stream.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The worker retrieves the plank after the cyclist crosses. Show the whole action, keep the same people, object and scene layout. Before: plank.location=across stream. After: plank.location=worker hands.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A worker lifts a wooden plank from the shed. Then The worker carries it to a stream. Then The worker lays it across two stones. Then The worker tests the plank with one foot. Then A cyclist walks across carrying a bicycle. Then The worker retrieves the plank after the cyclist crosses. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "plank.location": "shed"
+          },
+          "final_state": {
+            "plank.location": "worker hands"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "plank.location": "shed"
+              },
+              "postconditions": {
+                "plank.location": "worker hands"
+              },
+              "events": [
+                {
+                  "id": "broken_bridge_0",
+                  "description": "A worker lifts a wooden plank from the shed"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "plank.location": "worker hands"
+              },
+              "postconditions": {
+                "plank.location": "stream bank"
+              },
+              "events": [
+                {
+                  "id": "broken_bridge_1",
+                  "description": "The worker carries it to a stream"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "plank.location": "stream bank"
+              },
+              "postconditions": {
+                "plank.location": "across stream"
+              },
+              "events": [
+                {
+                  "id": "broken_bridge_2",
+                  "description": "The worker lays it across two stones"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "plank.location": "across stream"
+              },
+              "postconditions": {
+                "plank.location": "across stream"
+              },
+              "events": [
+                {
+                  "id": "broken_bridge_3",
+                  "description": "The worker tests the plank with one foot"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "plank.location": "across stream"
+              },
+              "postconditions": {
+                "plank.location": "across stream"
+              },
+              "events": [
+                {
+                  "id": "broken_bridge_4",
+                  "description": "A cyclist walks across carrying a bicycle"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "plank.location": "across stream"
+              },
+              "postconditions": {
+                "plank.location": "worker hands"
+              },
+              "events": [
+                {
+                  "id": "broken_bridge_5",
+                  "description": "The worker retrieves the plank after the cyclist crosses"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-paint_restoration",
+      "prompt": "Create a coherent six-shot narrative. A painter wipes dust from an old sign. Then The painter applies a white base coat. Then The painter draws a blue outline. Then The painter fills a blue bird inside the outline. Then The painter adds a yellow sun beside the bird. Then The painter hangs the completed sign above the shop. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "train",
+        "scenario_group": "paint_restoration",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A painter wipes dust from an old sign. Show the whole action, keep the same people, object and scene layout. Before: sign.appearance=dusty. After: sign.appearance=clean bare sign.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The painter applies a white base coat. Show the whole action, keep the same people, object and scene layout. Before: sign.appearance=clean bare sign. After: sign.appearance=white base coat.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The painter draws a blue outline. Show the whole action, keep the same people, object and scene layout. Before: sign.appearance=white base coat. After: sign.appearance=blue outline.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The painter fills a blue bird inside the outline. Show the whole action, keep the same people, object and scene layout. Before: sign.appearance=blue outline. After: sign.appearance=blue bird.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The painter adds a yellow sun beside the bird. Show the whole action, keep the same people, object and scene layout. Before: sign.appearance=blue bird. After: sign.appearance=blue bird and yellow sun.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The painter hangs the completed sign above the shop. Show the whole action, keep the same people, object and scene layout. Before: sign.appearance=blue bird and yellow sun. After: sign.appearance=hung blue bird and yellow sun sign.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A painter wipes dust from an old sign. Then The painter applies a white base coat. Then The painter draws a blue outline. Then The painter fills a blue bird inside the outline. Then The painter adds a yellow sun beside the bird. Then The painter hangs the completed sign above the shop. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "sign.appearance": "dusty"
+          },
+          "final_state": {
+            "sign.appearance": "hung blue bird and yellow sun sign"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "sign.appearance": "dusty"
+              },
+              "postconditions": {
+                "sign.appearance": "clean bare sign"
+              },
+              "events": [
+                {
+                  "id": "paint_restoration_0",
+                  "description": "A painter wipes dust from an old sign"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "sign.appearance": "clean bare sign"
+              },
+              "postconditions": {
+                "sign.appearance": "white base coat"
+              },
+              "events": [
+                {
+                  "id": "paint_restoration_1",
+                  "description": "The painter applies a white base coat"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "sign.appearance": "white base coat"
+              },
+              "postconditions": {
+                "sign.appearance": "blue outline"
+              },
+              "events": [
+                {
+                  "id": "paint_restoration_2",
+                  "description": "The painter draws a blue outline"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "sign.appearance": "blue outline"
+              },
+              "postconditions": {
+                "sign.appearance": "blue bird"
+              },
+              "events": [
+                {
+                  "id": "paint_restoration_3",
+                  "description": "The painter fills a blue bird inside the outline"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "sign.appearance": "blue bird"
+              },
+              "postconditions": {
+                "sign.appearance": "blue bird and yellow sun"
+              },
+              "events": [
+                {
+                  "id": "paint_restoration_4",
+                  "description": "The painter adds a yellow sun beside the bird"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "sign.appearance": "blue bird and yellow sun"
+              },
+              "postconditions": {
+                "sign.appearance": "hung blue bird and yellow sun sign"
+              },
+              "events": [
+                {
+                  "id": "paint_restoration_5",
+                  "description": "The painter hangs the completed sign above the shop"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-parcel_handoff",
+      "prompt": "Create a coherent six-shot narrative. A courier removes a striped parcel from a bag. Then The courier places the parcel on a counter. Then A clerk checks its label without moving it. Then The clerk hands the parcel to a customer. Then The customer carries it to a bicycle basket. Then The customer secures the same parcel with a strap. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "validation",
+        "scenario_group": "parcel_handoff",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A courier removes a striped parcel from a bag. Show the whole action, keep the same people, object and scene layout. Before: parcel.location=courier bag. After: parcel.location=courier hands.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The courier places the parcel on a counter. Show the whole action, keep the same people, object and scene layout. Before: parcel.location=courier hands. After: parcel.location=counter.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "A clerk checks its label without moving it. Show the whole action, keep the same people, object and scene layout. Before: parcel.location=counter. After: parcel.location=counter.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The clerk hands the parcel to a customer. Show the whole action, keep the same people, object and scene layout. Before: parcel.location=counter. After: parcel.location=customer hands.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The customer carries it to a bicycle basket. Show the whole action, keep the same people, object and scene layout. Before: parcel.location=customer hands. After: parcel.location=bicycle basket.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The customer secures the same parcel with a strap. Show the whole action, keep the same people, object and scene layout. Before: parcel.location=bicycle basket. After: parcel.location=strapped in basket.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A courier removes a striped parcel from a bag. Then The courier places the parcel on a counter. Then A clerk checks its label without moving it. Then The clerk hands the parcel to a customer. Then The customer carries it to a bicycle basket. Then The customer secures the same parcel with a strap. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "parcel.location": "courier bag"
+          },
+          "final_state": {
+            "parcel.location": "strapped in basket"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "parcel.location": "courier bag"
+              },
+              "postconditions": {
+                "parcel.location": "courier hands"
+              },
+              "events": [
+                {
+                  "id": "parcel_handoff_0",
+                  "description": "A courier removes a striped parcel from a bag"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "parcel.location": "courier hands"
+              },
+              "postconditions": {
+                "parcel.location": "counter"
+              },
+              "events": [
+                {
+                  "id": "parcel_handoff_1",
+                  "description": "The courier places the parcel on a counter"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "parcel.location": "counter"
+              },
+              "postconditions": {
+                "parcel.location": "counter"
+              },
+              "events": [
+                {
+                  "id": "parcel_handoff_2",
+                  "description": "A clerk checks its label without moving it"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "parcel.location": "counter"
+              },
+              "postconditions": {
+                "parcel.location": "customer hands"
+              },
+              "events": [
+                {
+                  "id": "parcel_handoff_3",
+                  "description": "The clerk hands the parcel to a customer"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "parcel.location": "customer hands"
+              },
+              "postconditions": {
+                "parcel.location": "bicycle basket"
+              },
+              "events": [
+                {
+                  "id": "parcel_handoff_4",
+                  "description": "The customer carries it to a bicycle basket"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "parcel.location": "bicycle basket"
+              },
+              "postconditions": {
+                "parcel.location": "strapped in basket"
+              },
+              "events": [
+                {
+                  "id": "parcel_handoff_5",
+                  "description": "The customer secures the same parcel with a strap"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-plant_revival",
+      "prompt": "Create a coherent six-shot narrative. A gardener lifts a wilted plant and root ball. Then The gardener lowers it into a larger pot. Then The gardener adds soil around the root ball. Then The gardener waters the soil. Then The gardener carries the pot into shade. Then The gardener leaves the pot by a window and steps away. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "validation",
+        "scenario_group": "plant_revival",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A gardener lifts a wilted plant and root ball. Show the whole action, keep the same people, object and scene layout. Before: plant.location=dry outdoor pot. After: plant.location=gardener hands.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The gardener lowers it into a larger pot. Show the whole action, keep the same people, object and scene layout. Before: plant.location=gardener hands. After: plant.location=larger pot.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The gardener adds soil around the root ball. Show the whole action, keep the same people, object and scene layout. Before: plant.location=larger pot. After: plant.location=larger pot with soil.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The gardener waters the soil. Show the whole action, keep the same people, object and scene layout. Before: plant.location=larger pot with soil. After: plant.location=watered larger pot.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The gardener carries the pot into shade. Show the whole action, keep the same people, object and scene layout. Before: plant.location=watered larger pot. After: plant.location=shaded bench.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The gardener leaves the pot by a window and steps away. Show the whole action, keep the same people, object and scene layout. Before: plant.location=shaded bench. After: plant.location=shaded bench.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A gardener lifts a wilted plant and root ball. Then The gardener lowers it into a larger pot. Then The gardener adds soil around the root ball. Then The gardener waters the soil. Then The gardener carries the pot into shade. Then The gardener leaves the pot by a window and steps away. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "plant.location": "dry outdoor pot"
+          },
+          "final_state": {
+            "plant.location": "shaded bench"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "plant.location": "dry outdoor pot"
+              },
+              "postconditions": {
+                "plant.location": "gardener hands"
+              },
+              "events": [
+                {
+                  "id": "plant_revival_0",
+                  "description": "A gardener lifts a wilted plant and root ball"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "plant.location": "gardener hands"
+              },
+              "postconditions": {
+                "plant.location": "larger pot"
+              },
+              "events": [
+                {
+                  "id": "plant_revival_1",
+                  "description": "The gardener lowers it into a larger pot"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "plant.location": "larger pot"
+              },
+              "postconditions": {
+                "plant.location": "larger pot with soil"
+              },
+              "events": [
+                {
+                  "id": "plant_revival_2",
+                  "description": "The gardener adds soil around the root ball"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "plant.location": "larger pot with soil"
+              },
+              "postconditions": {
+                "plant.location": "watered larger pot"
+              },
+              "events": [
+                {
+                  "id": "plant_revival_3",
+                  "description": "The gardener waters the soil"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "plant.location": "watered larger pot"
+              },
+              "postconditions": {
+                "plant.location": "shaded bench"
+              },
+              "events": [
+                {
+                  "id": "plant_revival_4",
+                  "description": "The gardener carries the pot into shade"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "plant.location": "shaded bench"
+              },
+              "postconditions": {
+                "plant.location": "shaded bench"
+              },
+              "events": [
+                {
+                  "id": "plant_revival_5",
+                  "description": "The gardener leaves the pot by a window and steps away"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-lost_glasses",
+      "prompt": "Create a coherent six-shot narrative. An archivist places round glasses on a book. Then The archivist closes the book with glasses still on top. Then An assistant moves the book and glasses to a cart. Then The archivist searches the empty desk. Then The assistant points to the glasses on the cart. Then The archivist retrieves and wears the glasses. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "validation",
+        "scenario_group": "lost_glasses",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "An archivist places round glasses on a book. Show the whole action, keep the same people, object and scene layout. Before: glasses.location=desk. After: glasses.location=book.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The archivist closes the book with glasses still on top. Show the whole action, keep the same people, object and scene layout. Before: glasses.location=book. After: glasses.location=closed book.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "An assistant moves the book and glasses to a cart. Show the whole action, keep the same people, object and scene layout. Before: glasses.location=closed book. After: glasses.location=cart.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The archivist searches the empty desk. Show the whole action, keep the same people, object and scene layout. Before: glasses.location=cart. After: glasses.location=cart.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The assistant points to the glasses on the cart. Show the whole action, keep the same people, object and scene layout. Before: glasses.location=cart. After: glasses.location=cart.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The archivist retrieves and wears the glasses. Show the whole action, keep the same people, object and scene layout. Before: glasses.location=cart. After: glasses.location=archivist face.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. An archivist places round glasses on a book. Then The archivist closes the book with glasses still on top. Then An assistant moves the book and glasses to a cart. Then The archivist searches the empty desk. Then The assistant points to the glasses on the cart. Then The archivist retrieves and wears the glasses. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "glasses.location": "desk"
+          },
+          "final_state": {
+            "glasses.location": "archivist face"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "glasses.location": "desk"
+              },
+              "postconditions": {
+                "glasses.location": "book"
+              },
+              "events": [
+                {
+                  "id": "lost_glasses_0",
+                  "description": "An archivist places round glasses on a book"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "glasses.location": "book"
+              },
+              "postconditions": {
+                "glasses.location": "closed book"
+              },
+              "events": [
+                {
+                  "id": "lost_glasses_1",
+                  "description": "The archivist closes the book with glasses still on top"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "glasses.location": "closed book"
+              },
+              "postconditions": {
+                "glasses.location": "cart"
+              },
+              "events": [
+                {
+                  "id": "lost_glasses_2",
+                  "description": "An assistant moves the book and glasses to a cart"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "glasses.location": "cart"
+              },
+              "postconditions": {
+                "glasses.location": "cart"
+              },
+              "events": [
+                {
+                  "id": "lost_glasses_3",
+                  "description": "The archivist searches the empty desk"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "glasses.location": "cart"
+              },
+              "postconditions": {
+                "glasses.location": "cart"
+              },
+              "events": [
+                {
+                  "id": "lost_glasses_4",
+                  "description": "The assistant points to the glasses on the cart"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "glasses.location": "cart"
+              },
+              "postconditions": {
+                "glasses.location": "archivist face"
+              },
+              "events": [
+                {
+                  "id": "lost_glasses_5",
+                  "description": "The archivist retrieves and wears the glasses"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-rope_crossing",
+      "prompt": "Create a coherent six-shot narrative. A climber picks up a coiled rope. Then The climber ties one end around a tree. Then The climber throws the loose end across a gap. Then A partner catches the loose end. Then The partner secures that end to a post. Then The climber tests the taut rope. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "validation",
+        "scenario_group": "rope_crossing",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A climber picks up a coiled rope. Show the whole action, keep the same people, object and scene layout. Before: rope.attachment=coiled on ground. After: rope.attachment=climber hand.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The climber ties one end around a tree. Show the whole action, keep the same people, object and scene layout. Before: rope.attachment=climber hand. After: rope.attachment=tree.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The climber throws the loose end across a gap. Show the whole action, keep the same people, object and scene layout. Before: rope.attachment=tree. After: rope.attachment=tree and far bank.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "A partner catches the loose end. Show the whole action, keep the same people, object and scene layout. Before: rope.attachment=tree and far bank. After: rope.attachment=tree and partner hand.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The partner secures that end to a post. Show the whole action, keep the same people, object and scene layout. Before: rope.attachment=tree and partner hand. After: rope.attachment=tree and post.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The climber tests the taut rope. Show the whole action, keep the same people, object and scene layout. Before: rope.attachment=tree and post. After: rope.attachment=tree and post.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A climber picks up a coiled rope. Then The climber ties one end around a tree. Then The climber throws the loose end across a gap. Then A partner catches the loose end. Then The partner secures that end to a post. Then The climber tests the taut rope. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "rope.attachment": "coiled on ground"
+          },
+          "final_state": {
+            "rope.attachment": "tree and post"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "rope.attachment": "coiled on ground"
+              },
+              "postconditions": {
+                "rope.attachment": "climber hand"
+              },
+              "events": [
+                {
+                  "id": "rope_crossing_0",
+                  "description": "A climber picks up a coiled rope"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "rope.attachment": "climber hand"
+              },
+              "postconditions": {
+                "rope.attachment": "tree"
+              },
+              "events": [
+                {
+                  "id": "rope_crossing_1",
+                  "description": "The climber ties one end around a tree"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "rope.attachment": "tree"
+              },
+              "postconditions": {
+                "rope.attachment": "tree and far bank"
+              },
+              "events": [
+                {
+                  "id": "rope_crossing_2",
+                  "description": "The climber throws the loose end across a gap"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "rope.attachment": "tree and far bank"
+              },
+              "postconditions": {
+                "rope.attachment": "tree and partner hand"
+              },
+              "events": [
+                {
+                  "id": "rope_crossing_3",
+                  "description": "A partner catches the loose end"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "rope.attachment": "tree and partner hand"
+              },
+              "postconditions": {
+                "rope.attachment": "tree and post"
+              },
+              "events": [
+                {
+                  "id": "rope_crossing_4",
+                  "description": "The partner secures that end to a post"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "rope.attachment": "tree and post"
+              },
+              "postconditions": {
+                "rope.attachment": "tree and post"
+              },
+              "events": [
+                {
+                  "id": "rope_crossing_5",
+                  "description": "The climber tests the taut rope"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-bakery_delivery",
+      "prompt": "Create a coherent six-shot narrative. A baker lifts a small cake onto a board. Then The baker coats it with white icing. Then The baker adds three strawberries. Then The baker slides the board into a box. Then The baker closes the box and hands it to a courier. Then The courier places the box on a waiting table. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "validation",
+        "scenario_group": "bakery_delivery",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A baker lifts a small cake onto a board. Show the whole action, keep the same people, object and scene layout. Before: cake.location=baking tray. After: cake.location=cake board.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The baker coats it with white icing. Show the whole action, keep the same people, object and scene layout. Before: cake.location=cake board. After: cake.location=iced on board.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The baker adds three strawberries. Show the whole action, keep the same people, object and scene layout. Before: cake.location=iced on board. After: cake.location=decorated on board.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The baker slides the board into a box. Show the whole action, keep the same people, object and scene layout. Before: cake.location=decorated on board. After: cake.location=open box.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The baker closes the box and hands it to a courier. Show the whole action, keep the same people, object and scene layout. Before: cake.location=open box. After: cake.location=courier hands.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The courier places the box on a waiting table. Show the whole action, keep the same people, object and scene layout. Before: cake.location=courier hands. After: cake.location=waiting table.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A baker lifts a small cake onto a board. Then The baker coats it with white icing. Then The baker adds three strawberries. Then The baker slides the board into a box. Then The baker closes the box and hands it to a courier. Then The courier places the box on a waiting table. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "cake.location": "baking tray"
+          },
+          "final_state": {
+            "cake.location": "waiting table"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "cake.location": "baking tray"
+              },
+              "postconditions": {
+                "cake.location": "cake board"
+              },
+              "events": [
+                {
+                  "id": "bakery_delivery_0",
+                  "description": "A baker lifts a small cake onto a board"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "cake.location": "cake board"
+              },
+              "postconditions": {
+                "cake.location": "iced on board"
+              },
+              "events": [
+                {
+                  "id": "bakery_delivery_1",
+                  "description": "The baker coats it with white icing"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "cake.location": "iced on board"
+              },
+              "postconditions": {
+                "cake.location": "decorated on board"
+              },
+              "events": [
+                {
+                  "id": "bakery_delivery_2",
+                  "description": "The baker adds three strawberries"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "cake.location": "decorated on board"
+              },
+              "postconditions": {
+                "cake.location": "open box"
+              },
+              "events": [
+                {
+                  "id": "bakery_delivery_3",
+                  "description": "The baker slides the board into a box"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "cake.location": "open box"
+              },
+              "postconditions": {
+                "cake.location": "courier hands"
+              },
+              "events": [
+                {
+                  "id": "bakery_delivery_4",
+                  "description": "The baker closes the box and hands it to a courier"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "cake.location": "courier hands"
+              },
+              "postconditions": {
+                "cake.location": "waiting table"
+              },
+              "events": [
+                {
+                  "id": "bakery_delivery_5",
+                  "description": "The courier places the box on a waiting table"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-power_repair",
+      "prompt": "Create a coherent six-shot narrative. An electrician shows the disconnected plug. Then The electrician inserts the plug into the socket. Then The electrician toggles the switch but the lamp stays dark. Then The electrician replaces the bulb. Then The electrician toggles the switch and the lamp lights. Then The electrician steps back as the lamp stays lit. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "validation",
+        "scenario_group": "power_repair",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "An electrician shows the disconnected plug. Show the whole action, keep the same people, object and scene layout. Before: lamp.state=off with unplugged cable. After: lamp.state=off with unplugged cable.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The electrician inserts the plug into the socket. Show the whole action, keep the same people, object and scene layout. Before: lamp.state=off with unplugged cable. After: lamp.state=off with connected cable.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The electrician toggles the switch but the lamp stays dark. Show the whole action, keep the same people, object and scene layout. Before: lamp.state=off with connected cable. After: lamp.state=off with connected cable.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The electrician replaces the bulb. Show the whole action, keep the same people, object and scene layout. Before: lamp.state=off with connected cable. After: lamp.state=new bulb with connected cable.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The electrician toggles the switch and the lamp lights. Show the whole action, keep the same people, object and scene layout. Before: lamp.state=new bulb with connected cable. After: lamp.state=lit.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The electrician steps back as the lamp stays lit. Show the whole action, keep the same people, object and scene layout. Before: lamp.state=lit. After: lamp.state=lit.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. An electrician shows the disconnected plug. Then The electrician inserts the plug into the socket. Then The electrician toggles the switch but the lamp stays dark. Then The electrician replaces the bulb. Then The electrician toggles the switch and the lamp lights. Then The electrician steps back as the lamp stays lit. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "lamp.state": "off with unplugged cable"
+          },
+          "final_state": {
+            "lamp.state": "lit"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "lamp.state": "off with unplugged cable"
+              },
+              "postconditions": {
+                "lamp.state": "off with unplugged cable"
+              },
+              "events": [
+                {
+                  "id": "power_repair_0",
+                  "description": "An electrician shows the disconnected plug"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "lamp.state": "off with unplugged cable"
+              },
+              "postconditions": {
+                "lamp.state": "off with connected cable"
+              },
+              "events": [
+                {
+                  "id": "power_repair_1",
+                  "description": "The electrician inserts the plug into the socket"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "lamp.state": "off with connected cable"
+              },
+              "postconditions": {
+                "lamp.state": "off with connected cable"
+              },
+              "events": [
+                {
+                  "id": "power_repair_2",
+                  "description": "The electrician toggles the switch but the lamp stays dark"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "lamp.state": "off with connected cable"
+              },
+              "postconditions": {
+                "lamp.state": "new bulb with connected cable"
+              },
+              "events": [
+                {
+                  "id": "power_repair_3",
+                  "description": "The electrician replaces the bulb"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "lamp.state": "new bulb with connected cable"
+              },
+              "postconditions": {
+                "lamp.state": "lit"
+              },
+              "events": [
+                {
+                  "id": "power_repair_4",
+                  "description": "The electrician toggles the switch and the lamp lights"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "lamp.state": "lit"
+              },
+              "postconditions": {
+                "lamp.state": "lit"
+              },
+              "events": [
+                {
+                  "id": "power_repair_5",
+                  "description": "The electrician steps back as the lamp stays lit"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-museum_return",
+      "prompt": "Create a coherent six-shot narrative. A curator lifts a silver medallion with gloves. Then The curator places it on a velvet pad. Then The curator rotates the pad to show the reverse. Then A conservator brushes dust off the medallion. Then The curator lifts the cleaned medallion. Then The curator returns it to the original stand. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "test",
+        "scenario_group": "museum_return",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A curator lifts a silver medallion with gloves. Show the whole action, keep the same people, object and scene layout. Before: medallion.location=display stand. After: medallion.location=curator hand.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The curator places it on a velvet pad. Show the whole action, keep the same people, object and scene layout. Before: medallion.location=curator hand. After: medallion.location=velvet pad.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The curator rotates the pad to show the reverse. Show the whole action, keep the same people, object and scene layout. Before: medallion.location=velvet pad. After: medallion.location=velvet pad reverse visible.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "A conservator brushes dust off the medallion. Show the whole action, keep the same people, object and scene layout. Before: medallion.location=velvet pad reverse visible. After: medallion.location=velvet pad.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The curator lifts the cleaned medallion. Show the whole action, keep the same people, object and scene layout. Before: medallion.location=velvet pad. After: medallion.location=curator hand.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The curator returns it to the original stand. Show the whole action, keep the same people, object and scene layout. Before: medallion.location=curator hand. After: medallion.location=display stand.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A curator lifts a silver medallion with gloves. Then The curator places it on a velvet pad. Then The curator rotates the pad to show the reverse. Then A conservator brushes dust off the medallion. Then The curator lifts the cleaned medallion. Then The curator returns it to the original stand. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "medallion.location": "display stand"
+          },
+          "final_state": {
+            "medallion.location": "display stand"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "medallion.location": "display stand"
+              },
+              "postconditions": {
+                "medallion.location": "curator hand"
+              },
+              "events": [
+                {
+                  "id": "museum_return_0",
+                  "description": "A curator lifts a silver medallion with gloves"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "medallion.location": "curator hand"
+              },
+              "postconditions": {
+                "medallion.location": "velvet pad"
+              },
+              "events": [
+                {
+                  "id": "museum_return_1",
+                  "description": "The curator places it on a velvet pad"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "medallion.location": "velvet pad"
+              },
+              "postconditions": {
+                "medallion.location": "velvet pad reverse visible"
+              },
+              "events": [
+                {
+                  "id": "museum_return_2",
+                  "description": "The curator rotates the pad to show the reverse"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "medallion.location": "velvet pad reverse visible"
+              },
+              "postconditions": {
+                "medallion.location": "velvet pad"
+              },
+              "events": [
+                {
+                  "id": "museum_return_3",
+                  "description": "A conservator brushes dust off the medallion"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "medallion.location": "velvet pad"
+              },
+              "postconditions": {
+                "medallion.location": "curator hand"
+              },
+              "events": [
+                {
+                  "id": "museum_return_4",
+                  "description": "The curator lifts the cleaned medallion"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "medallion.location": "curator hand"
+              },
+              "postconditions": {
+                "medallion.location": "display stand"
+              },
+              "events": [
+                {
+                  "id": "museum_return_5",
+                  "description": "The curator returns it to the original stand"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-flood_barrier",
+      "prompt": "Create a coherent six-shot narrative. A volunteer lifts a yellow sandbag. Then The volunteer hands it to a second person. Then The second person carries it to a leaking gate. Then The second person sets it across the leak. Then Water collects behind the bag instead of crossing. Then Both volunteers point to the reduced flow. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "test",
+        "scenario_group": "flood_barrier",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A volunteer lifts a yellow sandbag. Show the whole action, keep the same people, object and scene layout. Before: sandbag.location=stack. After: sandbag.location=volunteer hands.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The volunteer hands it to a second person. Show the whole action, keep the same people, object and scene layout. Before: sandbag.location=volunteer hands. After: sandbag.location=second person hands.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The second person carries it to a leaking gate. Show the whole action, keep the same people, object and scene layout. Before: sandbag.location=second person hands. After: sandbag.location=gate edge.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The second person sets it across the leak. Show the whole action, keep the same people, object and scene layout. Before: sandbag.location=gate edge. After: sandbag.location=across gate leak.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "Water collects behind the bag instead of crossing. Show the whole action, keep the same people, object and scene layout. Before: sandbag.location=across gate leak. After: sandbag.location=across gate leak.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "Both volunteers point to the reduced flow. Show the whole action, keep the same people, object and scene layout. Before: sandbag.location=across gate leak. After: sandbag.location=across gate leak.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A volunteer lifts a yellow sandbag. Then The volunteer hands it to a second person. Then The second person carries it to a leaking gate. Then The second person sets it across the leak. Then Water collects behind the bag instead of crossing. Then Both volunteers point to the reduced flow. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "sandbag.location": "stack"
+          },
+          "final_state": {
+            "sandbag.location": "across gate leak"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "sandbag.location": "stack"
+              },
+              "postconditions": {
+                "sandbag.location": "volunteer hands"
+              },
+              "events": [
+                {
+                  "id": "flood_barrier_0",
+                  "description": "A volunteer lifts a yellow sandbag"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "sandbag.location": "volunteer hands"
+              },
+              "postconditions": {
+                "sandbag.location": "second person hands"
+              },
+              "events": [
+                {
+                  "id": "flood_barrier_1",
+                  "description": "The volunteer hands it to a second person"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "sandbag.location": "second person hands"
+              },
+              "postconditions": {
+                "sandbag.location": "gate edge"
+              },
+              "events": [
+                {
+                  "id": "flood_barrier_2",
+                  "description": "The second person carries it to a leaking gate"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "sandbag.location": "gate edge"
+              },
+              "postconditions": {
+                "sandbag.location": "across gate leak"
+              },
+              "events": [
+                {
+                  "id": "flood_barrier_3",
+                  "description": "The second person sets it across the leak"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "sandbag.location": "across gate leak"
+              },
+              "postconditions": {
+                "sandbag.location": "across gate leak"
+              },
+              "events": [
+                {
+                  "id": "flood_barrier_4",
+                  "description": "Water collects behind the bag instead of crossing"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "sandbag.location": "across gate leak"
+              },
+              "postconditions": {
+                "sandbag.location": "across gate leak"
+              },
+              "events": [
+                {
+                  "id": "flood_barrier_5",
+                  "description": "Both volunteers point to the reduced flow"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-stage_reveal",
+      "prompt": "Create a coherent six-shot narrative. A stagehand shows the closed red curtain. Then The stagehand grasps a pull rope. Then The stagehand pulls and the curtain opens halfway. Then The stagehand pulls again to reveal a piano. Then A pianist walks to the revealed piano. Then The pianist bows while the curtain remains open. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "test",
+        "scenario_group": "stage_reveal",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A stagehand shows the closed red curtain. Show the whole action, keep the same people, object and scene layout. Before: curtain.state=closed. After: curtain.state=closed.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The stagehand grasps a pull rope. Show the whole action, keep the same people, object and scene layout. Before: curtain.state=closed. After: curtain.state=closed.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The stagehand pulls and the curtain opens halfway. Show the whole action, keep the same people, object and scene layout. Before: curtain.state=closed. After: curtain.state=half open.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The stagehand pulls again to reveal a piano. Show the whole action, keep the same people, object and scene layout. Before: curtain.state=half open. After: curtain.state=fully open.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "A pianist walks to the revealed piano. Show the whole action, keep the same people, object and scene layout. Before: curtain.state=fully open. After: curtain.state=fully open.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The pianist bows while the curtain remains open. Show the whole action, keep the same people, object and scene layout. Before: curtain.state=fully open. After: curtain.state=fully open.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A stagehand shows the closed red curtain. Then The stagehand grasps a pull rope. Then The stagehand pulls and the curtain opens halfway. Then The stagehand pulls again to reveal a piano. Then A pianist walks to the revealed piano. Then The pianist bows while the curtain remains open. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "curtain.state": "closed"
+          },
+          "final_state": {
+            "curtain.state": "fully open"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "curtain.state": "closed"
+              },
+              "postconditions": {
+                "curtain.state": "closed"
+              },
+              "events": [
+                {
+                  "id": "stage_reveal_0",
+                  "description": "A stagehand shows the closed red curtain"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "curtain.state": "closed"
+              },
+              "postconditions": {
+                "curtain.state": "closed"
+              },
+              "events": [
+                {
+                  "id": "stage_reveal_1",
+                  "description": "The stagehand grasps a pull rope"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "curtain.state": "closed"
+              },
+              "postconditions": {
+                "curtain.state": "half open"
+              },
+              "events": [
+                {
+                  "id": "stage_reveal_2",
+                  "description": "The stagehand pulls and the curtain opens halfway"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "curtain.state": "half open"
+              },
+              "postconditions": {
+                "curtain.state": "fully open"
+              },
+              "events": [
+                {
+                  "id": "stage_reveal_3",
+                  "description": "The stagehand pulls again to reveal a piano"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "curtain.state": "fully open"
+              },
+              "postconditions": {
+                "curtain.state": "fully open"
+              },
+              "events": [
+                {
+                  "id": "stage_reveal_4",
+                  "description": "A pianist walks to the revealed piano"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "curtain.state": "fully open"
+              },
+              "postconditions": {
+                "curtain.state": "fully open"
+              },
+              "events": [
+                {
+                  "id": "stage_reveal_5",
+                  "description": "The pianist bows while the curtain remains open"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-compass_route",
+      "prompt": "Create a coherent six-shot narrative. A guide holds an open compass beside a trail fork. Then The guide rotates to align its needle. Then The guide passes the compass to a hiker. Then The hiker uses it to select the left trail. Then The hiker leads the guide along the left trail. Then At a marker the hiker returns the compass. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "test",
+        "scenario_group": "compass_route",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A guide holds an open compass beside a trail fork. Show the whole action, keep the same people, object and scene layout. Before: compass.holder=guide. After: compass.holder=guide.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The guide rotates to align its needle. Show the whole action, keep the same people, object and scene layout. Before: compass.holder=guide. After: compass.holder=guide.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The guide passes the compass to a hiker. Show the whole action, keep the same people, object and scene layout. Before: compass.holder=guide. After: compass.holder=hiker.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The hiker uses it to select the left trail. Show the whole action, keep the same people, object and scene layout. Before: compass.holder=hiker. After: compass.holder=hiker.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The hiker leads the guide along the left trail. Show the whole action, keep the same people, object and scene layout. Before: compass.holder=hiker. After: compass.holder=hiker.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "At a marker the hiker returns the compass. Show the whole action, keep the same people, object and scene layout. Before: compass.holder=hiker. After: compass.holder=guide.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A guide holds an open compass beside a trail fork. Then The guide rotates to align its needle. Then The guide passes the compass to a hiker. Then The hiker uses it to select the left trail. Then The hiker leads the guide along the left trail. Then At a marker the hiker returns the compass. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "compass.holder": "guide"
+          },
+          "final_state": {
+            "compass.holder": "guide"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "compass.holder": "guide"
+              },
+              "postconditions": {
+                "compass.holder": "guide"
+              },
+              "events": [
+                {
+                  "id": "compass_route_0",
+                  "description": "A guide holds an open compass beside a trail fork"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "compass.holder": "guide"
+              },
+              "postconditions": {
+                "compass.holder": "guide"
+              },
+              "events": [
+                {
+                  "id": "compass_route_1",
+                  "description": "The guide rotates to align its needle"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "compass.holder": "guide"
+              },
+              "postconditions": {
+                "compass.holder": "hiker"
+              },
+              "events": [
+                {
+                  "id": "compass_route_2",
+                  "description": "The guide passes the compass to a hiker"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "compass.holder": "hiker"
+              },
+              "postconditions": {
+                "compass.holder": "hiker"
+              },
+              "events": [
+                {
+                  "id": "compass_route_3",
+                  "description": "The hiker uses it to select the left trail"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "compass.holder": "hiker"
+              },
+              "postconditions": {
+                "compass.holder": "hiker"
+              },
+              "events": [
+                {
+                  "id": "compass_route_4",
+                  "description": "The hiker leads the guide along the left trail"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "compass.holder": "hiker"
+              },
+              "postconditions": {
+                "compass.holder": "guide"
+              },
+              "events": [
+                {
+                  "id": "compass_route_5",
+                  "description": "At a marker the hiker returns the compass"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-water_transfer",
+      "prompt": "Create a coherent six-shot narrative. A cook shows an empty clear jug. Then The cook fills it halfway from a tap. Then The cook carries it to a table without spilling. Then The cook pours some water into a blue cup. Then The cook pours the rest into a red cup. Then The cook sets the empty jug between both filled cups. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "test",
+        "scenario_group": "water_transfer",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A cook shows an empty clear jug. Show the whole action, keep the same people, object and scene layout. Before: jug.contents=empty. After: jug.contents=empty.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The cook fills it halfway from a tap. Show the whole action, keep the same people, object and scene layout. Before: jug.contents=empty. After: jug.contents=half full of water.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The cook carries it to a table without spilling. Show the whole action, keep the same people, object and scene layout. Before: jug.contents=half full of water. After: jug.contents=half full of water.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The cook pours some water into a blue cup. Show the whole action, keep the same people, object and scene layout. Before: jug.contents=half full of water. After: jug.contents=quarter full of water.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The cook pours the rest into a red cup. Show the whole action, keep the same people, object and scene layout. Before: jug.contents=quarter full of water. After: jug.contents=empty.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The cook sets the empty jug between both filled cups. Show the whole action, keep the same people, object and scene layout. Before: jug.contents=empty. After: jug.contents=empty.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A cook shows an empty clear jug. Then The cook fills it halfway from a tap. Then The cook carries it to a table without spilling. Then The cook pours some water into a blue cup. Then The cook pours the rest into a red cup. Then The cook sets the empty jug between both filled cups. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "jug.contents": "empty"
+          },
+          "final_state": {
+            "jug.contents": "empty"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "jug.contents": "empty"
+              },
+              "postconditions": {
+                "jug.contents": "empty"
+              },
+              "events": [
+                {
+                  "id": "water_transfer_0",
+                  "description": "A cook shows an empty clear jug"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "jug.contents": "empty"
+              },
+              "postconditions": {
+                "jug.contents": "half full of water"
+              },
+              "events": [
+                {
+                  "id": "water_transfer_1",
+                  "description": "The cook fills it halfway from a tap"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "jug.contents": "half full of water"
+              },
+              "postconditions": {
+                "jug.contents": "half full of water"
+              },
+              "events": [
+                {
+                  "id": "water_transfer_2",
+                  "description": "The cook carries it to a table without spilling"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "jug.contents": "half full of water"
+              },
+              "postconditions": {
+                "jug.contents": "quarter full of water"
+              },
+              "events": [
+                {
+                  "id": "water_transfer_3",
+                  "description": "The cook pours some water into a blue cup"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "jug.contents": "quarter full of water"
+              },
+              "postconditions": {
+                "jug.contents": "empty"
+              },
+              "events": [
+                {
+                  "id": "water_transfer_4",
+                  "description": "The cook pours the rest into a red cup"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "jug.contents": "empty"
+              },
+              "postconditions": {
+                "jug.contents": "empty"
+              },
+              "events": [
+                {
+                  "id": "water_transfer_5",
+                  "description": "The cook sets the empty jug between both filled cups"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task_id": "story-letter_seal",
+      "prompt": "Create a coherent six-shot narrative. A writer signs a sheet of cream paper. Then The writer folds the sheet twice. Then The writer inserts it into a green envelope. Then The writer closes the envelope flap. Then The writer presses a red wax seal onto the flap. Then The writer hands the sealed envelope to a messenger. Preserve character and prop identity between shots.",
+      "duration_seconds": 36,
+      "mode": "generation",
+      "metadata": {
+        "task_family": "narrative_continuity",
+        "split": "test",
+        "scenario_group": "letter_seal",
+        "benchmark_status": "draft_requires_human_and_asset_review",
+        "h3_shots": [
+          {
+            "prompt": "A writer signs a sheet of cream paper. Show the whole action, keep the same people, object and scene layout. Before: letter.state=unfolded. After: letter.state=signed unfolded.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The writer folds the sheet twice. Show the whole action, keep the same people, object and scene layout. Before: letter.state=signed unfolded. After: letter.state=folded.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The writer inserts it into a green envelope. Show the whole action, keep the same people, object and scene layout. Before: letter.state=folded. After: letter.state=inside open envelope.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The writer closes the envelope flap. Show the whole action, keep the same people, object and scene layout. Before: letter.state=inside open envelope. After: letter.state=closed envelope.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The writer presses a red wax seal onto the flap. Show the whole action, keep the same people, object and scene layout. Before: letter.state=closed envelope. After: letter.state=sealed envelope.",
+            "duration_seconds": 6
+          },
+          {
+            "prompt": "The writer hands the sealed envelope to a messenger. Show the whole action, keep the same people, object and scene layout. Before: letter.state=sealed envelope. After: letter.state=sealed envelope in messenger hand.",
+            "duration_seconds": 6
+          }
+        ],
+        "h3_global_constraints": "Create a coherent six-shot narrative. A writer signs a sheet of cream paper. Then The writer folds the sheet twice. Then The writer inserts it into a green envelope. Then The writer closes the envelope flap. Then The writer presses a red wax seal onto the flap. Then The writer hands the sealed envelope to a messenger. Preserve character and prop identity between shots.",
+        "evaluation": {
+          "identity_across_shots": {
+            "description": "Characters and props keep their identities across all six shots.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "shot_and_action_coverage": {
+            "description": "All six declared shots and actions appear in their declared order.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "letter.state": "unfolded"
+          },
+          "final_state": {
+            "letter.state": "sealed envelope in messenger hand"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "letter.state": "unfolded"
+              },
+              "postconditions": {
+                "letter.state": "signed unfolded"
+              },
+              "events": [
+                {
+                  "id": "letter_seal_0",
+                  "description": "A writer signs a sheet of cream paper"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "letter.state": "signed unfolded"
+              },
+              "postconditions": {
+                "letter.state": "folded"
+              },
+              "events": [
+                {
+                  "id": "letter_seal_1",
+                  "description": "The writer folds the sheet twice"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "letter.state": "folded"
+              },
+              "postconditions": {
+                "letter.state": "inside open envelope"
+              },
+              "events": [
+                {
+                  "id": "letter_seal_2",
+                  "description": "The writer inserts it into a green envelope"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "letter.state": "inside open envelope"
+              },
+              "postconditions": {
+                "letter.state": "closed envelope"
+              },
+              "events": [
+                {
+                  "id": "letter_seal_3",
+                  "description": "The writer closes the envelope flap"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 4,
+              "preconditions": {
+                "letter.state": "closed envelope"
+              },
+              "postconditions": {
+                "letter.state": "sealed envelope"
+              },
+              "events": [
+                {
+                  "id": "letter_seal_4",
+                  "description": "The writer presses a red wax seal onto the flap"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 5,
+              "preconditions": {
+                "letter.state": "sealed envelope"
+              },
+              "postconditions": {
+                "letter.state": "sealed envelope in messenger hand"
+              },
+              "events": [
+                {
+                  "id": "letter_seal_5",
+                  "description": "The writer hands the sealed envelope to a messenger"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

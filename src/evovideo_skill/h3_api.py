@@ -440,7 +440,7 @@ class H3GenerationTool(VideoTool):
 
     def run_with_context(self, task: VideoTask, plan: VideoPlan, context: ToolExecutionContext) -> VideoArtifact:
         config = context.node_config
-        if self.mode == "direct" and task.duration_seconds > 15 and "shot_index" not in config:
+        if self.mode == "direct" and (task.duration_seconds > 15 or task.metadata.get("story_contract")) and "shot_index" not in config:
             return self._long_direct(task, plan, context)
         refs: list[dict[str, Any]] = []
         mode = self.mode

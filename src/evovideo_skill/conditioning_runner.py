@@ -17,7 +17,7 @@ import time
 
 from evovideo_skill.benchmarks import BenchmarkSuite
 from evovideo_skill.conditioning_cache import ConditioningNodeCache, material_hashes
-from evovideo_skill.conditioning_memory import StrategyMemory, paired_effect, task_payload, task_state
+from evovideo_skill.conditioning_memory import StrategyMemory, paired_effect, task_payload, task_state, metric_vector
 from evovideo_skill.conditioning_planner import ConditioningPlanner, ConditioningSmokePlanner, decode_proposal
 from evovideo_skill.conditioning_interactions import (connection_manifest, decode_experiment,
     effect_supported, interaction_effect)
@@ -33,12 +33,14 @@ from evovideo_skill.graph_visualization import EvolutionGraphArchive
 from evovideo_skill.models import VideoArtifact
 from evovideo_skill.planning import Planner
 from evovideo_skill.research_protocol import (BudgetLedger, ResearchBudgetExceeded, append_json, decode_graph,
-    feedback_view, graph_payload, validate_splits, write_json)
+    feedback_view, graph_payload, generation_credits, validate_splits, write_json)
 from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.runtime import (RuntimeSettings, build_evaluator_suite, build_graph_mutation_proposer,
     build_runtime, with_env_overrides)
 from evovideo_skill.skill_memory import SkillMemory
 from evovideo_skill.tools import ToolRegistry
+from evovideo_skill.story_contracts import (prepare_story_task, validate_story_graph,
+    acceptance_report, preserves_mandatory)
 
 
 class FixedTaskPlanner(Planner):
@@ -63,6 +65,17 @@ def balanced_training_order(tasks):
             for group in families.values() if index < len(group)]
 
 
+def training_coverage(tasks, config):
+    from collections import Counter
+    order = balanced_training_order(tasks)
+    count = min(config["max_searches"], len(order) * config["searches_per_task"])
+    visited = [order[i % len(order)] for i in range(count)]
+    all_families = {task_state(t)["family"] for t in tasks}
+    covered = Counter(task_state(t)["family"] for t in visited)
+    return {"searches": count, "unique_tasks": len({t.task_id for t in visited}),
+            "family_searches": dict(covered), "uncovered_families": sorted(all_families - covered.keys())}
+
+
 def scenario_id(task):
     return str(task.metadata.get("scenario_group") or task.metadata.get("scenario_id") or task.task_id)
 
@@ -70,13 +83,15 @@ def scenario_id(task):
 class ConditioningRunner:
     def __init__(self, dataset, evolver, planner, root, config, signature, final_augmenter=None):
         self.dataset, self.evolver, self.planner = dataset, evolver, planner
+        for task in dataset.train + dataset.validation + dataset.test:
+            prepare_story_task(task)
         self.root, self.config, self.signature = Path(root), config, signature
         self.root.mkdir(parents=True, exist_ok=True)
         self.final_augmenter = final_augmenter or evolver.vlm_augmenter
         self.baseline = evolver.baseline_graph()
         self.archive = EvolutionGraphArchive(self.root / "graph_visualization")
         self.seeds = config["evaluation_seeds"]
-        self.protocol = {"version": "conditioning-strategies-v1", "signature": signature,
+        self.protocol = {"version": "conditioning-strategies-v2", "signature": signature,
             "workspace_protocol": WORKSPACE_VERSION,
             "config": {k: v for k, v in config.items() if k not in {"output_dir", "runtime"}},
             "dataset_hash": stable_hash([asdict(t) for group in
@@ -105,8 +120,14 @@ class ConditioningRunner:
         self.state["ledger"] = asdict(self.ledger)
         write_json(self.checkpoint, self.state)
 
-    def charge(self, calls, seconds, hit, episode):
-        if hit:
+    def charge(self, calls, seconds, hit, episode, request_id=None):
+        if hit or not calls:
+            return
+        reservations = self.state.setdefault("reservations", {})
+        if request_id in reservations:
+            previous = reservations[request_id]
+            if (previous["episode"], previous["calls"], previous["seconds"]) != (episode, calls, seconds):
+                raise ValueError("reservation identity reused with different cost or episode")
             return
         usage = self.state["episodes"].setdefault(episode, {"calls": 0, "seconds": 0})
         if episode.startswith("test/") and (
@@ -116,9 +137,19 @@ class ConditioningRunner:
         self.ledger.reserve(calls, seconds)
         usage["calls"] += calls
         usage["seconds"] += seconds
-        self.save()  # Reserve before dispatch, including failed/uncertain submissions.
+        if request_id is not None:
+            reservations[request_id] = {"episode": episode, "calls": calls, "seconds": seconds,
+                                        "status": "reserved"}
+        self.save()  # One atomic checkpoint owns budget and idempotency together.
+
+    def complete_reservation(self, request_id):
+        reservation = self.state.get("reservations", {}).get(request_id)
+        if reservation is not None:
+            reservation["status"] = "completed"
+            self.save()
 
     def evaluate(self, task, graph, seed, episode):
+        validate_story_graph(task, graph)
         sampled = deepcopy(task)
         sampled.metadata.update(generation_seed=seed, evaluation_seed=seed, replicate_label=seed)
         ident = stable_hash([self.protocol_hash, asdict(sampled), graph_payload(graph), episode])
@@ -131,7 +162,8 @@ class ConditioningRunner:
                 raise RuntimeError("saved evaluation media changed or disappeared; do not reuse this experiment")
             return record
         cache = ConditioningNodeCache(self.root / "node_cache" / stable_hash([episode, task.task_id, seed]),
-            self.signature, lambda c, s, hit: self.charge(c, s, hit, episode))
+            self.signature, lambda c, s, hit, key: self.charge(c, s, hit, episode, key),
+            self.complete_reservation)
         started = time.monotonic()
         workspace = ConditioningWorkspace(self.root / "project_states", ident, sampled, graph, seed, episode)
         print(f"[conditioning] generate episode={episode} task={task.task_id} seed={seed} graph={graph.graph_id}", flush=True)
@@ -152,6 +184,8 @@ class ConditioningRunner:
                 "process_diagnostics": workspace.diagnostics(),
                 "reused_nodes": cache.hits, "executed_nodes": cache.misses,
                 "wall_seconds": time.monotonic() - started}
+            record["acceptance"] = acceptance_report(sampled, rollout.artifact)
+            record["feedback"]["acceptance"] = deepcopy(record["acceptance"])
             workspace.verified(record)
             write_json(path, record)
             append_json(self.root / "executions.jsonl", {k: v for k, v in record.items() if k != "artifact"})
@@ -190,6 +224,39 @@ class ConditioningRunner:
         if artifact.metadata.get("task_reward", {}).get("missing_metrics"):
             raise MeasurementUnavailable("required rubric metrics are unobserved; no valid complete quality measurement")
 
+    def _retry_invalid_proposal(self, path, envelope, error, task, parent, records,
+                                memory, operation, required_id, experiment):
+        # One correction attempt per operation, durably recorded before calling
+        # the planner. Never execute invalid graphs or change validation rules.
+        envelope.setdefault("validation_failures", []).append({
+            "error": error, "raw": envelope["raw"], "request": envelope["request"],
+            "usage": envelope.get("usage"), "wall_seconds": envelope.get("wall_seconds"),
+            "active_selection": envelope.get("active_selection")})
+        if envelope.get("validation_retry_count", 0) >= 1:
+            envelope.update(status="validation_failed", error=error)
+            write_json(path, envelope)
+            print(f"[conditioning] planner validation failed after correction operation={operation}: "
+                  f"{error}; proposal={path}", flush=True)
+            return None
+        request = deepcopy(envelope["request"])
+        request["validation_feedback"] = {"error": error, "failed_proposal": envelope["raw"],
+            "instruction": "Correct this proposal and return the complete original response schema. "
+                           "All original constraints and budgets still apply."}
+        envelope.update(status="interrupted_planner", request=request, validation_retry_count=1)
+        envelope.pop("active_selection", None)
+        write_json(path, envelope)
+        self.state["planner_requests"] += 1
+        self.save()
+        print(f"[conditioning] planner validation retry=1/1 operation={operation}: {error}", flush=True)
+        started = time.monotonic()
+        try:
+            envelope.update(status="proposed", raw=self.planner.propose(request))
+        except Exception as exc:
+            envelope.update(status="planner_error", error=str(exc))
+        envelope.update(wall_seconds=time.monotonic() - started, usage=getattr(self.planner, "last_usage", None))
+        write_json(path, envelope)
+        return self.propose(task, parent, records, memory, operation, required_id, experiment)
+
     def propose(self, task, parent, records, memory, operation, required_id=None, experiment=False):
         self.active_selection = None
         project = planner_project(task, parent, records, operation)
@@ -219,9 +286,11 @@ class ConditioningRunner:
             elif self.search_options["enabled"] and self.search_options["local_repair"] and records:
                 request["repair_frontier"] = repair_frontier(task, parent, records, self.search_options)
             if self.signature.get("provider") == "local-h3":
-                from evovideo_skill.llm_graph_mutation import OpenAICompatibleGraphMutationProposer
-                request["h3_native_planner"] = OpenAICompatibleGraphMutationProposer._h3_native_planner(
-                    self.evolver.tools.available_names(), local=True)
+                from evovideo_skill.conditioning_planner import conditioning_h3_grammar
+                request["h3_native_planner"] = conditioning_h3_grammar(self.evolver.tools.available_names())
+            if request["condition_only"]:
+                from evovideo_skill.conditioning_planner import configuration_contract
+                request["configuration_contract"] = configuration_contract(request["parent"])
             envelope = {"status": "interrupted_planner", "operation": operation, "request": request}
             write_json(path, envelope)
             self.state["planner_requests"] += 1
@@ -261,7 +330,14 @@ class ConditioningRunner:
                 if "graphs" not in decision:
                     append_json(self.root / "candidate_audits.jsonl", {"operation": operation,
                         "status": "no_feasible_pair", **decision})
+                    failures = decision.get("invalid_factors", []) + decision["audit"].get("rejected_pairs", [])
+                    correctable = [row for row in failures if not row["error"].startswith("insufficient budget")]
+                    if correctable:
+                        return self._retry_invalid_proposal(path, envelope, json.dumps(correctable),
+                            task, parent, records, memory, operation, required_id, experiment)
                     return None
+                print(f"[conditioning] selected executable pair operation={operation} "
+                      f"pair={decision['audit'].get('selected_pair')}; starting matched-seed candidate evaluation", flush=True)
                 return {k: decode_graph(g) for k, g in decision["graphs"].items()}, decision["strategies"]
             if experiment:
                 graphs, strategies = decode_experiment(envelope["raw"], task, parent, self.evolver.executor, self.config)
@@ -276,8 +352,10 @@ class ConditioningRunner:
                 envelope["local_repair"] = check_local_candidate(parent, graph, envelope["request"]["repair_frontier"])
         except (ValueError, KeyError, TypeError, RuntimeError) as exc:
             append_json(self.root / "candidate_audits.jsonl", {"operation": operation,
-                "status": "invalid", "error": str(exc), "raw": envelope["raw"]})
-            return None
+                "status": "invalid", "error": str(exc), "raw": envelope["raw"],
+                "validation_retry_count": envelope.get("validation_retry_count", 0)})
+            return self._retry_invalid_proposal(path, envelope, str(exc),
+                task, parent, records, memory, operation, required_id, experiment)
         envelope["repair_impact"] = repair_impact(parent, graph)
         write_json(path, envelope)
         write_json(self.root / "graphs" / (graph.graph_id + ".json"), graph.to_dict())
@@ -293,8 +371,8 @@ class ConditioningRunner:
         parents = {}
         order = balanced_training_order(self.dataset.train)
         visited = []
-        for index in range(self.config["max_searches"]):
-            task = order[(index // self.config["searches_per_task"]) % len(order)]
+        for index in range(min(self.config["max_searches"], len(order) * self.config["searches_per_task"])):
+            task = order[index % len(order)]
             visited.append(task.task_id)
             parent = parents.get(task.task_id, self.baseline)
             episode = "train/" + task.task_id
@@ -339,8 +417,8 @@ class ConditioningRunner:
         parents = {key: decode_graph(value) for key, value in cursor["parents"].items()}
         visited = list(cursor["visited"])
         order = balanced_training_order(self.dataset.train)
-        for index in range(cursor["next_index"], self.config["max_searches"]):
-            task = order[(index // self.config["searches_per_task"]) % len(order)]
+        for index in range(cursor["next_index"], min(self.config["max_searches"], len(order) * self.config["searches_per_task"])):
+            task = order[index % len(order)]
             visited.append(task.task_id)
             parent = parents.get(task.task_id, self.baseline)
             episode = "train/" + task.task_id
@@ -348,6 +426,9 @@ class ConditioningRunner:
             proposal = self.propose(task, parent, before, self.memory.retrieve(task, self.config["retrieval_limit"]),
                                     f"factorial/{index}", experiment=True)
             if proposal is None:
+                print(f"[conditioning] skipped experiment operation=factorial/{index} task={task.task_id}: "
+                      "no executable candidate pair; baseline only, no interaction evidence learned; "
+                      f"inspect {self.root / 'candidate_audits.jsonl'}", flush=True)
                 self.commit_interaction_cursor(index, parents, visited)
                 continue
             graphs, strategies = proposal
@@ -385,7 +466,8 @@ class ConditioningRunner:
                 self.search_options["preservation_threshold"], self.search_options["preservation_tolerance"])
                 for k, records in cells.items()} if self.search_options["enabled"] and self.search_options["local_repair"] else {}
             eligible = [k for k, effect in comparisons.items() if effect_supported(effect, self.config)
-                        and preservation.get(k, {"passed": True})["passed"]]
+                        and preservation.get(k, {"passed": True})["passed"]
+                        and all(preserves_mandatory(a, b) for a, b in zip(before, cells[k]))]
             winner = max(eligible, key=lambda k: comparisons[k]["gain"]) if eligible else "parent"
             if winner != "parent":
                 parents[task.task_id] = graphs[winner]
@@ -425,6 +507,15 @@ class ConditioningRunner:
         self.state["signed_interaction_graph"] = deepcopy(self.signed_graph.data)
         self.save()
         if self.search_options["enabled"]:
+            audits = [json.loads(p.read_text())["audit"] for p in (self.root / "search_decisions").glob("*.json")]
+            coverages = [a.get("evidence_coverage", {}) for a in audits]
+            write_json(self.root / "search_evidence_coverage.json", {
+                "decisions": len(audits),
+                "decisions_using_exact_evidence": sum("exact" in c.get("selected_sources", []) for c in coverages),
+                "decisions_using_backoff_evidence": sum("structural_backoff" in c.get("selected_sources", []) for c in coverages),
+                "decisions_using_only_prior": sum(bool(c.get("selected_sources")) and set(c["selected_sources"]) == {"prior"} for c in coverages),
+                "independent_task_support_per_edge": [len({o["task_id"] for o in e["observations"].values()})
+                    for e in self.signed_graph.data["edges"].values()]})
             write_json(self.root / "signed_interaction_graph.json", self.signed_graph.data)
             write_json(self.root / "signed_interaction_summary.json", self.signed_graph.view(self.search_options))
 
@@ -442,7 +533,7 @@ class ConditioningRunner:
             key = entry["strategy_id"]
             tasks = [t for t in self.dataset.validation if StrategyMemory.matches(entry, task_state(t))]
             tasks = tasks[:self.config["validation_tasks_per_strategy"]]
-            effects, failures, preservation = [], [], []
+            effects, failures, preservation, mandatory_preserved = [], [], [], []
             for task in tasks:
                 # Validation observations are never fed back to the training memory/planner.
                 proposal = self.propose(task, self.baseline, [], [StrategyMemory.view(entry)],
@@ -454,6 +545,7 @@ class ConditioningRunner:
                     before = [self.evaluate(task, self.baseline, s, "validation/" + task.task_id) for s in self.seeds]
                     after = [self.evaluate(task, proposal[0], s, "validation/" + task.task_id) for s in self.seeds]
                     effects.append(paired_effect(before, after))
+                    mandatory_preserved.append(all(preserves_mandatory(a, b) for a, b in zip(before, after)))
                     if self.search_options["enabled"] and self.search_options["local_repair"]:
                         preservation.append(preservation_report(before, after,
                             self.search_options["preservation_threshold"], self.search_options["preservation_tolerance"]))
@@ -470,12 +562,14 @@ class ConditioningRunner:
                                 for e in effects for v in e["metric_deltas"].values()))
             if self.config.get("search_mode", "legacy") != "legacy":
                 accepted = accepted and all(effect_supported(e, self.config) for e in effects)
-            accepted = accepted and all(r["passed"] for r in preservation)
+            accepted = accepted and all(r["passed"] for r in preservation) and all(mandatory_preserved)
             if accepted:
                 admitted.append(key)
             reports.append({"strategy_id": key, "accepted": accepted, "gain": gain,
                 "tasks": [t.task_id for t in tasks], "execution_failures": failures, "effects": effects,
-                "preservation": preservation})
+                "preservation": preservation, "mandatory_preserved": mandatory_preserved,
+                "required_task_support": self.config["min_validation_tasks"],
+                "insufficient_support": len(effects) < self.config["min_validation_tasks"]})
         write_json(self.root / "validation_reports.json", reports)
         data = {"version": "conditioning-strategies-v1", "signature": self.signature,
             "entries": self.memory.snapshot(), "admitted_ids": admitted,
@@ -510,18 +604,52 @@ class ConditioningRunner:
         for value in values:
             value["deployment_status"] = "validated" if value["strategy_id"] in admitted else "negative_training_evidence_only"
         if arm == "paths":
-            values = [{k: v[k] for k in ("strategy_id", "scope", "recipe")} for v in values
+            values = [{k: v[k] for k in ("strategy_id", "scope", "recipe", "structural_contract")} for v in values
                       if v["strategy_id"] in admitted]
         return values
 
-    def runtime_better(self, incumbent, candidate):
-        effect = paired_effect([incumbent], [candidate])
+    def runtime_better(self, incumbent, candidate, *, paired=True):
+        if not preserves_mandatory(incumbent, candidate):
+            return False
+        if paired:
+            effect = paired_effect([incumbent], [candidate])
+        else:
+            # Independent-seed best-of-N selection, not a paired effect estimate.
+            if incumbent["task_id"] != candidate["task_id"]:
+                raise ValueError("cannot compare different tasks")
+            a, b = metric_vector(incumbent), metric_vector(candidate)
+            if a.keys() != b.keys():
+                return False
+            effect = {"gain": candidate["score"] - incumbent["score"],
+                      "metric_deltas": {k: b[k] - a[k] for k in a}}
         if self.search_options["enabled"] and self.search_options["local_repair"]:
             if not preservation_report([incumbent], [candidate], self.search_options["preservation_threshold"],
-                                       self.search_options["preservation_tolerance"])["passed"]:
+                                       self.search_options["preservation_tolerance"], paired=paired)["passed"]:
                 return False
         return (effect["gain"] > self.config["selection_min_gain"] and
                 all(v >= -self.config["max_metric_regression"] for v in effect["metric_deltas"].values()))
+
+    def comparison_baseline(self, task, seed, selection, mode, arm):
+        episode = f"comparison/{mode}/{arm}/{task.task_id}/{seed}"
+        calls, seconds = generation_credits(task, self.baseline)
+        matched = self.config["comparison_baseline"] == "matched_budget"
+        budget = selection["budget"]
+        count = min(budget.get("calls", 0) // calls, int(budget.get("seconds", 0) // seconds)) if matched else 1
+        if count < 1:
+            raise ResearchBudgetExceeded("candidate budget cannot fund even one matched baseline; no fair comparison")
+        # Spend at most the candidate's actual reserved native calls AND seconds.
+        # Select with runtime scores only, before any final assessment.
+        incumbent, repeats = None, []
+        for index in range(count):
+            replicate = seed if index == 0 else int(stable_hash([task.task_id, seed, index, "baseline"])[:8], 16)
+            record = self.evaluate(task, self.baseline, replicate, episode)
+            repeats.append({"seed": replicate, "evaluation_id": record["evaluation_id"]})
+            if incumbent is None or self.runtime_better(incumbent, record, paired=False):
+                incumbent = record
+        return incumbent, {"mode": self.config["comparison_baseline"], "replicates": repeats,
+            "reserved_budget": deepcopy(self.state["episodes"].get(episode, {})),
+            "candidate_budget": deepcopy(budget),
+            "qualification": "Native calls/duration matched from below; not equal GPU time or token cost."}
 
     def test(self, frozen, mode="direct", arm="strategy"):
         memory, admitted, digest = self.load_frozen(frozen)
@@ -582,15 +710,18 @@ class ConditioningRunner:
         for selection in selected:
             task, seed = tasks[selection["task_id"]], selection["seed"]
             candidate = json.loads((self.root / "evaluations" / (selection["evaluation_id"] + ".json")).read_text())
-            baseline = self.evaluate(task, self.baseline, seed, f"comparison/{mode}/{arm}/{task.task_id}/{seed}")
+            baseline, comparison = self.comparison_baseline(task, seed, selection, mode, arm)
             base_score = self.final_score(task, baseline, root)
             score = self.final_score(task, candidate, root)
             pairs.append({"task_id": task.task_id, "seed": seed, "baseline": base_score["score"],
                 "candidate": score["score"], "delta": score["score"] - base_score["score"],
                 "baseline_video": baseline["video"], "candidate_video": candidate["video"],
                 "candidate_graph_id": selection["graph_id"], "episode_budget": selection["budget"],
+                "comparison_control": comparison,
                 "baseline_criteria": base_score.get("criterion_scores", {}),
                 "candidate_criteria": score.get("criterion_scores", {}),
+                "baseline_acceptance": base_score["acceptance"],
+                "candidate_acceptance": score["acceptance"],
                 "criterion_deltas": {k: score["criterion_scores"][k] - v for k, v in base_score.get("criterion_scores", {}).items()
                                      if k in score.get("criterion_scores", {})}})
         if self.load_frozen(frozen)[2] != digest or memory.snapshot() != json.loads(Path(frozen).read_text())["entries"]:
@@ -612,6 +743,14 @@ class ConditioningRunner:
                 "This is not an official VBench or StoryBench score.",
                 "Budget is reserved native calls/duration, not measured GPU time; cache hits are reported separately.",
                 "Path-memory control uses portable whole-graph sketches, not donor-specific executable paths."]}
+        contract_pairs = [p for p in pairs if p["candidate_acceptance"]["status"] != "not_applicable"]
+        result["contract_acceptance"] = {
+            "evaluated_outputs": len(contract_pairs),
+            "baseline_pass_rate": (statistics.mean(p["baseline_acceptance"]["status"] == "passed" for p in contract_pairs)
+                                   if contract_pairs else None),
+            "candidate_pass_rate": (statistics.mean(p["candidate_acceptance"]["status"] == "passed" for p in contract_pairs)
+                                    if contract_pairs else None),
+            "note": "Experiment completion is separate from story acceptance; rates count task/seed outputs."}
         write_json(root / "summary.json", result)
         # Human review sees both videos under random labels, never their scores or graphs.
         blind, key = [], []
@@ -660,6 +799,7 @@ class ConditioningRunner:
         artifact.metadata["task_reward"] = reward.to_dict()
         self.check_measurement(artifact, reward.score)
         result = {"evaluation_id": record["evaluation_id"], "score": reward.score, "reward": reward.to_dict(),
+                  "acceptance": acceptance_report(task, artifact),
                   "metrics": [asdict(m) for m in report.active_metrics], "assessment": "post_commit_fresh_verifier",
                   "criterion_scores": deepcopy(artifact.metadata.get("vlm_evaluation", {}).get("criterion_scores", {})),
                   "verification": deepcopy(artifact.metadata.get("vlm_evaluation", {}).get("verification_metadata", {}))}
@@ -672,12 +812,21 @@ def validate_config(config):
         "max_validation_strategies": 8, "validation_tasks_per_strategy": 2, "min_validation_tasks": 1,
         "min_gain": .02, "max_metric_regression": .05, "selection_min_gain": .01,
         "test_max_attempts": 3, "test_max_generation_calls": 12, "test_max_generated_seconds": 180}
-    defaults.update(search_mode="legacy", min_positive_seed_fraction=2 / 3, gain_se_multiplier=1.0)
+    defaults.update(search_mode="legacy", min_positive_seed_fraction=2 / 3, gain_se_multiplier=1.0,
+                    comparison_baseline="single")
     for key, value in defaults.items():
         config.setdefault(key, value)
     if config["search_mode"] not in {"legacy", "single", "factorial"}:
         raise ValueError("search_mode must be legacy, single or factorial")
     search_options(config)
+    if config["comparison_baseline"] not in {"single", "matched_budget"}:
+        raise ValueError("comparison_baseline must be single or matched_budget")
+    if config.get("experiment_tier", "pilot") not in {"pilot", "research"}:
+        raise ValueError("experiment_tier must be pilot or research")
+    if config.get("experiment_tier") == "research" and (
+            config["min_validation_tasks"] < 2 or config["comparison_baseline"] != "matched_budget"
+            or config.get("verifier", {}).get("require_independent_final") is not True):
+        raise ValueError("research tier requires multiple validation tasks, matched budget and independent final verification")
     if not 0 <= config["min_positive_seed_fraction"] <= 1 or not math.isfinite(config["gain_se_multiplier"]) or config["gain_se_multiplier"] < 0:
         raise ValueError("invalid interaction acceptance settings")
     seeds = config["evaluation_seeds"]
@@ -728,7 +877,22 @@ def main():
     if args.require_independent_final:
         config.setdefault("verifier", {})["require_independent_final"] = True
     validate_config(config)
+    task_path = Path(config["task_file"]).resolve()
+    if not task_path.is_file():
+        hint = (
+            "Run bash scripts/prepare_complex_video_bench_mini50_h3.sh first. "
+            "Supply --asset-manifest with existing inputs, or explicitly use --generate-missing "
+            "after starting H3 to generate them; review assets before --approve-assets. "
+            if task_path.name == "complex_video_bench_mini50_h3.json" else ""
+        )
+        parser.error(
+            f"Task manifest not found: {task_path}. "
+            "--dry-run still requires the task manifest; it does not prepare assets. "
+            + hint + "Use --task-file /absolute/path/to/prepared.json if already prepared elsewhere."
+        )
     tasks = BenchmarkSuite.from_file(config["task_file"]).tasks
+    for task in tasks:
+        prepare_story_task(task)
     dataset = stratified_task_split(tasks)
     validate_splits(dataset)
     settings = with_env_overrides(RuntimeSettings(**config["runtime"]))
@@ -739,14 +903,24 @@ def main():
     else:
         if settings.provider != "local-h3" or not settings.enable_vlm_eval or not settings.enable_llm_mutation:
             raise ValueError("real conditioning experiments require local-h3, VLM evaluation and API LLM planning")
-        if settings.graph_planner_backend != "api":
-            raise ValueError("use GRAPH_PLANNER_BACKEND=api for enforceable test-data isolation")
+        if settings.graph_planner_backend not in {"api", "codex"}:
+            raise ValueError("GRAPH_PLANNER_BACKEND must be api or codex")
+        if settings.graph_planner_backend == "codex":
+            if config.get("experiment_tier", "pilot") == "research":
+                raise ValueError("research tier requires GRAPH_PLANNER_BACKEND=api for held-out data isolation; Codex CLI is supported for pilot")
+            print("[conditioning] Codex CLI planner enabled for pilot; no graph-planner API key required. "
+                  "Filesystem read isolation is not guaranteed.", flush=True)
         if settings.restore_catalog_tools or settings.enable_open_world_tools or settings.enable_mcp_tools:
             raise ValueError("freeze tools: disable catalog restoration, open-world acquisition and MCP")
         if os.environ.get("VIDEO_OUTPUT_DIR") or os.environ.get("AGENT_STATE_DIR"):
             raise ValueError("unset VIDEO_OUTPUT_DIR and AGENT_STATE_DIR for isolated experiments")
-        if settings.h3_local_model_revision == "unspecified":
-            raise ValueError("pin H3_LOCAL_MODEL_REVISION to the deployed checkpoint")
+        revision = settings.h3_local_model_revision
+        if not revision or not revision.strip() or revision.strip() == "unspecified":
+            settings = replace(settings, h3_local_model_revision="unspecified")
+            if config.get("experiment_tier", "pilot") == "research" and not args.dry_run:
+                raise ValueError("research runs require H3_LOCAL_MODEL_REVISION to identify the deployed checkpoint; pilot and --dry-run allow unspecified")
+            print("[conditioning] WARNING: H3_LOCAL_MODEL_REVISION is unspecified; continuing "
+                  "pilot/dry-run with unknown weight revision. Record the actual revision before a research run.", flush=True)
         if any(t.metadata.get("h3_audio_criteria") for t in tasks) and not settings.h3_audio_verifier_command:
             settings = replace(settings, h3_audio_verifier_command=json.dumps(
                 [sys.executable, "-m", "evovideo_skill.h3_omni_verifier"]))
@@ -766,6 +940,9 @@ def main():
         print(json.dumps({"phase": args.phase, "test_protocol": args.test_protocol,
             "split": dataset.to_dict(), "config": {k: v for k, v in config.items() if k != "runtime"},
             "resolved_verifiers": profiles,
+            "h3_local_model_revision": settings.h3_local_model_revision,
+            "graph_planner_backend": settings.graph_planner_backend,
+            "training_coverage": training_coverage(dataset.train, config),
             "note": "No generation/planning API calls. Test variants share budget caps, not equal actual compute."}, indent=2))
         return
     root = Path(args.output_dir or config["output_dir"]).resolve()
@@ -777,7 +954,13 @@ def main():
         settings = replace(settings, video_output_dir=str(root / "videos"), agent_state_dir=str(root / "agent_state"))
         tools, augmenter = (ToolRegistry.with_mock_tools(), None) if args.smoke else build_runtime(settings, build_verifier=not bool(profiles))
         proposer = None if args.smoke else build_graph_mutation_proposer(settings)
-        planner = ConditioningSmokePlanner() if args.smoke else ConditioningPlanner(proposer)
+        if args.smoke:
+            planner = ConditioningSmokePlanner()
+        elif settings.graph_planner_backend == "codex":
+            from evovideo_skill.conditioning_planner import CodexConditioningPlanner
+            planner = CodexConditioningPlanner(proposer)
+        else:
+            planner = ConditioningPlanner(proposer)
         final_augmenter = augmenter
         if profiles:
             augmenter = build_conditioning_verifier(profiles["runtime"], root / "verifier" / "runtime", settings)
@@ -800,6 +983,10 @@ def main():
             "verifier_environment": {k: v for k, v in os.environ.items()
                 if k.startswith(("H3_OMNI_", "VLM_", "EVOVIDEO_VLM_")) and not any(s in k for s in ("KEY", "TOKEN", "SECRET"))},
             "evidence_type": "synthetic_smoke" if args.smoke else "real_video"}
+        if not args.smoke and settings.graph_planner_backend == "codex":
+            signature["planner"]["codex_exec"] = {k: v for k, v in asdict(planner.codex.config).items()
+                                                   if k != "job_root"}
+            signature["planner"]["held_out_read_isolation"] = "not_enforced_pilot_only"
         evolver = GraphToolPathEvolver(SkillMemory(root / "skills"), GraphSkillMemory(root / "graphs_memory"),
             tools=tools, planner=FixedTaskPlanner(), evaluators=build_evaluator_suite(settings),
             vlm_augmenter=augmenter, template_mutations_enabled=False)
@@ -825,7 +1012,7 @@ def main():
         except MeasurementUnavailable as exc:
             write_json(root / "incomplete.json", {"status": "verifier_unavailable", "heldout_gain": None,
                 "reason": str(exc), "ledger": asdict(runner.ledger)})
-            print(f"[conditioning] stopped: {exc}; repair verifier connectivity and use --continue", flush=True)
+            print(f"[conditioning] stopped: {exc}; inspect verifier evidence/errors; resume only after resolving the cause", flush=True)
             raise SystemExit(1)
 
 

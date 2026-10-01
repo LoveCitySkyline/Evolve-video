@@ -7,6 +7,7 @@ from copy import deepcopy
 from itertools import combinations
 import math
 import re
+import random
 import statistics
 
 from evovideo_skill.conditioning_interactions import condition_only, changes, merge_factors
@@ -22,6 +23,7 @@ DEFAULTS = {
     "min_uncertainty": .01, "local_repair": True, "max_separator_size": 3,
     "max_separator_candidates": 2000, "boundary_limit": 4,
     "preservation_threshold": .85, "preservation_tolerance": .03,
+    "selection": "empirical", "structural_backoff": True, "backoff_min_tasks": 2,
 }
 
 
@@ -30,7 +32,11 @@ def search_options(config):
     if not isinstance(raw, dict) or set(raw) - DEFAULTS.keys():
         raise ValueError("invalid active_graph_search settings")
     options = {**DEFAULTS, **raw}
-    for key in ("enabled", "local_repair"):
+    if options["selection"] not in {"empirical", "random"}:
+        raise ValueError("selection must be empirical or random")
+    if type(options["backoff_min_tasks"]) is not int or options["backoff_min_tasks"] < 2:
+        raise ValueError("backoff_min_tasks must be at least two independent tasks")
+    for key in ("enabled", "local_repair", "structural_backoff"):
         if type(options[key]) is not bool:
             raise ValueError(f"{key} must be a boolean")
     for key, low, high in (("pool_size", 2, 8), ("max_separator_size", 1, 4),
@@ -95,7 +101,10 @@ def factor_descriptor(task, anchor, graph, context):
     # Both endpoints are retained: the same field edit on a different scaffold is
     # a different intervention, even if the planner reuses the same strategy name.
     value = {"context": context, "before": graph_sketch(task, anchor), "after": graph_sketch(task, graph)}
-    return {"factor_id": stable_hash(value)[:24], **value}
+    from evovideo_skill.strategy_contracts import structural_template
+    scope = {k: deepcopy(v) for k, v in context.items() if k not in {"duration_seconds", "shot_durations"}}
+    transfer = {"scope": scope, "before": structural_template(anchor), "after": structural_template(graph)}
+    return {"factor_id": stable_hash(value)[:24], "transfer_id": stable_hash(transfer)[:24], **value}
 
 
 class SignedInteractionGraph:
@@ -113,7 +122,8 @@ class SignedInteractionGraph:
                 "values": [p["delta"] for p in effect["pairs"]], "metrics": effect["metric_deltas"]})
         keys = sorted(descriptors[k]["factor_id"] for k in ("a", "b"))
         edge_id = stable_hash(keys)[:24]
-        edge = self.data["edges"].setdefault(edge_id, {"factors": keys, "observations": {}})
+        edge = self.data["edges"].setdefault(edge_id, {"factors": keys,
+            "transfer_factors": sorted(d.get("transfer_id", d["factor_id"]) for d in descriptors.values()), "observations": {}})
         edge["observations"].setdefault(event_id, {"task_id": task.task_id,
             "values": [p["interaction"] for p in interaction["replicates"]],
             "metrics": {k: v["mean"] for k, v in interaction["metrics"].items()}})
@@ -141,13 +151,33 @@ class SignedInteractionGraph:
 
     def predict(self, descriptors, options):
         keys = sorted(d["factor_id"] for d in descriptors)
-        parts = [self.estimate(self.data["nodes"].get(k), options) for k in keys]
-        parts.append(self.estimate(self.data["edges"].get(stable_hash(keys)[:24]), options))
+        def term(table, exact_key, transferable):
+            exact = self.estimate(table.get(exact_key), options)
+            if exact["task_support"]:
+                return {**exact, "source": "exact"}
+            rows = {}
+            if options["structural_backoff"]:
+                for entry_key, entry in table.items():
+                    if transferable(entry):
+                        rows.update({entry_key + "/" + k: v for k, v in entry["observations"].items()})
+            pooled = self.estimate({"observations": rows}, options)
+            if pooled["task_support"] >= options["backoff_min_tasks"]:
+                pooled["uncertainty"] = max(options["prior_std"], pooled["uncertainty"]) * 2
+                return {**pooled, "source": "structural_backoff"}
+            return {**exact, "source": "prior"}
+        parts = [term(self.data["nodes"], d["factor_id"],
+                      lambda e, d=d: d.get("transfer_id") is not None and e.get("transfer_id") == d["transfer_id"])
+                 for d in descriptors]
+        transfer_keys = sorted(d.get("transfer_id", d["factor_id"]) for d in descriptors)
+        parts.append(term(self.data["edges"], stable_hash(keys)[:24],
+                          lambda e: e.get("transfer_factors") == transfer_keys))
         mean = sum(p["mean"] for p in parts)
         uncertainty = sum(p["uncertainty"] for p in parts)
         return {"predicted_gain_from_anchor": mean, "uncertainty": uncertainty,
                 "acquisition": mean + options["exploration_beta"] * uncertainty,
-                "terms": parts, "qualification": "Empirical acquisition heuristic, not a calibrated confidence bound."}
+                "terms": parts, "exact_terms": sum(p["source"] == "exact" for p in parts),
+                "backoff_terms": sum(p["source"] == "structural_backoff" for p in parts),
+                "prior_terms": sum(p["source"] == "prior" for p in parts), "qualification": "Empirical acquisition heuristic, not a calibrated confidence bound."}
 
     def view(self, options, context=None):
         nodes = [{"factor_id": key, "descriptor": {k: v for k, v in entry.items() if k != "observations"},
@@ -193,6 +223,10 @@ def decode_pool(raw, task, parent, executor, config, frontier):
             factors.append({"id": key, "graph": graph, "strategy": strategy, "repair": local})
         except (ValueError, KeyError, TypeError, RuntimeError) as exc:
             errors.append({"factor_index": index, "error": str(exc)})
+    from evovideo_skill.story_contracts import validate_story_graph
+    validate_story_graph(task, anchor)
+    for factor in factors:
+        validate_story_graph(task, factor["graph"])
     return anchor, factors, errors
 
 
@@ -205,6 +239,8 @@ def select_pair(task, parent, anchor, factors, records, evidence, executor, conf
             joint = merge_factors(anchor, a["graph"], b["graph"])
             condition_only(anchor, joint)
             validate_candidate(joint, anchor, executor, "graph", config["max_nodes"], config["max_edits"])
+            from evovideo_skill.story_contracts import validate_story_graph
+            validate_story_graph(task, joint)
             repair = check_local_candidate(parent, joint, frontier)
             graphs = {"anchor": anchor, "a": a["graph"], "b": b["graph"], "joint": joint}
             # Conservative full-cell reservations, excluding an already evaluated parent.
@@ -263,6 +299,15 @@ def select_pair(task, parent, anchor, factors, records, evidence, executor, conf
     ranked.sort(key=lambda r: (-r["acquisition"], len(r["other_outputs_affected"]),
                               r["joint_affected_budget"]["seconds"], r["cold_budget_bound"]["seconds"], r["pair_id"]))
     selected = ranked[0]["pair_id"] if ranked else None
+    if ranked and options["selection"] == "random":
+        # Same bounded legal pool and factorial cost checks; reproducible random control.
+        rng = random.Random(stable_hash([task.task_id, graph_payload(parent), context]))
+        selected = rng.choice(sorted(r["pair_id"] for r in ranked))
     return (combinations_by_id.get(selected), {"selected_pair": selected, "ranked_pairs": ranked,
         "rejected_pairs": rejected, "context": context,
+        "selection_mode": options["selection"],
+        "evidence_coverage": {"candidate_pairs": len(ranked),
+            "pairs_with_exact_evidence": sum(r["exact_terms"] > 0 for r in ranked),
+            "pairs_with_backoff_evidence": sum(r["backoff_terms"] > 0 for r in ranked),
+            "selected_sources": next(([t["source"] for t in r["terms"]] for r in ranked if r["pair_id"] == selected), [])},
         "evidence_hash": stable_hash(evidence.data), "candidate_scope": "bounded legal pairs from one LLM pool"})

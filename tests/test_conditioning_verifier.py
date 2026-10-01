@@ -13,7 +13,7 @@ from evovideo_skill.api_tools import VideoApiError
 from evovideo_skill.conditioning_runner import ConditioningRunner, MeasurementUnavailable
 from evovideo_skill.conditioning_verifier import (ConditioningVideoVerifier, GENERIC,
     parse_judgment, resolve_profiles, windows)
-from evovideo_skill.models import VideoArtifact, VideoTask
+from evovideo_skill.models import TaskMode, VideoArtifact, VideoTask
 from evovideo_skill.runtime import RuntimeSettings
 
 
@@ -140,7 +140,7 @@ class VerifierTests(unittest.TestCase):
 
     def test_unobserved_and_repeat_disagreement_need_review(self):
         verifier = ConditioningVideoVerifier(profile(repeats=2), self.root)
-        replies = [{"criteria": {k: observed(score) for k in [*GENERIC, "identity"]}} for score in (.9, .3)]
+        replies = [{"criteria": {k: observed(score) for k in [*[k for k in GENERIC if k != "target_edit_success_score"], "identity"]}} for score in (.9, .3)]
         with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(verifier, "request", side_effect=replies):
             result = verifier.evaluate(self.task, self.artifact)
         self.assertEqual(result["evaluation_status"], "needs_review")
@@ -149,7 +149,7 @@ class VerifierTests(unittest.TestCase):
 
     def test_mandatory_unobserved_has_no_criterion_score(self):
         verifier = ConditioningVideoVerifier(profile(), self.root)
-        raw = {"criteria": {k: observed() for k in [*GENERIC, "identity"]}}
+        raw = {"criteria": {k: observed() for k in [*[k for k in GENERIC if k != "target_edit_success_score"], "identity"]}}
         raw["criteria"]["identity"].update(status="unobserved", score=None)
         with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(verifier, "request", return_value=raw):
             result = verifier.evaluate(self.task, self.artifact)
@@ -180,6 +180,115 @@ class VerifierTests(unittest.TestCase):
         self.assertIn("identity_across_shots", result["verification_metadata"]["scope_issues"])
         self.assertFalse(list(self.root.glob("judgments/*/result.json")))
         self.assertTrue(all("identity_across_shots" not in s["failed_criteria"] for s in result["failed_segments"]))
+
+    def test_generation_edit_metric_is_host_na_but_declared_rubric_stays_mandatory(self):
+        for mode, operations, declared in (("generation", [], False), ("editing", [], False),
+                                          ("generation", [{"operation": "replace"}], False),
+                                          ("generation", [], True)):
+            with self.subTest(mode=mode, operations=operations, declared=declared):
+                self.task.mode = TaskMode(mode)
+                self.task.metadata["edit_operations"] = operations
+                self.task.metadata["evaluation"] = {"identity": {}}
+                if declared:
+                    self.task.metadata["evaluation"]["target_edit_success_score"] = "Required edit"
+                verifier = ConditioningVideoVerifier(profile(), self.root / str((mode, bool(operations), declared)))
+                requested = []
+                def request(prompt, media, operation):
+                    criteria = json.loads(prompt)["criteria"]
+                    requested.extend(criteria)
+                    rows = {k: observed() for k in criteria}
+                    if "target_edit_success_score" in rows:
+                        rows["target_edit_success_score"].update(status="unobserved", score=None,
+                            evidence="Original reference missing; cannot verify the requested edit.")
+                    return {"criteria": rows}
+                with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                        verifier, "request", side_effect=request):
+                    result = verifier.evaluate(self.task, self.artifact)
+                na = mode == "generation" and not operations and not declared
+                self.assertEqual(result["evaluation_status"], "complete" if na else "needs_review")
+                self.assertEqual("target_edit_success_score" in requested, not na)
+                row = result["criterion_observations"]["target_edit_success_score"][0]
+                self.assertEqual(row["status"], "not_applicable" if na else "unobserved")
+                self.assertIsNone(row["score"])
+                if na:
+                    self.assertEqual(row["applicability_source"], "original_task_contract")
+                    self.assertNotIn("target_edit_success_score", result["criterion_scores"])
+                else:
+                    self.assertIn("target_edit_success_score", result["verification_metadata"]["unobserved_criteria"])
+
+    def test_explicit_generic_rubric_cannot_be_not_applicable(self):
+        row = observed()
+        row.update(status="not_applicable", score=None)
+        with self.assertRaisesRegex(ValueError, "mandatory criterion"):
+            parse_judgment({"criteria": {"target_edit_success_score": row}},
+                           {"target_edit_success_score": {"mandatory": True}}, [{"segment_id": 0}])
+
+    def test_wrong_criterion_keys_are_corrected_once_with_same_evidence(self):
+        verifier = ConditioningVideoVerifier(profile(), self.root)
+        calls = []
+        def request(prompt, evidence, operation):
+            data = json.loads(prompt)
+            calls.append((data, evidence, operation))
+            rows = {k: observed(.2) for k in data["criteria"]}
+            if len(calls) == 1:
+                rows["renamed_identity"] = rows.pop("identity")
+            return {"criteria": rows}
+        with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                verifier, "request", side_effect=request):
+            result = verifier.evaluate(self.task, self.artifact)
+            self.assertEqual(result, verifier.evaluate(self.task, self.artifact))
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][1], calls[1][1])
+        for key in ("original_task", "criteria", "evidence_manifest"):
+            self.assertEqual(calls[0][0][key], calls[1][0][key])
+        feedback = calls[1][0]["format_feedback"]
+        self.assertIn("missing=['identity']", feedback["error"])
+        self.assertIn("unexpected=['renamed_identity']", feedback["error"])
+        self.assertEqual(result["criterion_scores"]["identity"], .2)
+        folder = Path(result["verification_metadata"]["judgment_path"])
+        self.assertIn("renamed_identity", json.loads((folder / "group-000-repeat-0.raw.json").read_text())["criteria"])
+        self.assertTrue((folder / "group-000-repeat-0.correction-1.raw.json").exists())
+
+    def test_format_retry_exhaustion_is_persistent_and_never_substitutes_scores(self):
+        verifier = ConditioningVideoVerifier(profile(), self.root)
+        with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                verifier, "request", return_value={"criteria": {}}) as request:
+            for _ in range(2):
+                with self.assertRaisesRegex(VideoApiError, "after one correction"):
+                    verifier.evaluate(self.task, self.artifact)
+        self.assertEqual(request.call_count, 2)
+        self.assertFalse(list(self.root.glob("judgments/*/result.json")))
+        self.assertFalse(list(self.root.glob("judgments/*/group-000-repeat-0.json")))
+        self.assertTrue(list(self.root.glob("judgments/*/*.format-1.json")))
+
+    def test_valid_unobserved_response_is_not_retried_for_better_scores(self):
+        verifier = ConditioningVideoVerifier(profile(), self.root)
+        def request(prompt, evidence, operation):
+            rows = {k: observed() for k in json.loads(prompt)["criteria"]}
+            rows["identity"].update(status="unobserved", score=None)
+            return {"criteria": rows}
+        with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                verifier, "request", side_effect=request) as call:
+            result = verifier.evaluate(self.task, self.artifact)
+        self.assertEqual(call.call_count, 1)
+        self.assertEqual(result["evaluation_status"], "needs_review")
+        self.assertNotIn("identity", result["criterion_scores"])
+
+    def test_interrupted_format_correction_reuses_original_invalid_response(self):
+        verifier = ConditioningVideoVerifier(profile(), self.root)
+        with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                verifier, "request", side_effect=[{"criteria": {}}, KeyboardInterrupt()]):
+            with self.assertRaises(KeyboardInterrupt):
+                verifier.evaluate(self.task, self.artifact)
+        def corrected(prompt, evidence, operation):
+            data = json.loads(prompt)
+            self.assertIn("format_feedback", data)
+            return {"criteria": {k: observed() for k in data["criteria"]}}
+        with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                verifier, "request", side_effect=corrected) as request:
+            result = verifier.evaluate(self.task, self.artifact)
+        self.assertEqual(request.call_count, 1)
+        self.assertEqual(result["evaluation_status"], "complete")
 
     def test_native_transport_payloads_and_no_secret_logs(self):
         for transport in ("dashscope_video", "gemini_video"):

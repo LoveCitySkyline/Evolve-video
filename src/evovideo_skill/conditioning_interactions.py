@@ -68,8 +68,10 @@ def condition_only(parent, child):
     for path, value in changes(parent, child).items():
         if path[0] != "nodes":
             continue
-        if len(path) == 2 and value is not MISSING and "prompt" in value.get("config", {}):
-            raise ValueError("new conditioning nodes must use the unchanged task/shot prompt")
+        if len(path) == 2 and value is not MISSING and any(
+                key in value.get("config", {}) for key in ("prompt", "prompt_task_hashes", "conditioning_strategy")):
+            raise ValueError("new conditioning nodes must use the unchanged task/shot prompt; "
+                             "prompt, prompt_task_hashes and conditioning_strategy are forbidden")
         if len(path) == 4 and path[-1] not in CONDITION_FIELDS:
             raise ValueError(f"non-conditioning field changed: {path[-1]}")
         if len(path) == 3 and path[-1] == "node_type":

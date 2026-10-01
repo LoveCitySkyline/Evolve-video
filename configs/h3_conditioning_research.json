@@ -1,6 +1,6 @@
 {
   "task_file": "outputs/h3_mini50_prepared/complex_video_bench_mini50_h3.json",
-  "output_dir": "outputs/h3_conditioning_graph_search",
+  "output_dir": "outputs/h3_conditioning_research",
   "search_mode": "factorial",
   "active_graph_search": {
     "enabled": true,
@@ -18,10 +18,10 @@
     "structural_backoff": true,
     "backoff_min_tasks": 2
   },
-  "max_searches": 16,
+  "max_searches": 56,
   "searches_per_task": 2,
-  "max_generation_calls": 1000,
-  "max_generated_seconds": 12000,
+  "max_generation_calls": 4000,
+  "max_generated_seconds": 60000,
   "evaluation_seeds": [
     42,
     123,
@@ -31,8 +31,8 @@
   "max_edits": 32,
   "retrieval_limit": 4,
   "max_validation_strategies": 6,
-  "validation_tasks_per_strategy": 2,
-  "min_validation_tasks": 1,
+  "validation_tasks_per_strategy": 4,
+  "min_validation_tasks": 2,
   "min_gain": 0.02,
   "max_metric_regression": 0.05,
   "selection_min_gain": 0.01,
@@ -42,7 +42,7 @@
   "test_max_generation_calls": 12,
   "test_max_generated_seconds": 180,
   "verifier": {
-    "require_independent_final": false,
+    "require_independent_final": true,
     "runtime": {
       "model": "qwen3-vl-plus",
       "fps": 2,
@@ -58,7 +58,7 @@
     "provider": "local-h3",
     "resolution": "768P",
     "h3_local_model_revision": "unspecified",
-    "h3_max_api_calls": 1000,
+    "h3_max_api_calls": 4000,
     "timeout_seconds": 1800,
     "sample_frames": 12,
     "enable_vlm_eval": true,
@@ -75,6 +75,6 @@
     "enable_mcp_tools": false,
     "restore_catalog_tools": false
   },
-  "experiment_tier": "pilot",
-  "comparison_baseline": "single"
+  "experiment_tier": "research",
+  "comparison_baseline": "matched_budget"
 }

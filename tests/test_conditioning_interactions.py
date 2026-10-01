@@ -59,6 +59,24 @@ class FactorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-conditioning"):
             condition_only(self.anchor, self.a)
 
+    def test_reject_text_strategy_on_existing_and_new_nodes_and_preserve_cost(self):
+        for key in ("conditioning_strategy", "prompt_task_hashes"):
+            existing = deepcopy(self.anchor)
+            existing.nodes[-1].config[key] = "ordered_actions"
+            with self.assertRaisesRegex(ValueError, "non-conditioning"):
+                condition_only(self.anchor, existing)
+            added = deepcopy(self.anchor)
+            node = deepcopy(added.nodes[-1])
+            node.node_id = "additional"
+            node.config[key] = "ordered_actions"
+            added.nodes.append(node)
+            with self.assertRaisesRegex(ValueError, "new conditioning nodes"):
+                condition_only(self.anchor, added)
+        candidate = deepcopy(self.anchor)
+        candidate.nodes[-1].config.pop("cost")
+        with self.assertRaisesRegex(ValueError, "non-conditioning field changed: cost"):
+            condition_only(self.anchor, candidate)
+
     def test_interaction_and_negative_dimension(self):
         cells = {k: [record(score, s, f"{k}/{s}", action) for s in (1, 2, 3)] for k, score, action in (
             ("anchor", .4, .8), ("a", .5, .8), ("b", .5, .8), ("joint", .8, .6))}

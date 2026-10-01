@@ -177,14 +177,17 @@ def check_local_candidate(parent, child, frontier):
     raise ValueError("candidate modifies nodes outside every permitted repair boundary")
 
 
-def preservation_report(before, after, threshold, tolerance):
+def preservation_report(before, after, threshold, tolerance, *, paired=True):
     """Check paired satisfied criteria/windows. Missing protected evidence rejects."""
     if len(before) != len(after) or not before:
         raise ValueError("preservation requires paired records")
+    from evovideo_skill.story_contracts import preserves_mandatory
     violations, protected = [], 0
     for left, right in zip(before, after):
-        if (left["task_id"], left["seed"]) != (right["task_id"], right["seed"]):
+        if left["task_id"] != right["task_id"] or paired and left["seed"] != right["seed"]:
             raise ValueError("unpaired preservation records")
+        if not preserves_mandatory(left, right):
+            violations.append({"seed": left["seed"], "scope": "mandatory", "reason": "passed constraint regressed"})
         for scope, a, b in (("criterion", metric_vector(left), metric_vector(right)),
                             ("segment", segment_scores(left), segment_scores(right))):
             for key, value in a.items():

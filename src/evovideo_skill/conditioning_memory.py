@@ -30,7 +30,7 @@ def task_payload(task):
             "reference_video": task.reference_video,
             "metadata": {k: deepcopy(task.metadata[k]) for k in (
                 "h3_references", "h3_shots", "h3_global_constraints", "h3_audio_criteria",
-                "evaluation", "constraints", "temporal_steps") if k in task.metadata}}
+                "evaluation", "constraints", "temporal_steps", "story_contract") if k in task.metadata}}
 
 
 def validate_strategy(value, task):
@@ -128,8 +128,11 @@ class StrategyMemory:
         recipe = portable_recipe(graph)
         scope = {k: state[k] for k in ("family", "mode", "requires_audio")}
         before_recipe = portable_recipe(before_graph) if before_graph is not None else None
-        key = stable_hash([strategy["name"], scope, strategy["required_references"], before_recipe, recipe])[:24]
+        from evovideo_skill.strategy_contracts import measured_contract
+        contract = measured_contract(before_graph, graph)
+        key = stable_hash([strategy["name"], scope, strategy["required_references"], before_recipe, recipe, contract])[:24]
         entry = self.entries.setdefault(key, {"strategy_id": key, "strategy": strategy,
+            "structural_contract": contract,
             "scope": scope, "recipe": recipe, "before_recipe": before_recipe, "observations": []})
         if not any(o["event_id"] == event_id for o in entry["observations"]):
             entry["observations"].append({"event_id": event_id, "task_id": task.task_id,
@@ -153,6 +156,7 @@ class StrategyMemory:
         dims = sorted({k for e in effects for k in e["metric_deltas"]})
         deltas = {k: statistics.mean(e["metric_deltas"][k] for e in effects if k in e["metric_deltas"]) for k in dims}
         return {k: deepcopy(entry[k]) for k in ("strategy_id", "strategy", "scope", "recipe", "before_recipe")} | {
+            "structural_contract": deepcopy(entry.get("structural_contract")),
             "evidence": {"task_support": len(gains), "experiment_count": len(effects),
                 "mean_train_gain": statistics.mean(gains), "metric_deltas": deltas,
                 "observed_conditions": [o["state"] for o in entry["observations"]],

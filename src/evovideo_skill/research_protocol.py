@@ -137,7 +137,10 @@ def validate_candidate(graph: ToolPathGraph, parent: ToolPathGraph, executor,
     video_sinks = [n for n in graph.nodes if n.node_type == "tool"
                    and not any(e.source == n.node_id for e in graph.edges)]
     if len(video_sinks) != 1 or executor.tools.spec(video_sinks[0].name).output_type != "video":
-        raise ValueError("research graph must have exactly one terminal video output")
+        sinks = [{"node_id": n.node_id, "tool": n.name,
+                  "output_type": executor.tools.spec(n.name).output_type} for n in video_sinks]
+        raise ValueError("research graph must have exactly one terminal video output; "
+                         "all other nodes must feed it. Actual terminal tool nodes: " + json.dumps(sinks))
     # Every node must contribute to that output; no free dangling computations.
     reachable = {video_sinks[0].node_id}
     for _ in graph.nodes:
@@ -161,7 +164,7 @@ def generation_credits(task, graph: ToolPathGraph) -> tuple[int, float]:
                 raise ValueError("invalid shot index for this task")
             duration = node.config.get("duration_seconds", shots[index]["duration_seconds"])
         count = 1
-        if node.name == "mock_text_to_video" and duration > 15 and "shot_index" not in node.config:
+        if node.name == "mock_text_to_video" and (duration > 15 or task.metadata.get("story_contract")) and "shot_index" not in node.config:
             shots = task.metadata.get("h3_shots", [])
             if not shots or sum(s["duration_seconds"] for s in shots) != duration:
                 raise ValueError("long direct baseline needs declared shot durations")

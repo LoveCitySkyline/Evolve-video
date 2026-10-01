@@ -67,9 +67,9 @@ class CodexExecConfig:
     def validate(self) -> None:
         if self.sandbox not in {"read-only", "workspace-write", "danger-full-access"}:
             raise CodexAgentError(f"unsupported Codex sandbox mode: {self.sandbox!r}")
-        if self.approval_mode not in {"auto-review", "external-sandbox"}:
+        if self.approval_mode not in {"auto-review", "external-sandbox", "read-only"}:
             raise CodexAgentError(
-                "CODEX_TOOL_APPROVAL_MODE must be auto-review or external-sandbox"
+                "CODEX_TOOL_APPROVAL_MODE must be auto-review, read-only or external-sandbox"
             )
         if self.approval_mode == "external-sandbox" and not self.external_sandbox_confirmed:
             raise CodexAgentError(
@@ -96,6 +96,7 @@ class CodexExecClient:
         "LC_ALL",
         "TMPDIR",
         "CODEX_HOME",
+        "CODEX_CA_CERTIFICATE",
         "HTTP_PROXY",
         "HTTPS_PROXY",
         "ALL_PROXY",
@@ -148,11 +149,17 @@ class CodexExecClient:
             )
         if self.config.enable_search:
             command.append("--search")
+        if self.config.approval_mode == "read-only":
+            if not self.config.enable_search:
+                command.extend(["--config", 'web_search="disabled"'])
+            command.extend(["--ask-for-approval", "never"])
         command.append("exec")
         if self.config.ephemeral:
             command.append("--ephemeral")
         if self.config.approval_mode == "external-sandbox":
             command.append("--dangerously-bypass-approvals-and-sandbox")
+        elif self.config.approval_mode == "read-only":
+            command.extend(["--sandbox", "read-only"])
         else:
             # --approve-for-me already selects the workspace-write sandbox.
             # Older Codex CLI builds reject an explicit --sandbox alongside it.
@@ -176,7 +183,8 @@ class CodexExecClient:
                 {
                     "command": command,
                     "sandbox": (
-                        "external" if self.config.approval_mode == "external-sandbox" else "workspace-write"
+                        "external" if self.config.approval_mode == "external-sandbox" else
+                        "read-only" if self.config.approval_mode == "read-only" else "workspace-write"
                     ),
                     "approval_mode": self.config.approval_mode,
                     "search": self.config.enable_search,
@@ -191,7 +199,7 @@ class CodexExecClient:
         started = time.monotonic()
         timeout_seconds = (
             int(os.environ.get("CODEX_GRAPH_TIMEOUT_SECONDS", str(self.config.timeout_seconds)))
-            if job_kind == "graph-mutation"
+            if job_kind in {"graph-mutation", "conditioning-planner"}
             else self.config.timeout_seconds
         )
         run_kwargs = {

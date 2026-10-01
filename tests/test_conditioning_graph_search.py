@@ -264,6 +264,68 @@ class ActiveRunnerTests(unittest.TestCase):
     def make_runner(self):
         return ConditioningRunner(self.dataset, self.ev, self.planner, self.root / "run", self.config, {"provider": "local-fake"})
 
+    def test_invalid_terminal_graph_retries_once_with_validator_feedback(self):
+        task = self.dataset.train[0]
+        good = self.planner.propose({"experiment": "active_factorial", "parent": graph_payload(self.runner.baseline),
+                                     "task": {"duration_seconds": task.duration_seconds}})
+        bad = deepcopy(good)
+        extra = deepcopy(bad["anchor"]["nodes"][-1])
+        extra["node_id"] = "dangling_video"
+        bad["anchor"]["nodes"].append(extra)
+        edge = deepcopy(bad["anchor"]["edges"][-1])
+        edge.update(edge_id="extra_edge", target="dangling_video")
+        bad["anchor"]["edges"].append(edge)
+        with patch.object(self.planner, "propose", side_effect=[bad, good]) as call:
+            result = self.runner.propose(task, self.runner.baseline, [], [], "factorial/0", experiment=True)
+        self.assertIsNotNone(result)
+        self.assertEqual(call.call_count, 2)
+        feedback = call.call_args_list[1].args[0]["validation_feedback"]
+        self.assertIn("exactly one terminal video output", feedback["error"])
+        self.assertIn("dangling_video", feedback["error"])
+        self.assertEqual(feedback["failed_proposal"], bad)
+        proposal = json.loads(next((self.runner.root / "proposals").glob("*.json")).read_text())
+        self.assertEqual(len(proposal["validation_failures"]), 1)
+        self.assertEqual(self.runner.state["planner_requests"], 2)
+        self.assertEqual(self.runner.ledger.reserved_calls, 0)
+        resumed = self.make_runner()
+        with patch.object(self.planner, "propose", side_effect=AssertionError("must replay selected corrected graph")):
+            again = resumed.propose(task, resumed.baseline, [], [], "factorial/0", experiment=True)
+        self.assertEqual(set(again[0]), set(result[0]))
+
+    def test_invalid_proposal_retry_is_bounded_and_persistent(self):
+        task = self.dataset.train[0]
+        with patch.object(self.planner, "propose", return_value={}) as call:
+            for _ in range(2):
+                self.assertIsNone(self.runner.propose(task, self.runner.baseline, [], [], "factorial/0", experiment=True))
+        self.assertEqual(call.call_count, 2)
+        proposal = json.loads(next((self.runner.root / "proposals").glob("*.json")).read_text())
+        self.assertEqual(proposal["status"], "validation_failed")
+        self.assertEqual(len(proposal["validation_failures"]), 2)
+        self.assertEqual(self.runner.ledger.reserved_calls, 0)
+
+    def test_invalid_factor_pool_can_be_corrected_before_generation(self):
+        task = self.dataset.train[0]
+        good = self.planner.propose({"experiment": "active_factorial", "parent": graph_payload(self.runner.baseline),
+                                     "task": {"duration_seconds": task.duration_seconds}})
+        bad = deepcopy(good)
+        bad["factors"][0]["graph"]["nodes"][-1]["name"] = "nonexistent_tool"
+        with patch.object(self.planner, "propose", side_effect=[bad, good]) as call:
+            result = self.runner.propose(task, self.runner.baseline, [], [], "factorial/0", experiment=True)
+        self.assertIsNotNone(result)
+        self.assertEqual(call.call_count, 2)
+        self.assertIn("factor_index", call.call_args_list[1].args[0]["validation_feedback"]["error"])
+
+    def test_local_planner_receives_frozen_config_and_condition_only_guide(self):
+        self.runner.signature["provider"] = "local-h3"
+        task = self.dataset.train[0]
+        with patch.object(self.planner, "propose", wraps=self.planner.propose) as call:
+            self.runner.propose(task, self.runner.baseline, [], [], "factorial/0", experiment=True)
+        request = call.call_args_list[0].args[0]
+        self.assertEqual(request["configuration_contract"]["graph_representation"], "complete_snapshot_not_patch")
+        self.assertIn("cost", request["configuration_contract"]["frozen_parent_configs"]["tool_t2v"])
+        self.assertNotIn("conditioning_strategy", request["configuration_contract"]["mutable_existing_config_fields"])
+        self.assertFalse(any("Use config.conditioning_strategy=" in r for r in request["h3_native_planner"]["rules"]))
+
     def test_active_full_run_freezes_train_evidence_and_exports_decisions(self):
         self.runner.learn()
         self.assertEqual(self.runner.state["interaction_cursor"]["next_index"], 2)
@@ -340,7 +402,11 @@ class ActiveRunnerTests(unittest.TestCase):
             GraphNode("concat", "tool", "h3_av_concat", {"source_nodes": ["g1", "g2", "g3"]})], [
             GraphEdge("dependency", "g2", "g3"), GraphEdge("c1", "g1", "concat"),
             GraphEdge("c2", "g2", "concat"), GraphEdge("c3", "g3", "concat")])
-        task = self.dataset.train[0]
+        task = deepcopy(self.dataset.train[0])
+        task.duration_seconds = 18
+        for node in graph.nodes:
+            if node.name != "h3_av_concat":
+                node.config["duration_seconds"] = 6
         self.runner.evaluate(task, graph, 42, "train/" + task.task_id)
         changed = deepcopy(graph)
         changed.node("g2").config["reference_ids"] = ["replacement"]

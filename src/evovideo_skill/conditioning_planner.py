@@ -10,7 +10,28 @@ SYSTEM = """Construct a generation graph for the CURRENT task using only registe
 Return exactly {graph:{nodes:[],edges:[]}, strategy:{name,instruction,hypothesis,risks,
 required_references}, used_strategy_ids:[]} as JSON, without markdown.
 Nodes have node_id,node_type (tool or trigger),name,config. Edges have edge_id,source,
-target,condition:'always',config:{}. Preserve requested content, duration and all
+target,condition:'always',config:{}.
+Every strategy object MUST contain exactly these five fields (no extra fields):
+{"name":"snake_case_name","instruction":"Portable conditioning instruction",
+"hypothesis":"Testable expected effect","risks":["Possible regression"],
+"required_references":{}}.
+name, instruction and hypothesis are nonempty strings. risks is an array of
+strings. required_references is an object whose optional image/video/audio keys
+have nonnegative integer counts of external task assets, never IDs or URI lists.
+These rules apply to every factors[i].strategy, a.strategy, b.strategy and
+joint_strategy. Factor id belongs outside its strategy. Never omit required_references.
+Use node_type='tool' for EVERY registered tool including the final generator or
+concatenator. A trigger is only a starting event; never append a trigger as an
+output/end marker or use trigger to classify a generation/concatenation tool.
+Every complete graph (parent replacement, anchor and each factor) must have exactly
+ONE terminal tool node, whose registered output_type is video. Every node must
+contribute through directed edges to that output. Reference/image/audio/planning
+nodes cannot remain dangling sinks. Multiple shot videos must feed a registered
+video concatenation tool with valid bindings; never invent an output/merge tool.
+When validation_feedback is present, correct the supplied failed proposal using
+the exact validator error and return the same complete JSON schema. Keep all
+original task, budget, prompt and conditioning constraints in force.
+Preserve requested content, duration and all
 public requirements. Do not alter task assets, seeds, models, verifier or reward.
 Strategy instruction/hypothesis/risks must be generic, portable prose without this
 task's characters, story, asset paths, prompt or IDs. Name is snake_case. Risks is
@@ -25,7 +46,10 @@ and reordered generation are allowed within the node/edit budget. Preserve uncha
 upstream node IDs/config/edges to enable a local controlled comparison. If changing
 several factors, explain that this tests a joint strategy, not a single-factor cause.
 Do not invent adapter parameters such as identity_strength. Use exact tool schemas.
-used_strategy_ids must be a subset of IDs in memory. An empty list means exploration.
+Every claimed strategy must match its program-derived structural_contract target,
+including topology, fixed controls and slot locations. Only bind the declared slots.
+Do not cite an ID for an unchanged parent or a different structure. Combining
+strategies requires a separately measured joint template; otherwise use exploration.
 When a required strategy ID is supplied, instantiate that strategy; do not substitute
 another. When no safe change is supported, copy the parent graph exactly.
 No installation, web browsing, filesystem access, or external tool calls.
@@ -76,6 +100,12 @@ ACTIVE_SYSTEM = """Propose a bounded pool of conditioning interventions, not a c
 Return exactly {anchor:{nodes:[],edges:[]}, factors:[{id,graph:{nodes:[],edges:[]},strategy:{...}}]}.
 Use 2 to factor_pool_size distinct factors with short snake_case IDs. Each factor
 is a full executable graph relative to the SAME anchor. Put shared setup in anchor.
+Anchor and EVERY factor graph are complete snapshots, NOT node/edge deltas or
+lists of changed nodes. Start from a deep copy of the parent for anchor, then a
+separate deep copy of anchor for each factor. Retain every unchanged node, config
+field and edge. Only omit a node/edge when deliberately deleting it from that
+complete graph; check reachability and output validity afterwards.
+Do not include used_strategy_ids anywhere in an active_factorial response.
 The runner validates all pairs, compiles disjoint combinations, and selects one
 factorial experiment using empirical signed interaction evidence and uncertainty.
 Do not fabricate scores or choose a winner. Reuse structurally relevant interventions
@@ -94,6 +124,117 @@ The following schema rules describe nodes and portable strategies:
 """ + SYSTEM[SYSTEM.index("Nodes have"):]
 
 
+def conditioning_system(request):
+    system = (ACTIVE_SYSTEM if request.get("experiment") == "active_factorial" else
+              INTERACTION_SYSTEM if request.get("experiment") == "factorial" else SYSTEM)
+    if request.get("condition_only"):
+        from evovideo_skill.conditioning_interactions import CONDITION_FIELDS
+        system += ("\nKeep all prompts unchanged. New nodes inherit task/shot prompts. Only change conditioning dependencies, selection, roles and temporal scope."
+                   " Existing-node config changes, including deleting a key, are restricted to: "
+                   + ", ".join(sorted(CONDITION_FIELDS)) + "."
+                   " Preserve every other existing config field EXACTLY, including cost; do not recompute it when changing tool names."
+                   " Never add conditioning_strategy, prompt, or prompt_task_hashes to new nodes."
+                   " conditioning_strategy rewrites textual instructions and is outside this experiment."
+                   " Follow configuration_contract in the request; a tool's general capabilities do not override this search protocol.")
+    if request.get("experiment") not in {"factorial", "active_factorial"}:
+        system += "\nTop-level used_strategy_ids must be a subset of memory IDs; an empty list means exploration. Never nest it in strategy."
+    return system
+
+
+def conditioning_h3_grammar(available_tools):
+    """Project the general H3 guide into the frozen-prompt search space."""
+    from evovideo_skill.llm_graph_mutation import OpenAICompatibleGraphMutationProposer
+    grammar = deepcopy(OpenAICompatibleGraphMutationProposer._h3_native_planner(available_tools, local=True))
+    # These general-harness rules explicitly encourage textual interventions.
+    grammar["rules"] = [r for r in grammar["rules"]
+                        if not any(term in r for term in ("conditioning_strategy", "config.prompt", "stage prompts"))]
+    for node in grammar["node_examples"]:
+        for key in ("prompt", "conditioning_strategy", "prompt_task_hashes"):
+            node["config"].pop(key, None)
+    for config in grammar.get("reusable_shot_example", {}).get("node_configs", {}).values():
+        config.pop("prompt", None)
+    grammar["rules"].append("The supplied configuration_contract overrides this general tool guide. "
+                            "Keep prompts fixed; use complete graphs and declared task shots only.")
+    grammar["examples_note"] += " Node examples are fragments for syntax only, never a complete anchor/factor response."
+    return grammar
+
+
+def configuration_contract(parent):
+    from evovideo_skill.conditioning_interactions import CONDITION_FIELDS
+    return {"graph_representation": "complete_snapshot_not_patch",
+            "mutable_existing_config_fields": sorted(CONDITION_FIELDS),
+            "frozen_parent_configs": {n["node_id"]: {k: deepcopy(v) for k, v in n.get("config", {}).items()
+                                                      if k not in CONDITION_FIELDS} for n in parent["nodes"]},
+            "factor_rule": "Preserve nonmutable fields relative to the complete anchor, including cost. "
+                           "Omitting an existing field counts as a change.",
+            "forbidden_new_node_fields": ["prompt", "prompt_task_hashes", "conditioning_strategy"]}
+
+
+def codex_plan_schema(request):
+    """Constrain graph/strategy structure directly, leaving only tool configs as JSON strings."""
+    def obj(properties):
+        return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}
+    string = {"type": "string"}
+    refs = obj({k: {"type": "integer", "minimum": 0} for k in ("image", "video", "audio")})
+    strategy = obj({"name": string, "instruction": string, "hypothesis": string,
+                    "risks": {"type": "array", "items": string}, "required_references": refs})
+    node = obj({"node_id": string, "node_type": {"type": "string", "enum": ["tool", "trigger"]},
+                "name": string, "config_json": {"type": "string", "description": "JSON object encoding the complete node config, preserving frozen fields."}})
+    edge = obj({"edge_id": string, "source": string, "target": string,
+                "condition": {"type": "string", "enum": ["always"]}})
+    graph = obj({"nodes": {"type": "array", "items": node, "minItems": 1},
+                 "edges": {"type": "array", "items": edge}})
+    factor = obj({"graph": graph, "strategy": strategy})
+    if request.get("experiment") == "active_factorial":
+        return obj({"anchor": graph, "factors": {"type": "array", "minItems": 2,
+            "maxItems": request.get("factor_pool_size", 4),
+            "items": obj({"id": string, "graph": graph, "strategy": strategy})}})
+    if request.get("experiment") == "factorial":
+        return obj({"anchor": graph, "a": factor, "b": factor, "joint_strategy": strategy})
+    return obj({"graph": graph, "strategy": strategy, "used_strategy_ids": {"type": "array", "items": string}})
+
+
+def decode_codex_plan(raw, request):
+    """Decode wire configs, without patch completion or fixing forbidden interventions."""
+    if not isinstance(raw, dict) or set(raw) != set(codex_plan_schema(request)["required"]):
+        raise ValueError("Codex conditioning planner returned incorrect structured plan fields")
+    result = deepcopy(raw)
+    def graph(value):
+        if not isinstance(value, dict) or set(value) != {"nodes", "edges"}:
+            raise ValueError("structured graph needs nodes and edges")
+        for node in value["nodes"]:
+            if set(node) != {"node_id", "node_type", "name", "config_json"}:
+                raise ValueError("structured graph node needs exactly node_id, node_type, name, config_json")
+            config = json.loads(node.pop("config_json"))
+            if not isinstance(config, dict):
+                raise ValueError("config_json must decode to a JSON object")
+            node["config"] = config
+        for edge in value["edges"]:
+            if set(edge) != {"edge_id", "source", "target", "condition"}:
+                raise ValueError("structured graph edge has incorrect fields")
+            edge["config"] = {}
+    def strategy(value):
+        if not isinstance(value, dict) or set(value) != {"name", "instruction", "hypothesis", "risks", "required_references"}:
+            raise ValueError("structured strategy must contain exactly the five declared fields")
+        refs = value["required_references"]
+        if (not isinstance(refs, dict) or set(refs) != {"image", "video", "audio"}
+                or any(type(n) is not int or n < 0 for n in refs.values())):
+            raise ValueError("structured required_references needs image/video/audio integer counts")
+        value["required_references"] = {k: v for k, v in refs.items() if v != 0}
+    if "anchor" in result:
+        graph(result["anchor"])
+        factors = result["factors"] if "factors" in result else [result["a"], result["b"]]
+        for factor in factors:
+            graph(factor["graph"])
+            strategy(factor["strategy"])
+        if "joint_strategy" in result:
+            strategy(result["joint_strategy"])
+    else:
+        graph(result["graph"])
+        strategy(result["strategy"])
+    return result
+
+
 class ConditioningPlanner:
     def __init__(self, proposer):
         if hasattr(proposer, "codex"):
@@ -104,10 +245,7 @@ class ConditioningPlanner:
     def propose(self, request):
         self.last_usage = None
         config = self.proposer.config
-        system = (ACTIVE_SYSTEM if request.get("experiment") == "active_factorial" else
-                  INTERACTION_SYSTEM if request.get("experiment") == "factorial" else SYSTEM)
-        if request.get("condition_only"):
-            system += "\nKeep all prompts unchanged. New nodes inherit task/shot prompts. Only change conditioning dependencies, selection, roles and temporal scope."
+        system = conditioning_system(request)
         payload = {"model": config.model, "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": json.dumps(request, ensure_ascii=False)}],
@@ -117,6 +255,39 @@ class ConditioningPlanner:
         response = self.proposer._post(payload)
         self.last_usage = response.get("usage")
         return self.proposer._parse_json(self.proposer._response_content(response))
+
+
+class CodexConditioningPlanner:
+    """Pilot-only CLI planner. Read-only does not guarantee held-out read isolation."""
+    def __init__(self, proposer):
+        from dataclasses import replace
+        from evovideo_skill.codex_agents import CodexExecClient
+
+        self.codex = CodexExecClient(replace(proposer.codex.config, sandbox="read-only",
+            approval_mode="read-only", enable_search=False, ephemeral=True), runner=proposer.codex.runner)
+        self.last_usage = None  # CLI token/cost accounting is not supplied as API usage.
+        self.last_job_dir = None
+
+    def propose(self, request):
+        from evovideo_skill.codex_agents import CodexAgentError
+        self.last_usage = None
+        schema = codex_plan_schema(request)
+        prompt = (conditioning_system(request) +
+            "\n\nUse only the supplied task, tool schemas, feedback and experience. "
+            "Do not inspect repository files, other tasks, held-out datasets or credentials; "
+            "do not browse, install tools, execute generation, or edit files. "
+            "Return the planning object DIRECTLY using the attached output schema, without a plan_json wrapper. "
+            "For the wire format only: replace each node's config object with config_json containing its JSON encoding; "
+            "omit edge config (the host restores the required empty object). "
+            "required_references must include image, video and audio counts; use 0 for unused kinds. "
+            "Every anchor and factor graph must still be a complete executable snapshot, never a patch. "
+            "Do not use the generic graph-mutation candidates/capability_requests envelope.\n\n" +
+            json.dumps(request, ensure_ascii=False))
+        envelope, _, self.last_job_dir = self.codex.run_json("conditioning-planner", prompt, schema, request)
+        try:
+            return decode_codex_plan(envelope, request)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise CodexAgentError(f"Codex conditioning structured plan is invalid: {exc}") from exc
 
 
 class ConditioningSmokePlanner:
@@ -147,7 +318,7 @@ class ConditioningSmokePlanner:
                 "hypothesis": "Scope binding may affect constraint satisfaction.",
                 "risks": ["Offline plumbing fixture; no real quality evidence."], "required_references": {}},
                 "used_strategy_ids": [request["required_strategy_id"]] if request.get("required_strategy_id") else
-                                     [memory[0]["strategy_id"]] if memory else []}
+                                     [memory[0]["strategy_id"]] if memory and graph != request["parent"] else []}
         for node in graph["nodes"]:
             if node["name"] == "mock_text_to_video":
                 node["config"]["prompt"] = "Preserve the requested identity and complete each action."
@@ -156,7 +327,7 @@ class ConditioningSmokePlanner:
             "instruction": "Make identity constraints explicit in each generation stage.",
             "hypothesis": "Explicit constraints may improve identity retention.",
             "risks": ["This does not supply missing visual evidence."], "required_references": {}},
-            "used_strategy_ids": [memory[0]["strategy_id"]] if memory else []}
+            "used_strategy_ids": [memory[0]["strategy_id"]] if memory and graph != request["parent"] else []}
 
 
 def decode_proposal(raw, task, parent, executor, config, memory, required_id=None):
@@ -174,4 +345,8 @@ def decode_proposal(raw, task, parent, executor, config, memory, required_id=Non
         from evovideo_skill.conditioning_interactions import condition_only
         condition_only(parent, graph)
     validate_candidate(graph, parent, executor, "graph", config["max_nodes"], config["max_edits"])
+    from evovideo_skill.strategy_contracts import verify_instantiation
+    verify_instantiation(parent, graph, memory, used)
+    from evovideo_skill.story_contracts import validate_story_graph
+    validate_story_graph(task, graph)
     return graph, strategy

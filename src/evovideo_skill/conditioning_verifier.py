@@ -27,7 +27,7 @@ from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 
 
-VERIFIER_PROTOCOL_VERSION = "native-video-criterion-scope-v2"
+VERIFIER_PROTOCOL_VERSION = "native-video-criterion-format-v4"
 
 GENERIC = {
     "identity_consistency_score": "Identity consistency of visible subjects over the complete video.",
@@ -99,8 +99,12 @@ def windows(task):
 
 
 def parse_judgment(raw, rubric, spans):
-    if not isinstance(raw, dict) or set(raw.get("criteria", {})) != set(rubric):
-        raise ValueError("verifier must return exactly the requested criterion keys")
+    rows = raw.get("criteria") if isinstance(raw, dict) else None
+    if not isinstance(rows, dict):
+        raise ValueError("verifier must return a criteria object with exactly the requested criterion keys")
+    if set(rows) != set(rubric):
+        raise ValueError("verifier must return exactly the requested criterion keys; "
+                         f"missing={sorted(set(rubric) - set(rows))}; unexpected={sorted(set(rows) - set(rubric))}")
     result = {}
     for name, definition in rubric.items():
         item = deepcopy(raw["criteria"][name])
@@ -117,7 +121,7 @@ def parse_judgment(raw, rubric, spans):
                 raise ValueError("unobserved/inapplicable evidence must have null score")
             if row["status"] == "not_applicable" and not allow_na:
                 raise ValueError("mandatory criterion cannot be not_applicable")
-        check(item, name in GENERIC)
+        check(item, name in GENERIC and not (isinstance(definition, dict) and definition.get("mandatory")))
         item["confidence"] = unit(item.get("confidence"))
         segments = item.get("segments")
         if not isinstance(segments, list) or len(segments) != len(spans) or any(
@@ -346,6 +350,17 @@ class ConditioningVideoVerifier:
             definition["excluded_failures"] = ["missing_cuts", "missing_shots", "missing_actions"]
             rubric["identity_across_shots"] = definition
         criteria = {**{k: {"description": v} for k, v in GENERIC.items()}, **rubric}
+        # Applicability follows the original task contract, never missing media or
+        # the candidate graph's use of editing tools. Explicit rubrics stay mandatory.
+        for name in rubric:
+            definition = criteria[name]
+            criteria[name] = ({**definition, "mandatory": True} if isinstance(definition, dict)
+                              else {"description": str(definition), "mandatory": True})
+        if (task.mode == "generation" and not task.metadata.get("edit_operations")
+                and "target_edit_success_score" not in task.metadata.get("evaluation", {})):
+            criteria["target_edit_success_score"]["host_not_applicable"] = (
+                "Original task mode is generation with no edit_operations; generic edit success "
+                "does not apply. Declared task criteria are evaluated separately.")
         public = task_payload(task)
         # Reference URIs, strategy/graph names and earlier judgments never reach the judge.
         public.pop("reference_video", None)
@@ -358,6 +373,46 @@ class ConditioningVideoVerifier:
         with portable_interprocess_lock(self.root / "locks" / f"{digest}.lock", 3600):
             return self._judge(task, evidence, manifest, rubric, criteria, public, digest)
 
+    def _observe_group(self, path, payload, evidence, operation, subset, spans):
+        """Correct malformed contracts once; never retry a valid low/unknown score."""
+        if self.cache_enabled and path.exists():
+            return parse_judgment(json.loads(path.read_text()), subset, spans)
+        feedback = None
+        for correction in range(2):
+            raw_path = path.with_suffix(".raw.json" if correction == 0 else ".correction-1.raw.json")
+            audit_path = path.with_suffix(f".format-{correction}.json")
+            prompt_data = deepcopy(payload)
+            prompt_data["output_contract"] = {
+                "criterion_keys": list(subset),
+                "instruction": "Return exactly these keys in criteria. Do not rename, alias, add or omit keys. "
+                               "Similar names are distinct criteria. Missing evidence uses unobserved with null score."}
+            if feedback is not None:
+                prompt_data["format_feedback"] = feedback
+            if self.cache_enabled and raw_path.exists():
+                raw = json.loads(raw_path.read_text())
+            else:
+                raw = self.request(json.dumps(prompt_data, ensure_ascii=False), evidence,
+                                   operation + ("/format-correction-1" if correction else ""))
+                write_json(raw_path, raw)
+            try:
+                parsed = parse_judgment(raw, subset, spans)
+            except (ValueError, KeyError, TypeError) as exc:
+                detail = str(exc)
+                write_json(audit_path, {"status": "invalid_response_format", "error": detail,
+                    "expected_keys": list(subset), "raw_response_path": str(raw_path),
+                    "correction_attempt": correction})
+                if correction == 1:
+                    raise ValueError(f"verifier response format invalid after one correction: {detail}; "
+                                     f"see {audit_path}") from exc
+                feedback = {"error": detail, "previous_response": raw,
+                    "instruction": "Correct only the response contract using the SAME task, rubric and media. "
+                                   "Do not improve scores to pass validation; unknown evidence remains unobserved."}
+                print(f"[conditioning verifier] format correction=1/1 job={operation}: {detail}", flush=True)
+                continue
+            write_json(audit_path, {"status": "valid_response_format", "correction_attempt": correction})
+            write_json(path, raw)
+            return parsed
+
     def _judge(self, task, evidence, manifest, rubric, criteria, public, digest):
         folder = self.root / "judgments" / digest
         final = folder / "result.json"
@@ -365,21 +420,21 @@ class ConditioningVideoVerifier:
             return json.loads(final.read_text())
         write_json(folder / "evidence.json", manifest)
         observations = {k: [] for k in criteria}
-        names = list(criteria)
+        host_na = {k: v["host_not_applicable"] for k, v in criteria.items()
+                   if isinstance(v, dict) and v.get("host_not_applicable")}
+        for name, reason in host_na.items():
+            observations[name] = [{"status": "not_applicable", "score": None, "confidence": 1.0,
+                "evidence": reason, "applicability_source": "original_task_contract",
+                "segments": [{"segment_id": span["segment_id"], "status": "not_applicable",
+                              "score": None, "evidence": reason} for span in manifest["windows"]]}]
+        names = [k for k in criteria if k not in host_na]
         for group in range(0, len(names), self.profile["criteria_per_call"]):
             subset = {k: criteria[k] for k in names[group:group + self.profile["criteria_per_call"]]}
-            prompt = json.dumps({"original_task": public, "criteria": subset, "evidence_manifest": manifest}, ensure_ascii=False)
+            payload = {"original_task": public, "criteria": subset, "evidence_manifest": manifest}
             for repeat in range(self.profile["repeats"]):
                 path = folder / f"group-{group:03d}-repeat-{repeat}.json"
-                if self.cache_enabled and path.exists():
-                    raw = json.loads(path.read_text())
-                else:
-                    raw = self.request(prompt, evidence, f"{digest[:12]}/{group}/{repeat}")
-                    # Invalid answers are audited but are not cached as successful observations.
-                    write_json(path.with_suffix(".raw.json"), raw)
-                    parse_judgment(raw, subset, manifest["windows"])
-                    write_json(path, raw)
-                parsed = parse_judgment(raw, subset, manifest["windows"])
+                parsed = self._observe_group(path, payload, evidence, f"{digest[:12]}/{group}/{repeat}",
+                                             subset, manifest["windows"])
                 for k, v in parsed.items():
                     observations[k].append(v)
         scores, texts, unobserved, disagreements, failed = {}, {}, [], {}, []
@@ -398,7 +453,7 @@ class ConditioningVideoVerifier:
             disagreements[name] = max(values) - min(values)
             for row in rows:
                 for segment in row["segments"]:
-                    if (name in rubric or not rubric) and segment["status"] == "observed" and segment["score"] < .75:
+                    if (name in rubric or not rubric) and segment["status"] == "observed" and segment["score"] < (rubric.get(name, {}).get("threshold", .75) if isinstance(rubric.get(name, {}), dict) else .75):
                         span = manifest["windows"][segment["segment_id"]]
                         failed.append({"start_ratio": span["start_seconds"] / task.duration_seconds,
                             "end_ratio": span["end_seconds"] / task.duration_seconds, "failed_criteria": [name],
@@ -425,7 +480,7 @@ class ConditioningVideoVerifier:
             evaluation_status="needs_review" if unobserved or review else "complete",
             verification_metadata={**manifest, "unobserved_criteria": unobserved, "disagreement_criteria": review,
                 "verifier_protocol": VERIFIER_PROTOCOL_VERSION, "scope_issues": scope_issues,
-                "criterion_contracts": rubric,
+                "criterion_contracts": rubric, "host_not_applicable_criteria": host_na,
                 "repeat_disagreement": disagreements, "judgment_path": str(folder), "profile": self.profile,
                 "limitations": ["Video-language scores are semantic proxies, not official VBench metrics.",
                     "FPS-limited input cannot establish full-rate flicker or exact synchronization.",
