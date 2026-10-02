@@ -114,7 +114,8 @@ def paired_effect(before, after):
             "metric_deltas": {k: statistics.mean(p["metric_deltas"][k] for p in pairs) for k in sorted(dimensions)},
             "gain_std": statistics.stdev(p["delta"] for p in pairs) if len(pairs) > 1 else None,
             "attribution": "paired local graph intervention, not proof of a universal causal effect"}
-    return annotate_effect(result, before, after)
+    from evovideo_skill.conditioning_bargaining import annotate
+    return annotate(annotate_effect(result, before, after), before, after)
 
 
 class StrategyMemory:
@@ -160,6 +161,7 @@ class StrategyMemory:
             e = observation["effect"]
             c = e.get("cost_effect", {})
             selection_by_task.setdefault(observation["task_id"], []).append(
+                e['bargaining']['gain'] if 'bargaining' in e else
                 c["net_gain"] if c.get("objective", {}).get("enabled") else e["gain"])
         selection_mean = statistics.mean(statistics.mean(v) for v in selection_by_task.values())
         dims = sorted({k for e in effects for k in e["metric_deltas"]})
@@ -171,6 +173,7 @@ class StrategyMemory:
                 "mean_selection_gain": selection_mean,
                 "selection_status": "positive" if selection_mean > 0 else "nonpositive",
                 "cost_effects": [deepcopy(e["cost_effect"]) for e in effects if "cost_effect" in e][-8:],
+                "bargaining_effects": [deepcopy(e['bargaining']) for e in effects if 'bargaining' in e][-8:],
                 "observed_conditions": [o["state"] for o in entry["observations"]],
                 "contextual_effects": [{"state": o["state"],
                     "before_metric_means": o["effect"].get("before_metric_means", {}),

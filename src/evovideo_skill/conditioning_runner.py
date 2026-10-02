@@ -17,6 +17,7 @@ import time
 
 from evovideo_skill.benchmarks import BenchmarkSuite
 from evovideo_skill.conditioning_cache import ConditioningNodeCache, material_hashes
+from evovideo_skill import conditioning_bargaining as bargaining
 from evovideo_skill.conditioning_cost import (cost_options, profile as cost_profile, selection_gain,
     pareto_points, penalty as cost_penalty, delta as cost_delta)
 from evovideo_skill.conditioning_memory import StrategyMemory, paired_effect, task_payload, task_state, metric_vector
@@ -190,6 +191,12 @@ class ConditioningRunner:
                                           for k in ("calls", "seconds")},
                 "reused_nodes": cache.hits, "executed_nodes": cache.misses,
                 "wall_seconds": time.monotonic() - started}
+            if bargaining.options(self.config)['enabled']:
+                record['bargaining_objective'] = bargaining.options(self.config)
+                try:
+                    record['bargaining_profile'] = bargaining.profile([record], record['bargaining_objective'])
+                except ValueError as exc:
+                    raise MeasurementUnavailable(str(exc)) from exc
             record["acceptance"] = acceptance_report(sampled, rollout.artifact)
             record["feedback"]["acceptance"] = deepcopy(record["acceptance"])
             workspace.verified(record)
@@ -277,6 +284,9 @@ class ConditioningRunner:
                 "parent": graph_payload(parent), "memory": memory,
                 "cost_objective": cost_options(self.config),
                 "parent_generation_cost": cost_profile(task, parent, cost_options(self.config)),
+                "bargaining": bargaining.options(self.config),
+                "selection_instruction": ("Use fixed-reference multi-objective bargaining; keep each quality dimension, costs and conflicts explicit. Missing evidence is unknown. Staying with the parent is allowed."
+                    if bargaining.options(self.config)['enabled'] else "Use the original configured quality/net-gain objective."),
                 "cost_instruction": "Quality does not necessarily improve with longer paths. Keep original quality evidence separate from cold graph calls/video seconds. Prefer supported net gains under the configured cost objective. Node config.cost is NOT a measured cost and must remain fixed.",
                 "project_state": project,
                 "required_strategy_id": required_id, "max_nodes": self.config["max_nodes"],
@@ -403,7 +413,7 @@ class ConditioningRunner:
                 continue
             effect = paired_effect(before, after)
             key = self.memory.observe(task, strategy, graph, effect, f"train/{index}", before_graph=parent)
-            if (effect_supported(effect, self.config) if cost_options(self.config)["enabled"]
+            if (effect_supported(effect, self.config) if cost_options(self.config)["enabled"] or bargaining.options(self.config)['enabled']
                     else effect["gain"] > self.config["selection_min_gain"]):
                 parents[task.task_id] = graph
             self.state["entries"] = self.memory.snapshot()
@@ -429,6 +439,9 @@ class ConditioningRunner:
         order = balanced_training_order(self.dataset.train)
         for index in range(cursor["next_index"], min(self.config["max_searches"], len(order) * self.config["searches_per_task"])):
             task = order[index % len(order)]
+            if bargaining.options(self.config)['enabled'] and self.state.get('stopping', {}).get(task.task_id, {}).get('stop'):
+                self.commit_interaction_cursor(index, parents, visited)
+                continue
             visited.append(task.task_id)
             parent = parents.get(task.task_id, self.baseline)
             episode = "train/" + task.task_id
@@ -481,7 +494,20 @@ class ConditioningRunner:
                 "mandatory_preserved": all(preserves_mandatory(a, b) for a, b in zip(before, cells[k]))}
                 for k, effect in comparisons.items()}
             eligible = [k for k, checks in decision_checks.items() if all(checks.values())]
-            winner = max(eligible, key=lambda k: selection_gain(comparisons[k], self.config)) if eligible else "parent"
+            bargaining_points = []
+            if bargaining.options(self.config)['enabled']:
+                bargaining_points = bargaining.frontier({'parent': before, **cells}, bargaining.options(self.config))
+                # Ineligible paths cannot dominate an otherwise admissible choice.
+                admissible_points = bargaining.frontier({'parent': before, **{k: cells[k] for k in eligible}}, bargaining.options(self.config))
+                allowed = {p['cell'] for p in admissible_points if p['pareto']}
+                eligible = [k for k in eligible if k in allowed]
+                winner = max(eligible, key=lambda k: (comparisons[k]['bargaining']['after']['score'],
+                    comparisons[k]['bargaining']['after']['nash_log'])) if eligible else 'parent'
+                if not errors:
+                    self.state.setdefault('stopping', {})[task.task_id] = bargaining.update_stopping(
+                        self.state.get('stopping', {}).get(task.task_id), winner != 'parent', self.config)
+            else:
+                winner = max(eligible, key=lambda k: selection_gain(comparisons[k], self.config)) if eligible else "parent"
             if winner != "parent":
                 parents[task.task_id] = graphs[winner]
             for label in labels:
@@ -499,6 +525,8 @@ class ConditioningRunner:
                 "pareto_frontier": pareto_points({"parent": before, **cells}, cost_options(self.config)),
                 "selection_gains": {k: selection_gain(e, self.config) for k, e in comparisons.items()},
                 "decision_checks": decision_checks,
+                "bargaining_frontier": bargaining_points,
+                "stopping": self.state.get('stopping', {}).get(task.task_id),
                 "selected_graph": graph_payload(parents.get(task.task_id, parent)),
                 "connections": {k: connection_manifest(graphs[k]) for k in labels},
                 "cells": {k: [{"evaluation_id": r["evaluation_id"], "seed": r["seed"], "score": r["score"],
@@ -581,18 +609,21 @@ class ConditioningRunner:
                     failures.append(task.task_id)
             gain = statistics.mean(e["gain"] for e in effects) if effects else None
             objective = cost_options(self.config)
+            bargain = bargaining.options(self.config)
             net_gain = statistics.mean(selection_gain(e, self.config) for e in effects) if effects else None
             accepted = (len(effects) >= self.config["min_validation_tasks"] and not failures
-                        and net_gain >= (objective["min_validation_net_gain"] if objective["enabled"] else self.config["min_gain"])
+                        and net_gain >= (bargain['min_validation_gain'] if bargain['enabled'] else
+                            objective["min_validation_net_gain"] if objective["enabled"] else self.config["min_gain"])
                         and all(v >= -self.config["max_metric_regression"]
                                 for e in effects for v in e["metric_deltas"].values()))
-            if self.config.get("search_mode", "legacy") != "legacy" or objective["enabled"]:
+            if self.config.get("search_mode", "legacy") != "legacy" or objective["enabled"] or bargain['enabled']:
                 accepted = accepted and all(effect_supported(e, self.config) for e in effects)
             accepted = accepted and all(r["passed"] for r in preservation) and all(mandatory_preserved)
             if accepted:
                 admitted.append(key)
             reports.append({"strategy_id": key, "accepted": accepted, "gain": gain,
                 "selection_gain": net_gain, "cost_objective": objective,
+                "bargaining_objective": bargain,
                 "tasks": [t.task_id for t in tasks], "execution_failures": failures, "effects": effects,
                 "preservation": preservation, "mandatory_preserved": mandatory_preserved,
                 "required_task_support": self.config["min_validation_tasks"],
@@ -601,6 +632,7 @@ class ConditioningRunner:
         data = {"version": "conditioning-strategies-v1", "signature": self.signature,
             "cost_objective": cost_options(self.config),
             "entries": self.memory.snapshot(), "admitted_ids": admitted,
+            "bargaining_objective": bargaining.options(self.config),
             "signed_interaction_graph": deepcopy(self.signed_graph.data),
             "source_task_ids": [t.task_id for t in self.dataset.train + self.dataset.validation],
             "source_scenarios": [scenario_id(t) for t in self.dataset.train + self.dataset.validation],
@@ -621,6 +653,8 @@ class ConditioningRunner:
             raise ValueError("frozen strategy generator/tools/verifier/planner signature mismatch")
         if data.get("cost_objective", cost_options({})) != cost_options(self.config):
             raise ValueError("frozen strategy cost objective mismatch; revalidate with the chosen weights")
+        if data.get('bargaining_objective', bargaining.options({})) != bargaining.options(self.config):
+            raise ValueError('frozen bargaining objective mismatch; revalidate before testing')
         if set(data["source_task_ids"]) & {t.task_id for t in self.dataset.test} or set(data["source_scenarios"]) & {
                 scenario_id(t) for t in self.dataset.test}:
             raise ValueError("training/validation data overlaps held-out test")
@@ -656,7 +690,7 @@ class ConditioningRunner:
             if not preservation_report([incumbent], [candidate], self.search_options["preservation_threshold"],
                                        self.search_options["preservation_tolerance"], paired=paired)["passed"]:
                 return False
-        if cost_options(self.config)["enabled"] and paired:
+        if (cost_options(self.config)["enabled"] or bargaining.options(self.config)['enabled']) and paired:
             return effect_supported(effect, self.config)
         # Independent-seed matched-budget baseline draws use the SAME graph:
         # their cold cost is equal, so quality ordering remains appropriate.
@@ -705,6 +739,7 @@ class ConditioningRunner:
                 retrieved = self.test_memory(memory, admitted, task, arm)
                 parent, incumbent = self.baseline, None
                 history, attempts = [], []
+                stopping = None
                 limit = 1 if mode == "direct" else self.config["test_max_attempts"]
                 for attempt in range(limit):
                     proposal = self.propose(task, parent, history, retrieved, f"{episode}/{attempt}")
@@ -723,9 +758,14 @@ class ConditioningRunner:
                         break
                     attempts.append({"attempt": attempt, "status": "ok", "evaluation_id": record["evaluation_id"]})
                     # Direct transfer commits its only output, regardless of score.
-                    if incumbent is None or (mode == "adaptive" and self.runtime_better(incumbent, record)):
+                    improved = incumbent is None or (mode == "adaptive" and self.runtime_better(incumbent, record))
+                    if improved:
                         parent, incumbent = graph, record
                     history.append(record)
+                    if mode == 'adaptive' and bargaining.options(self.config)['enabled']:
+                        stopping = bargaining.update_stopping(stopping, improved, self.config)
+                        if stopping['stop']:
+                            break
                 if incumbent is None:
                     # Predeclared operational fallback, not a score-based oracle choice.
                     incumbent = self.evaluate(task, self.baseline, seed, episode)
@@ -735,6 +775,7 @@ class ConditioningRunner:
                     "graph_id": parent.graph_id, "video": incumbent["video"], "memory_hash": digest,
                     "retrieved_ids": [m["strategy_id"] for m in retrieved], "attempts": attempts,
                     "episode": episode, "budget": self.state["episodes"].get(episode, {})}
+                selection['stopping'] = stopping
                 write_json(selection_path, selection)
                 selected.append(selection)
         # All outputs are committed before any final scoring or baseline comparison.
@@ -763,6 +804,13 @@ class ConditioningRunner:
                 "candidate_acceptance": score["acceptance"],
                 "criterion_deltas": {k: score["criterion_scores"][k] - v for k, v in base_score.get("criterion_scores", {}).items()
                                      if k in score.get("criterion_scores", {})}})
+            if bargaining.options(self.config)['enabled']:
+                o = bargaining.options(self.config)
+                def final_profile(assessment, cost):
+                    return bargaining.profile([{**assessment, 'generation_cost': cost,
+                        'feedback': {'metrics': {m['name']: m for m in assessment['metrics']}}}], o)
+                bp, cp = final_profile(base_score, bc), final_profile(score, cc)
+                pairs[-1]['bargaining'] = {'baseline': bp, 'candidate': cp, 'gain': cp['score']-bp['score']}
         if self.load_frozen(frozen)[2] != digest or memory.snapshot() != json.loads(Path(frozen).read_text())["entries"]:
             raise RuntimeError("frozen memory changed during held-out evaluation")
         by_task = {}
@@ -786,6 +834,10 @@ class ConditioningRunner:
                 "Budget is reserved native calls/duration, not measured GPU time; cache hits are reported separately.",
                 "Path-memory control uses portable whole-graph sketches, not donor-specific executable paths."]}
         contract_pairs = [p for p in pairs if p["candidate_acceptance"]["status"] != "not_applicable"]
+        result['bargaining_objective'] = bargaining.options(self.config)
+        if bargaining.options(self.config)['enabled']:
+            result['heldout_bargaining_gain'] = statistics.mean(statistics.mean(p['bargaining']['gain']
+                for p in pairs if p['task_id'] == task_id) for task_id in by_task)
         result["contract_acceptance"] = {
             "evaluated_outputs": len(contract_pairs),
             "baseline_pass_rate": (statistics.mean(p["baseline_acceptance"]["status"] == "passed" for p in contract_pairs)
@@ -862,6 +914,9 @@ def validate_config(config):
         raise ValueError("search_mode must be legacy, single or factorial")
     search_options(config)
     cost_options(config)
+    bargain = bargaining.options(config)
+    if bargain['enabled'] and not search_options(config)['enabled']:
+        raise ValueError('bargaining requires active factorial graph search')
     if config["comparison_baseline"] not in {"single", "matched_budget"}:
         raise ValueError("comparison_baseline must be single or matched_budget")
     if config.get("experiment_tier", "pilot") not in {"pilot", "research"}:

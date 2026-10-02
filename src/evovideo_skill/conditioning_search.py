@@ -289,6 +289,14 @@ def select_pair(task, parent, anchor, factors, records, evidence, executor, conf
                 "shared_anchor_quality_gain": "unknown; measured separately against parent"}
             if objective["enabled"]:
                 prediction["acquisition"] -= deployment_penalty + objective["experiment_weight"] * experiment_cost
+            from evovideo_skill import conditioning_bargaining as bargaining
+            if bargaining.options(config)['enabled']:
+                negotiation = bargaining.acquisition(records, prediction, joint_cost,
+                    graph_payload(parent) == graph_payload(anchor), config)
+                if 'cost:over_budget' in negotiation['optimistic']['violations']:
+                    raise ValueError('joint graph exceeds bargaining deployment cost limits')
+                prediction['bargaining'] = negotiation
+                prediction['acquisition'] = negotiation['acquisition']
             affected = set(repair["impact"]["affected_nodes"])
             affected_calls, affected_seconds = generation_credits(task,
                 ToolPathGraph("affected", "affected", "", [], [n for n in joint.nodes if n.node_id in affected], []))

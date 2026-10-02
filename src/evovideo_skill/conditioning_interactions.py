@@ -146,6 +146,9 @@ def interaction_effect(cells):
 
 
 def effect_supported(effect, config):
+    from evovideo_skill.conditioning_bargaining import options as bargaining_options, supported
+    if bargaining_options(config)['enabled']:
+        return supported(effect, config)
     from evovideo_skill.conditioning_cost import cost_options, selection_gain
     options = cost_options(config)
     if options["enabled"]:

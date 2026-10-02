@@ -90,6 +90,11 @@ def annotate_effect(effect, before, after):
 
 
 def selection_gain(effect, config):
+    from evovideo_skill.conditioning_bargaining import options
+    if options(config)['enabled']:
+        if 'bargaining' not in effect:
+            raise ValueError('bargaining selection requires complete evidence')
+        return effect['bargaining']['gain']
     if cost_options(config)["enabled"]:
         if "cost_effect" not in effect:
             raise ValueError("cost-aware selection requires complete cost evidence")
