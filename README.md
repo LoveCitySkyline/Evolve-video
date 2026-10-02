@@ -5,6 +5,7 @@
 - [H3 运行指南](README_MINIMAX_H3.md)
 - [完整方法说明（Word，2026-10-01）](docs/Evolve-video_完整方法说明_2026-10-01.docx)：架构、条件交互实验、经验迁移、剧情约束与当前验证边界。
 - [v2 方法、实验、恢复与故事契约](docs_conditioning_graph_search.md)
+- [质量—成本权衡、预算与收益图](docs_conditioning_cost.md)：调用次数＋生成视频秒数的净收益选择，实际耗时独立记录；使用新增成本配置启用。
 - [本地模型与接口边界](docs_h3_local.md)
 - [Mini50 素材与划分](docs_h3_mini50.md)
 

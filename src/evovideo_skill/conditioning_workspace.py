@@ -10,6 +10,7 @@ from pathlib import Path
 import argparse
 import json
 import uuid
+import time
 
 from evovideo_skill.research_protocol import append_json, graph_payload, write_json
 
@@ -123,6 +124,8 @@ class ConditioningWorkspace:
     def __init__(self, root, evaluation_id, task, graph, seed, episode):
         self.root = Path(root) / evaluation_id / uuid.uuid4().hex
         self.path = self.root / "state.json"
+        self.started_at = time.monotonic()
+        self.generation_wall_seconds = None
         self.state = {"version": VERSION, "evaluation_id": evaluation_id,
             "task_id": task.task_id, "graph_id": graph.graph_id, "seed": seed, "episode": episode,
             "status": "running", "stage": "preflight", "sequence": 0,
@@ -149,13 +152,16 @@ class ConditioningWorkspace:
         self.node(node_id, "completed", artifact=artifact_view(artifact), evidence=deepcopy(evidence))
 
     def generated(self, artifact):
+        self.generation_wall_seconds = time.monotonic() - self.started_at
         self.state.update(stage="verification", output=artifact_view(artifact))
-        self.event("generation_completed")
+        self.event("generation_completed", generation_wall_seconds=self.generation_wall_seconds)
 
     def diagnostics(self):
         tools = [node for node in self.state["nodes"].values() if node["node_type"] == "tool"]
         completed = [node for node in tools if node["status"] == "completed"]
         return {"completed_tool_nodes": len(completed),
+            "generation_wall_seconds": self.generation_wall_seconds,
+            "timing_scope": "client generation phase including queue, cache and media processing; not GPU time",
             "cached_tool_nodes": sum(node.get("evidence", {}).get("cache_hit", False) for node in completed),
             "submitted_reference_count": sum(len(node.get("artifact", {}).get("submitted_conditioning", [])) for node in completed),
             "nodes_with_request_hash": sum(bool(node.get("artifact", {}).get("request_hash")) for node in completed),

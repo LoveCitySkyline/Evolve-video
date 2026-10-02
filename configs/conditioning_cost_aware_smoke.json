@@ -1,0 +1,33 @@
+{
+  "task_file": "examples/research_smoke_tasks.json",
+  "output_dir": "outputs/conditioning_cost_aware_smoke",
+  "search_mode": "factorial",
+  "active_graph_search": {
+    "enabled": true,
+    "pool_size": 4,
+    "local_repair": true
+  },
+  "max_searches": 2,
+  "searches_per_task": 1,
+  "max_generation_calls": 300,
+  "max_generated_seconds": 3000,
+  "evaluation_seeds": [
+    42,
+    123,
+    456
+  ],
+  "runtime": {
+    "provider": "local-fake",
+    "enable_vlm_eval": false,
+    "enable_llm_mutation": false
+  },
+  "cost_objective": {
+    "enabled": true,
+    "call_weight": 0.02,
+    "second_weight": 0.02,
+    "experiment_weight": 0.01,
+    "max_quality_drop": 0.0,
+    "min_net_gain": 0.01,
+    "min_validation_net_gain": 0.02
+  }
+}

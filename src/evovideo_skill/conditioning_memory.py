@@ -5,6 +5,7 @@ import re
 import statistics
 
 from evovideo_skill.research_subgraphs import stable_hash
+from evovideo_skill.conditioning_cost import annotate_effect
 
 
 def task_state(task, observations=()):
@@ -107,12 +108,13 @@ def paired_effect(before, after):
                       "before_evaluation": a["evaluation_id"], "after_evaluation": b["evaluation_id"],
                       "reused_nodes": b.get("reused_nodes", [])})
     dimensions = set.intersection(*(set(p["metric_deltas"]) for p in pairs))
-    return {"gain": statistics.mean(p["delta"] for p in pairs), "pairs": pairs,
+    result = {"gain": statistics.mean(p["delta"] for p in pairs), "pairs": pairs,
             "before_metric_means": {k: statistics.mean(metric_vector(r)[k] for r in before) for k in dimensions},
             "after_metric_means": {k: statistics.mean(metric_vector(r)[k] for r in after) for k in dimensions},
             "metric_deltas": {k: statistics.mean(p["metric_deltas"][k] for p in pairs) for k in sorted(dimensions)},
             "gain_std": statistics.stdev(p["delta"] for p in pairs) if len(pairs) > 1 else None,
             "attribution": "paired local graph intervention, not proof of a universal causal effect"}
+    return annotate_effect(result, before, after)
 
 
 class StrategyMemory:
@@ -153,12 +155,22 @@ class StrategyMemory:
         for observation in entry["observations"]:
             by_task.setdefault(observation["task_id"], []).append(observation["effect"]["gain"])
         gains = [statistics.mean(v) for v in by_task.values()]
+        selection_by_task = {}
+        for observation in entry["observations"]:
+            e = observation["effect"]
+            c = e.get("cost_effect", {})
+            selection_by_task.setdefault(observation["task_id"], []).append(
+                c["net_gain"] if c.get("objective", {}).get("enabled") else e["gain"])
+        selection_mean = statistics.mean(statistics.mean(v) for v in selection_by_task.values())
         dims = sorted({k for e in effects for k in e["metric_deltas"]})
         deltas = {k: statistics.mean(e["metric_deltas"][k] for e in effects if k in e["metric_deltas"]) for k in dims}
         return {k: deepcopy(entry[k]) for k in ("strategy_id", "strategy", "scope", "recipe", "before_recipe")} | {
             "structural_contract": deepcopy(entry.get("structural_contract")),
             "evidence": {"task_support": len(gains), "experiment_count": len(effects),
                 "mean_train_gain": statistics.mean(gains), "metric_deltas": deltas,
+                "mean_selection_gain": selection_mean,
+                "selection_status": "positive" if selection_mean > 0 else "nonpositive",
+                "cost_effects": [deepcopy(e["cost_effect"]) for e in effects if "cost_effect" in e][-8:],
                 "observed_conditions": [o["state"] for o in entry["observations"]],
                 "contextual_effects": [{"state": o["state"],
                     "before_metric_means": o["effect"].get("before_metric_means", {}),
@@ -174,10 +186,10 @@ class StrategyMemory:
     def retrieve(self, task, limit=4, admitted=None):
         matches = [self.view(e) for k, e in self.entries.items()
                    if self.matches(e, task_state(task)) and (admitted is None or k in admitted)]
-        matches.sort(key=lambda e: (-e["evidence"]["task_support"], -e["evidence"]["mean_train_gain"], e["strategy_id"]))
+        matches.sort(key=lambda e: (-e["evidence"]["task_support"], -e["evidence"]["mean_selection_gain"], e["strategy_id"]))
         # Include one counterexample strategy rather than silently discarding all failures.
-        positive = [e for e in matches if e["evidence"]["mean_train_gain"] > 0]
-        negative = [e for e in matches if e["evidence"]["mean_train_gain"] <= 0]
+        positive = [e for e in matches if e["evidence"]["mean_selection_gain"] > 0]
+        negative = [e for e in matches if e["evidence"]["mean_selection_gain"] <= 0]
         return (positive[:max(0, limit - bool(negative))] + negative[:1])[:limit] if negative else positive[:limit]
 
     def snapshot(self):

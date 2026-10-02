@@ -17,6 +17,8 @@ import time
 
 from evovideo_skill.benchmarks import BenchmarkSuite
 from evovideo_skill.conditioning_cache import ConditioningNodeCache, material_hashes
+from evovideo_skill.conditioning_cost import (cost_options, profile as cost_profile, selection_gain,
+    pareto_points, penalty as cost_penalty, delta as cost_delta)
 from evovideo_skill.conditioning_memory import StrategyMemory, paired_effect, task_payload, task_state, metric_vector
 from evovideo_skill.conditioning_planner import ConditioningPlanner, ConditioningSmokePlanner, decode_proposal
 from evovideo_skill.conditioning_interactions import (connection_manifest, decode_experiment,
@@ -165,6 +167,7 @@ class ConditioningRunner:
             self.signature, lambda c, s, hit, key: self.charge(c, s, hit, episode, key),
             self.complete_reservation)
         started = time.monotonic()
+        usage_before = deepcopy(self.state["episodes"].get(episode, {"calls": 0, "seconds": 0}))
         workspace = ConditioningWorkspace(self.root / "project_states", ident, sampled, graph, seed, episode)
         print(f"[conditioning] generate episode={episode} task={task.task_id} seed={seed} graph={graph.graph_id}", flush=True)
         print(f"[conditioning] project_state={workspace.path}", flush=True)
@@ -182,6 +185,9 @@ class ConditioningRunner:
                 "video": rollout.artifact.metadata.get("local_video_path"),
                 "project_state_path": str(workspace.path),
                 "process_diagnostics": workspace.diagnostics(),
+                "generation_cost": cost_profile(task, graph, cost_options(self.config)),
+                "reserved_budget_delta": {k: self.state["episodes"].get(episode, {}).get(k, 0) - usage_before.get(k, 0)
+                                          for k in ("calls", "seconds")},
                 "reused_nodes": cache.hits, "executed_nodes": cache.misses,
                 "wall_seconds": time.monotonic() - started}
             record["acceptance"] = acceptance_report(sampled, rollout.artifact)
@@ -269,6 +275,9 @@ class ConditioningRunner:
                 "condition_only": self.config.get("search_mode", "legacy") != "legacy",
                 "state": task_state(task, [r["feedback"] for r in records]),
                 "parent": graph_payload(parent), "memory": memory,
+                "cost_objective": cost_options(self.config),
+                "parent_generation_cost": cost_profile(task, parent, cost_options(self.config)),
+                "cost_instruction": "Quality does not necessarily improve with longer paths. Keep original quality evidence separate from cold graph calls/video seconds. Prefer supported net gains under the configured cost objective. Node config.cost is NOT a measured cost and must remain fixed.",
                 "project_state": project,
                 "required_strategy_id": required_id, "max_nodes": self.config["max_nodes"],
                 "max_edits": self.config["max_edits"],
@@ -394,7 +403,8 @@ class ConditioningRunner:
                 continue
             effect = paired_effect(before, after)
             key = self.memory.observe(task, strategy, graph, effect, f"train/{index}", before_graph=parent)
-            if effect["gain"] > self.config["selection_min_gain"]:
+            if (effect_supported(effect, self.config) if cost_options(self.config)["enabled"]
+                    else effect["gain"] > self.config["selection_min_gain"]):
                 parents[task.task_id] = graph
             self.state["entries"] = self.memory.snapshot()
             self.save()
@@ -457,6 +467,7 @@ class ConditioningRunner:
                     effect = paired_effect(cells["anchor"], cells[label])
                     if label == "joint" and interaction:
                         effect["interaction"] = {"quality": interaction["quality"], "metrics": interaction["metrics"],
+                            "cost_interaction": interaction.get("cost_interaction"),
                             "factors": {k: strategies[k] for k in ("a", "b")},
                             "attribution": interaction["attribution"]}
                     self.memory.observe(task, strategies[label], graphs[label], effect, f"factorial/{index}/{label}",
@@ -465,26 +476,36 @@ class ConditioningRunner:
             preservation = {k: preservation_report(before, records,
                 self.search_options["preservation_threshold"], self.search_options["preservation_tolerance"])
                 for k, records in cells.items()} if self.search_options["enabled"] and self.search_options["local_repair"] else {}
-            eligible = [k for k, effect in comparisons.items() if effect_supported(effect, self.config)
-                        and preservation.get(k, {"passed": True})["passed"]
-                        and all(preserves_mandatory(a, b) for a, b in zip(before, cells[k]))]
-            winner = max(eligible, key=lambda k: comparisons[k]["gain"]) if eligible else "parent"
+            decision_checks = {k: {"supported_gain": effect_supported(effect, self.config),
+                "preservation": preservation.get(k, {"passed": True})["passed"],
+                "mandatory_preserved": all(preserves_mandatory(a, b) for a, b in zip(before, cells[k]))}
+                for k, effect in comparisons.items()}
+            eligible = [k for k, checks in decision_checks.items() if all(checks.values())]
+            winner = max(eligible, key=lambda k: selection_gain(comparisons[k], self.config)) if eligible else "parent"
             if winner != "parent":
                 parents[task.task_id] = graphs[winner]
             for label in labels:
                 self.archive.record_graph(graphs[label], stage="factorial", iteration=index,
                     status="selected" if label == winner else "execution_error" if label in errors else "observed",
                     metadata={"cell": label, "gain_to_parent": comparisons.get(label, {}).get("gain"),
+                              "cost_effect": comparisons.get(label, {}).get("cost_effect"),
                               "connections": connection_manifest(graphs[label])})
             report = {"iteration": index, "task_id": task.task_id, "search_mode": self.config["search_mode"],
                 "parent_graph": parent.graph_id, "selected_cell": winner,
                 "status": "complete" if not errors else "partial_execution_failure",
                 "interaction": interaction, "comparisons_to_parent": comparisons, "execution_errors": errors,
                 "preservation": preservation, "active_search": deepcopy(self.active_selection),
+                "cost_objective": cost_options(self.config),
+                "pareto_frontier": pareto_points({"parent": before, **cells}, cost_options(self.config)),
+                "selection_gains": {k: selection_gain(e, self.config) for k, e in comparisons.items()},
+                "decision_checks": decision_checks,
                 "selected_graph": graph_payload(parents.get(task.task_id, parent)),
                 "connections": {k: connection_manifest(graphs[k]) for k in labels},
                 "cells": {k: [{"evaluation_id": r["evaluation_id"], "seed": r["seed"], "score": r["score"],
-                              "video": r["video"]} for r in records] for k, records in cells.items()}}
+                              "video": r["video"], "generation_cost": r.get("generation_cost"),
+                              "reserved_budget_delta": r.get("reserved_budget_delta"),
+                              "generation_wall_seconds": r.get("process_diagnostics", {}).get("generation_wall_seconds"),
+                              "evaluation_wall_seconds": r.get("wall_seconds")} for r in records] for k, records in cells.items()}}
             write_json(self.root / "interactions" / f"{index:04d}.json", report)
             self.state["entries"] = self.memory.snapshot()
             self.commit_interaction_cursor(index, parents, visited)
@@ -497,6 +518,7 @@ class ConditioningRunner:
             "train_task_count": len(self.dataset.train), "visited_train_tasks": sorted(set(visited)),
             "strategy_count": len(self.memory.entries), "budget": asdict(self.ledger),
             "active_graph_search": self.search_options,
+            "cost_objective": cost_options(self.config),
             "signed_graph_nodes": len(self.signed_graph.data["nodes"]),
             "signed_graph_edges": len(self.signed_graph.data["edges"]),
             "note": "Local paired-seed graph interventions. No real improvement is guaranteed."})
@@ -518,6 +540,8 @@ class ConditioningRunner:
                     for e in self.signed_graph.data["edges"].values()]})
             write_json(self.root / "signed_interaction_graph.json", self.signed_graph.data)
             write_json(self.root / "signed_interaction_summary.json", self.signed_graph.view(self.search_options))
+            from evovideo_skill.conditioning_cost_report import export_cost_report
+            export_cost_report(self.root, self.signed_graph.view(self.search_options), cost_options(self.config))
 
     def validate_and_freeze(self):
         if not self.state["learned"]:
@@ -526,7 +550,7 @@ class ConditioningRunner:
         if self.state["validated"]:
             return frozen
         candidates = sorted(self.memory.entries.values(), key=lambda e: (
-            -StrategyMemory.view(e)["evidence"]["mean_train_gain"], e["strategy_id"]))
+            -StrategyMemory.view(e)["evidence"]["mean_selection_gain"], e["strategy_id"]))
         admitted = []
         reports = []
         for entry in candidates[:self.config["max_validation_strategies"]]:
@@ -556,22 +580,26 @@ class ConditioningRunner:
                         raise
                     failures.append(task.task_id)
             gain = statistics.mean(e["gain"] for e in effects) if effects else None
+            objective = cost_options(self.config)
+            net_gain = statistics.mean(selection_gain(e, self.config) for e in effects) if effects else None
             accepted = (len(effects) >= self.config["min_validation_tasks"] and not failures
-                        and gain >= self.config["min_gain"]
+                        and net_gain >= (objective["min_validation_net_gain"] if objective["enabled"] else self.config["min_gain"])
                         and all(v >= -self.config["max_metric_regression"]
                                 for e in effects for v in e["metric_deltas"].values()))
-            if self.config.get("search_mode", "legacy") != "legacy":
+            if self.config.get("search_mode", "legacy") != "legacy" or objective["enabled"]:
                 accepted = accepted and all(effect_supported(e, self.config) for e in effects)
             accepted = accepted and all(r["passed"] for r in preservation) and all(mandatory_preserved)
             if accepted:
                 admitted.append(key)
             reports.append({"strategy_id": key, "accepted": accepted, "gain": gain,
+                "selection_gain": net_gain, "cost_objective": objective,
                 "tasks": [t.task_id for t in tasks], "execution_failures": failures, "effects": effects,
                 "preservation": preservation, "mandatory_preserved": mandatory_preserved,
                 "required_task_support": self.config["min_validation_tasks"],
                 "insufficient_support": len(effects) < self.config["min_validation_tasks"]})
         write_json(self.root / "validation_reports.json", reports)
         data = {"version": "conditioning-strategies-v1", "signature": self.signature,
+            "cost_objective": cost_options(self.config),
             "entries": self.memory.snapshot(), "admitted_ids": admitted,
             "signed_interaction_graph": deepcopy(self.signed_graph.data),
             "source_task_ids": [t.task_id for t in self.dataset.train + self.dataset.validation],
@@ -591,6 +619,8 @@ class ConditioningRunner:
             raise ValueError("frozen strategy checksum mismatch")
         if data["signature"] != self.signature:
             raise ValueError("frozen strategy generator/tools/verifier/planner signature mismatch")
+        if data.get("cost_objective", cost_options({})) != cost_options(self.config):
+            raise ValueError("frozen strategy cost objective mismatch; revalidate with the chosen weights")
         if set(data["source_task_ids"]) & {t.task_id for t in self.dataset.test} or set(data["source_scenarios"]) & {
                 scenario_id(t) for t in self.dataset.test}:
             raise ValueError("training/validation data overlaps held-out test")
@@ -599,7 +629,7 @@ class ConditioningRunner:
     def test_memory(self, memory, admitted, task, arm):
         if arm == "none":
             return []
-        warnings = {k for k, e in memory.entries.items() if StrategyMemory.view(e)["evidence"]["mean_train_gain"] <= 0}
+        warnings = {k for k, e in memory.entries.items() if StrategyMemory.view(e)["evidence"]["mean_selection_gain"] <= 0}
         values = memory.retrieve(task, self.config["retrieval_limit"], admitted | warnings)
         for value in values:
             value["deployment_status"] = "validated" if value["strategy_id"] in admitted else "negative_training_evidence_only"
@@ -626,6 +656,10 @@ class ConditioningRunner:
             if not preservation_report([incumbent], [candidate], self.search_options["preservation_threshold"],
                                        self.search_options["preservation_tolerance"], paired=paired)["passed"]:
                 return False
+        if cost_options(self.config)["enabled"] and paired:
+            return effect_supported(effect, self.config)
+        # Independent-seed matched-budget baseline draws use the SAME graph:
+        # their cold cost is equal, so quality ordering remains appropriate.
         return (effect["gain"] > self.config["selection_min_gain"] and
                 all(v >= -self.config["max_metric_regression"] for v in effect["metric_deltas"].values()))
 
@@ -713,8 +747,13 @@ class ConditioningRunner:
             baseline, comparison = self.comparison_baseline(task, seed, selection, mode, arm)
             base_score = self.final_score(task, baseline, root)
             score = self.final_score(task, candidate, root)
+            objective = cost_options(self.config)
+            bc, cc = baseline["generation_cost"], candidate["generation_cost"]
+            dc = cost_penalty(cc, objective) - cost_penalty(bc, objective)
             pairs.append({"task_id": task.task_id, "seed": seed, "baseline": base_score["score"],
                 "candidate": score["score"], "delta": score["score"] - base_score["score"],
+                "cost_tradeoff": {"baseline": bc, "candidate": cc, **cost_delta(bc, cc),
+                    "cost_penalty_delta": dc, "net_gain": score["score"] - base_score["score"] - dc},
                 "baseline_video": baseline["video"], "candidate_video": candidate["video"],
                 "candidate_graph_id": selection["graph_id"], "episode_budget": selection["budget"],
                 "comparison_control": comparison,
@@ -733,6 +772,9 @@ class ConditioningRunner:
         rng = random.Random(0)
         boot = sorted(statistics.mean(rng.choices(gains, k=len(gains))) for _ in range(2000))
         result = {"status": "complete", **protocol, "heldout_gain": statistics.mean(gains),
+            "cost_objective": cost_options(self.config),
+            "heldout_net_gain": statistics.mean(statistics.mean(p["cost_tradeoff"]["net_gain"]
+                for p in pairs if p["task_id"] == task_id) for task_id in by_task),
             "task_bootstrap_95ci": [boot[49], boot[1949]], "pairs": pairs,
             "test_tasks": len(by_task), "admitted_strategies": len(admitted),
             "independent_final_model": self.signature.get("verifier_profiles", {}).get("independent_model", False)
@@ -819,6 +861,7 @@ def validate_config(config):
     if config["search_mode"] not in {"legacy", "single", "factorial"}:
         raise ValueError("search_mode must be legacy, single or factorial")
     search_options(config)
+    cost_options(config)
     if config["comparison_baseline"] not in {"single", "matched_budget"}:
         raise ValueError("comparison_baseline must be single or matched_budget")
     if config.get("experiment_tier", "pilot") not in {"pilot", "research"}:

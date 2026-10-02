@@ -16,6 +16,7 @@ from evovideo_skill.conditioning_repair import check_local_candidate
 from evovideo_skill.graph_skill import ToolPathGraph
 from evovideo_skill.research_protocol import decode_graph, graph_payload, generation_credits, validate_candidate
 from evovideo_skill.research_subgraphs import stable_hash
+from evovideo_skill.conditioning_cost import cost_options, profile, penalty, delta
 
 
 DEFAULTS = {
@@ -119,14 +120,16 @@ class SignedInteractionGraph:
             node = self.data["nodes"].setdefault(descriptor["factor_id"], {**descriptor, "observations": {}})
             effect = interaction["marginal_effects"][label]
             node["observations"].setdefault(event_id, {"task_id": task.task_id,
-                "values": [p["delta"] for p in effect["pairs"]], "metrics": effect["metric_deltas"]})
+                "values": [p["delta"] for p in effect["pairs"]], "metrics": effect["metric_deltas"],
+                "cost_effect": deepcopy(effect.get("cost_effect"))})
         keys = sorted(descriptors[k]["factor_id"] for k in ("a", "b"))
         edge_id = stable_hash(keys)[:24]
         edge = self.data["edges"].setdefault(edge_id, {"factors": keys,
             "transfer_factors": sorted(d.get("transfer_id", d["factor_id"]) for d in descriptors.values()), "observations": {}})
         edge["observations"].setdefault(event_id, {"task_id": task.task_id,
             "values": [p["interaction"] for p in interaction["replicates"]],
-            "metrics": {k: v["mean"] for k, v in interaction["metrics"].items()}})
+            "metrics": {k: v["mean"] for k, v in interaction["metrics"].items()},
+            "cost_interaction": deepcopy(interaction.get("cost_interaction"))})
 
     @staticmethod
     def estimate(entry, options):
@@ -180,11 +183,22 @@ class SignedInteractionGraph:
                 "prior_terms": sum(p["source"] == "prior" for p in parts), "qualification": "Empirical acquisition heuristic, not a calibrated confidence bound."}
 
     def view(self, options, context=None):
+        def costs(entry):
+            by_task = {}
+            for row in entry["observations"].values():
+                data = row.get("cost_effect") or row.get("cost_interaction")
+                if data:
+                    values = {k: (data[k]["mean"] if isinstance(data[k], dict) else data[k])
+                              for k in ("calls", "generated_seconds", "cost_penalty_delta", "net_gain")}
+                    by_task.setdefault(row["task_id"], []).append(values)
+            return {"cost_task_support": len(by_task), "cost_means": {
+                k: statistics.mean(statistics.mean(row[k] for row in rows) for rows in by_task.values())
+                for k in ("calls", "generated_seconds", "cost_penalty_delta", "net_gain")} if by_task else None}
         nodes = [{"factor_id": key, "descriptor": {k: v for k, v in entry.items() if k != "observations"},
-                  **self.estimate(entry, options)} for key, entry in sorted(self.data["nodes"].items())
+                  **self.estimate(entry, options), **costs(entry)} for key, entry in sorted(self.data["nodes"].items())
                  if context is None or entry["context"] == context]
         ids = {n["factor_id"] for n in nodes}
-        edges = [{"edge_id": key, "factors": entry["factors"], **self.estimate(entry, options)}
+        edges = [{"edge_id": key, "factors": entry["factors"], **self.estimate(entry, options), **costs(entry)}
                  for key, entry in sorted(self.data["edges"].items()) if set(entry["factors"]) <= ids]
         return {"nodes": nodes, "edges": edges, "version": self.data["version"],
                 "scope": "train-only task-balanced empirical evidence"}
@@ -257,6 +271,24 @@ def select_pair(task, parent, anchor, factors, records, evidence, executor, conf
                 raise ValueError("insufficient budget for conservative complete factorial reservation")
             descriptors = {label: factor_descriptor(task, anchor, graphs[label], context) for label in ("a", "b")}
             prediction = evidence.predict(list(descriptors.values()), options)
+            objective = cost_options(config)
+            cost_profiles = {k: profile(task, g, objective) for k, g in graphs.items()}
+            parent_cost = profile(task, parent, objective)
+            joint_cost, anchor_cost = cost_profiles["joint"], cost_profiles["anchor"]
+            deployment_penalty = penalty(joint_cost, objective) - penalty(parent_cost, objective)
+            anchor_penalty = penalty(joint_cost, objective) - penalty(anchor_cost, objective)
+            # Cost to BUY evidence is separate from cost to DEPLOY one selected graph.
+            experiment_cost = (calls / parent_cost["baseline_calls"] + seconds / parent_cost["baseline_generated_seconds"]) / (4 * len(config["evaluation_seeds"]))
+            prediction["quality_acquisition"] = prediction["acquisition"]
+            prediction["cost_tradeoff"] = {"objective": objective, "graphs": cost_profiles,
+                "parent": parent_cost, "joint_delta_to_parent": delta(parent_cost, joint_cost),
+                "deployment_penalty_to_parent": deployment_penalty,
+                "predicted_net_gain_from_anchor": prediction["predicted_gain_from_anchor"] - anchor_penalty,
+                "experiment_cost_index": experiment_cost,
+                "experiment_penalty": objective["experiment_weight"] * experiment_cost,
+                "shared_anchor_quality_gain": "unknown; measured separately against parent"}
+            if objective["enabled"]:
+                prediction["acquisition"] -= deployment_penalty + objective["experiment_weight"] * experiment_cost
             affected = set(repair["impact"]["affected_nodes"])
             affected_calls, affected_seconds = generation_credits(task,
                 ToolPathGraph("affected", "affected", "", [], [n for n in joint.nodes if n.node_id in affected], []))

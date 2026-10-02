@@ -129,13 +129,36 @@ def interaction_effect(cells):
             metrics[k].append(vectors["joint"][k] - vectors["a"][k] - vectors["b"][k] + vectors["anchor"][k])
         repeats.append({"seed": record["seed"], "interaction": effect,
                         "evaluations": {k: v["evaluation_id"] for k, v in row.items()}})
-    return {"quality": estimate(values), "metrics": {k: estimate(v) for k, v in metrics.items()},
+    result = {"quality": estimate(values), "metrics": {k: estimate(v) for k, v in metrics.items()},
             "marginal_effects": marginal, "replicates": repeats,
             "attribution": "local paired-seed interaction relative to a common anchor; not causal identification",
             "uncertainty": "standard errors describe seed variation, not verifier bias or cross-task generalization"}
+    if all("cost_effect" in marginal[k] for k in ("a", "b", "joint")):
+        cost_rows = []
+        for i, record in enumerate(anchor):
+            rows = {k: marginal[k]["cost_effect"]["pairs"][i] for k in ("a", "b", "joint")}
+            cost_rows.append({"seed": record["seed"], **{k: rows["joint"][k] - rows["a"][k] - rows["b"][k]
+                for k in ("calls", "generated_seconds", "normalized_calls", "normalized_seconds", "cost_penalty_delta", "net_gain")}})
+        result["cost_interaction"] = {"objective": marginal["a"]["cost_effect"]["objective"],
+            "replicates": cost_rows, **{k: estimate([r[k] for r in cost_rows]) for k in cost_rows[0] if k != "seed"},
+            "interpretation": "Positive cost interaction is extra expense; positive net interaction is beneficial. Cold additive costs can have zero interaction."}
+    return result
 
 
 def effect_supported(effect, config):
+    from evovideo_skill.conditioning_cost import cost_options, selection_gain
+    options = cost_options(config)
+    if options["enabled"]:
+        if effect["gain"] < -options["max_quality_drop"]:
+            return False
+        if any(v < -config["max_metric_regression"] for v in effect["metric_deltas"].values()):
+            return False
+        gain = selection_gain(effect, config)
+        rows = effect["cost_effect"]["pairs"]
+        se = (effect["cost_effect"].get("net_gain_std") or 0) / math.sqrt(len(rows))
+        return (gain > options["min_net_gain"] and
+                sum(r["net_gain"] > 0 for r in rows) / len(rows) >= config.get("min_positive_seed_fraction", 0) and
+                gain - config.get("gain_se_multiplier", 0) * se > 0)
     if effect["gain"] <= config["selection_min_gain"]:
         return False
     if any(v < -config["max_metric_regression"] for v in effect["metric_deltas"].values()):
