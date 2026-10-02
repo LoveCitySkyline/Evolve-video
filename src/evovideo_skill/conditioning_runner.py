@@ -991,6 +991,9 @@ def main():
     tasks = BenchmarkSuite.from_file(config["task_file"]).tasks
     for task in tasks:
         prepare_story_task(task)
+        if task.metadata.get("story_dataset_requires_assets"):
+            from evovideo_skill.story_assets import verify_story_task
+            verify_story_task(task, research=config.get("experiment_tier") == "research")
     dataset = stratified_task_split(tasks)
     validate_splits(dataset)
     settings = with_env_overrides(RuntimeSettings(**config["runtime"]))

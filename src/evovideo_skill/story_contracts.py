@@ -44,9 +44,19 @@ def prepare_story_task(task):
                 raise ValueError(f"shot {index}: contradictory or unestablished precondition {key}")
         if any(k in pre and pre[k] != v or k in post and post[k] != v for k, v in invariants.items()):
             raise ValueError("shot transition contradicts an invariant")
+        # Desired latent state still participates in causal validation, but an
+        # opaque interval cannot provide direct visual evidence of that state.
+        # This declaration is frozen with the task, never chosen by a candidate.
+        observable = {}
+        for kind, facts in (("pre", pre), ("post", post), ("invariant", invariants)):
+            selected = rule.get(f"observable_{kind}", list(facts))
+            if (not isinstance(selected, list) or any(not isinstance(k, str) for k in selected)
+                    or len(selected) != len(set(selected)) or not set(selected) <= set(facts)):
+                raise ValueError(f"observable_{kind} must select unique declared fact keys")
+            observable[kind] = selected
         checks = [(f"{kind}.{key}", f"{kind}: {key} must equal {value!r}")
                   for kind, facts in (("pre", pre), ("post", post), ("invariant", invariants))
-                  for key, value in facts.items()]
+                  for key, value in facts.items() if key in observable[kind]]
         events = rule.get("events", [])
         if not isinstance(events, list) or not events:
             raise ValueError("every story shot needs an explicit event")

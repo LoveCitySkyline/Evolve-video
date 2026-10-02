@@ -70,6 +70,9 @@ def preflight(config: HarnessConfig, require_credentials: bool = False, check_se
         if not all((split.train, split.validation, split.test)):
             raise ValueError(f"{suite.name}: train, validation and test splits must all be nonempty")
         for task in suite.tasks:
+            if task.metadata.get("story_dataset_requires_assets"):
+                from evovideo_skill.story_assets import verify_story_task
+                verify_story_task(task)
             if task.metadata.get("missing_required_assets"):
                 raise ValueError(f"{task.task_id}: missing required assets: {task.metadata['missing_required_assets']}")
             if task.metadata.get("h3_asset_lock"):

@@ -1,0 +1,212 @@
+{
+  "status": "structural_checks_passed_semantic_review_pending",
+  "tasks": 350,
+  "split_counts": {
+    "train": 200,
+    "test": 100,
+    "validation": 50
+  },
+  "declared_scenario_groups": 350,
+  "family_counts": {
+    "train": {
+      "object_custody": 40,
+      "state_transformation": 40,
+      "spatial_continuity": 40,
+      "causal_repair": 40,
+      "reveal_occlusion": 40
+    },
+    "test": {
+      "object_custody": 20,
+      "state_transformation": 20,
+      "spatial_continuity": 20,
+      "causal_repair": 20,
+      "reveal_occlusion": 20
+    },
+    "validation": {
+      "object_custody": 10,
+      "state_transformation": 10,
+      "spatial_continuity": 10,
+      "causal_repair": 10,
+      "reveal_occlusion": 10
+    }
+  },
+  "shot_counts_by_split": {
+    "train": {
+      "3": 160,
+      "4": 29,
+      "6": 11
+    },
+    "test": {
+      "3": 80,
+      "4": 14,
+      "6": 6
+    },
+    "validation": {
+      "3": 40,
+      "4": 7,
+      "6": 3
+    }
+  },
+  "required_images": 350,
+  "legacy_exact_overlap_checked": [
+    "complex_video_bench_mini50.json",
+    "story_contract_pilot18.json"
+  ],
+  "cross_split_similarity_threshold": 0.45,
+  "cross_split_similarity_pairs": [],
+  "nearest_cross_split_pairs_for_review": [
+    {
+      "left": "story350-fence_slats",
+      "right": "story350-umbrella_cluster",
+      "token_jaccard": 0.375
+    },
+    {
+      "left": "story350-rooftop_hose",
+      "right": "story350-island_kitchen",
+      "token_jaccard": 0.3529
+    },
+    {
+      "left": "story350-paper_chain",
+      "right": "story350-paper_weave",
+      "token_jaccard": 0.3125
+    },
+    {
+      "left": "story350-puppet_glove",
+      "right": "story350-stage_platform",
+      "token_jaccard": 0.3077
+    },
+    {
+      "left": "story350-river_stones",
+      "right": "story350-rooftop_bridge",
+      "token_jaccard": 0.3077
+    },
+    {
+      "left": "story350-fishing_net",
+      "right": "story350-rowing_oar",
+      "token_jaccard": 0.2941
+    },
+    {
+      "left": "story350-bead_string",
+      "right": "story350-paper_weave",
+      "token_jaccard": 0.2941
+    },
+    {
+      "left": "story350-courtyard_fountain",
+      "right": "story350-island_kitchen",
+      "token_jaccard": 0.2941
+    },
+    {
+      "left": "story350-shutter_reveal",
+      "right": "story350-hinged_exhibit",
+      "token_jaccard": 0.2857
+    },
+    {
+      "left": "story350-theater_mask",
+      "right": "story350-sample_tongs",
+      "token_jaccard": 0.2778
+    },
+    {
+      "left": "story350-gallery_partition",
+      "right": "story350-sculpture_courtyard",
+      "token_jaccard": 0.2778
+    },
+    {
+      "left": "story350-aqueduct_path",
+      "right": "story350-umbrella_cluster",
+      "token_jaccard": 0.2778
+    },
+    {
+      "left": "story350-hedge_gap",
+      "right": "story350-fence_slats",
+      "token_jaccard": 0.2778
+    },
+    {
+      "left": "story350-hedge_gap",
+      "right": "story350-umbrella_cluster",
+      "token_jaccard": 0.2778
+    },
+    {
+      "left": "story350-mill_walkway",
+      "right": "story350-loft_walkway",
+      "token_jaccard": 0.2667
+    },
+    {
+      "left": "story350-pedestrian_bridge",
+      "right": "story350-underpass_bike",
+      "token_jaccard": 0.2632
+    },
+    {
+      "left": "story350-drawer_runner",
+      "right": "story350-paper_sleeve",
+      "token_jaccard": 0.2632
+    },
+    {
+      "left": "story350-coat_rack_pass",
+      "right": "story350-laundry_line_pass",
+      "token_jaccard": 0.2632
+    },
+    {
+      "left": "story350-greenhouse_vent",
+      "right": "story350-folding_drying_rack",
+      "token_jaccard": 0.2581
+    },
+    {
+      "left": "story350-gallery_loop",
+      "right": "story350-courtyard_fountain",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-gallery_loop",
+      "right": "story350-park_pavilion",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-courtyard_fountain",
+      "right": "story350-cafe_window",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-warehouse_ramp",
+      "right": "story350-courier_ramp",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-river_stones",
+      "right": "story350-canal_lock",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-workbench_walk",
+      "right": "story350-gallery_partition",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-camp_walk",
+      "right": "story350-exhibit_platform",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-fabric_pocket",
+      "right": "story350-stage_prop_reveal",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-stage_prop_reveal",
+      "right": "story350-rolling_scenery",
+      "token_jaccard": 0.25
+    },
+    {
+      "left": "story350-magician_ring",
+      "right": "story350-sample_tongs",
+      "token_jaccard": 0.2381
+    },
+    {
+      "left": "story350-bus_shelter",
+      "right": "story350-curtain_entrance",
+      "token_jaccard": 0.2381
+    }
+  ],
+  "independence_verified": false,
+  "semantic_deduplication_verified": false,
+  "qualification": "Unique authored scenario records do not establish statistical independence or mechanism novelty. Lexical screening has false positives and false negatives. No media, human labels or measured results are supplied."
+}

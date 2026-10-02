@@ -1,0 +1,2534 @@
+{
+  "name": "Story350 development subset 15",
+  "version": "story350-draft-v1",
+  "description": "Authored multi-shot narrative task specifications. Synthetic draft, not a validated benchmark.",
+  "tasks": [
+    {
+      "task_id": "story350-relay_baton",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A and B practice on an empty running track; A holds one striped baton. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a teal jacket. B is a distinct adult with short gray hair and a navy apron. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A runs toward B with the baton visible. Then A passes the baton into B's waiting hand and releases it. Then B runs away while A stops with empty hands.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "object_custody",
+        "split": "train",
+        "scenario_group": "story350/relay_baton",
+        "scenario_id": "relay_baton",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/object_custody.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A runs toward B with the baton visible",
+          "A passes the baton into B's waiting hand and releases it",
+          "B runs away while A stops with empty hands"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-relay_baton-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-relay_baton-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A runs toward B with the baton visible. Begin with baton.holder: A. End with baton.holder: A. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-relay_baton-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A passes the baton into B's waiting hand and releases it. Begin with baton.holder: A. End with baton.holder: B. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-relay_baton-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. B runs away while A stops with empty hands. Begin with baton.holder: B. End with baton.holder: B. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-relay_baton-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A and B practice on an empty running track; A holds one striped baton. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a teal jacket. B is a distinct adult with short gray hair and a navy apron. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "baton.holder": "A"
+          },
+          "final_state": {
+            "baton.holder": "B"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "baton.holder": "A"
+              },
+              "postconditions": {
+                "baton.holder": "A"
+              },
+              "observable_pre": [
+                "baton.holder"
+              ],
+              "observable_post": [
+                "baton.holder"
+              ],
+              "events": [
+                {
+                  "id": "relay_baton_0",
+                  "description": "A runs toward B with the baton visible"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "baton.holder": "A"
+              },
+              "postconditions": {
+                "baton.holder": "B"
+              },
+              "observable_pre": [
+                "baton.holder"
+              ],
+              "observable_post": [
+                "baton.holder"
+              ],
+              "events": [
+                {
+                  "id": "relay_baton_1",
+                  "description": "A passes the baton into B's waiting hand and releases it"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "baton.holder": "B"
+              },
+              "postconditions": {
+                "baton.holder": "B"
+              },
+              "observable_pre": [
+                "baton.holder"
+              ],
+              "observable_post": [
+                "baton.holder"
+              ],
+              "events": [
+                {
+                  "id": "relay_baton_2",
+                  "description": "B runs away while A stops with empty hands"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-library_stamp",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A librarian and B assistant stand at a returns desk with one rubber stamp. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a ochre overshirt. B is a distinct adult with short gray hair and a cream cardigan. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A lifts the stamp and stamps a return slip. Then A places the stamp on B's open palm. Then B puts the stamp in the open drawer.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "object_custody",
+        "split": "validation",
+        "scenario_group": "story350/library_stamp",
+        "scenario_id": "library_stamp",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/object_custody.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A lifts the stamp and stamps a return slip",
+          "A places the stamp on B's open palm",
+          "B puts the stamp in the open drawer"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-library_stamp-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-library_stamp-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A lifts the stamp and stamps a return slip. Begin with stamp.location: desk. End with stamp.location: A hand. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-library_stamp-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A places the stamp on B's open palm. Begin with stamp.location: A hand. End with stamp.location: B hand. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-library_stamp-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. B puts the stamp in the open drawer. Begin with stamp.location: B hand. End with stamp.location: drawer. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-library_stamp-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A librarian and B assistant stand at a returns desk with one rubber stamp. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a ochre overshirt. B is a distinct adult with short gray hair and a cream cardigan. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "stamp.location": "desk"
+          },
+          "final_state": {
+            "stamp.location": "drawer"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "stamp.location": "desk"
+              },
+              "postconditions": {
+                "stamp.location": "A hand"
+              },
+              "observable_pre": [
+                "stamp.location"
+              ],
+              "observable_post": [
+                "stamp.location"
+              ],
+              "events": [
+                {
+                  "id": "library_stamp_0",
+                  "description": "A lifts the stamp and stamps a return slip"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "stamp.location": "A hand"
+              },
+              "postconditions": {
+                "stamp.location": "B hand"
+              },
+              "observable_pre": [
+                "stamp.location"
+              ],
+              "observable_post": [
+                "stamp.location"
+              ],
+              "events": [
+                {
+                  "id": "library_stamp_1",
+                  "description": "A places the stamp on B's open palm"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "stamp.location": "B hand"
+              },
+              "postconditions": {
+                "stamp.location": "drawer"
+              },
+              "observable_pre": [
+                "stamp.location"
+              ],
+              "observable_post": [
+                "stamp.location"
+              ],
+              "events": [
+                {
+                  "id": "library_stamp_2",
+                  "description": "B puts the stamp in the open drawer"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-market_change",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A customer holds one large brass token at B's stall. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a navy apron. B is a distinct adult with short gray hair and a rust vest. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A places the token in a shallow payment tray. Then B slides the tray toward the till. Then B tips the token into the open till.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "object_custody",
+        "split": "test",
+        "scenario_group": "story350/market_change",
+        "scenario_id": "market_change",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/object_custody.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A places the token in a shallow payment tray",
+          "B slides the tray toward the till",
+          "B tips the token into the open till"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-market_change-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-market_change-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A places the token in a shallow payment tray. Begin with token.location: A hand. End with token.location: tray. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-market_change-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. B slides the tray toward the till. Begin with token.location: tray. End with token.location: tray beside till. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-market_change-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. B tips the token into the open till. Begin with token.location: tray beside till. End with token.location: till. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-market_change-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A customer holds one large brass token at B's stall. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a navy apron. B is a distinct adult with short gray hair and a rust vest. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "token.location": "A hand"
+          },
+          "final_state": {
+            "token.location": "till"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "token.location": "A hand"
+              },
+              "postconditions": {
+                "token.location": "tray"
+              },
+              "observable_pre": [
+                "token.location"
+              ],
+              "observable_post": [
+                "token.location"
+              ],
+              "events": [
+                {
+                  "id": "market_change_0",
+                  "description": "A places the token in a shallow payment tray"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "token.location": "tray"
+              },
+              "postconditions": {
+                "token.location": "tray beside till"
+              },
+              "observable_pre": [
+                "token.location"
+              ],
+              "observable_post": [
+                "token.location"
+              ],
+              "events": [
+                {
+                  "id": "market_change_1",
+                  "description": "B slides the tray toward the till"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "token.location": "tray beside till"
+              },
+              "postconditions": {
+                "token.location": "till"
+              },
+              "observable_pre": [
+                "token.location"
+              ],
+              "observable_post": [
+                "token.location"
+              ],
+              "events": [
+                {
+                  "id": "market_change_2",
+                  "description": "B tips the token into the open till"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-cloth_dye",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A works over a basin with a plain white cloth. Unless clothing is specified in the setup, A is an adult with curly brown hair and a navy apron. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A dips the cloth into blue dye. Then A lifts the blue wet cloth. Then A hangs it over a drying bar.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "state_transformation",
+        "split": "train",
+        "scenario_group": "story350/cloth_dye",
+        "scenario_id": "cloth_dye",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/state_transformation.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A dips the cloth into blue dye",
+          "A lifts the blue wet cloth",
+          "A hangs it over a drying bar"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-cloth_dye-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-cloth_dye-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A dips the cloth into blue dye. Begin with cloth.state: white and dry. End with cloth.state: submerged in blue dye. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-cloth_dye-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A lifts the blue wet cloth. Begin with cloth.state: submerged in blue dye. End with cloth.state: blue and wet. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-cloth_dye-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A hangs it over a drying bar. Begin with cloth.state: blue and wet. End with cloth.state: blue on bar. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-cloth_dye-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A works over a basin with a plain white cloth. Unless clothing is specified in the setup, A is an adult with curly brown hair and a navy apron. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "cloth.state": "white and dry"
+          },
+          "final_state": {
+            "cloth.state": "blue on bar"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "cloth.state": "white and dry"
+              },
+              "postconditions": {
+                "cloth.state": "submerged in blue dye"
+              },
+              "observable_pre": [
+                "cloth.state"
+              ],
+              "observable_post": [
+                "cloth.state"
+              ],
+              "events": [
+                {
+                  "id": "cloth_dye_0",
+                  "description": "A dips the cloth into blue dye"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "cloth.state": "submerged in blue dye"
+              },
+              "postconditions": {
+                "cloth.state": "blue and wet"
+              },
+              "observable_pre": [
+                "cloth.state"
+              ],
+              "observable_post": [
+                "cloth.state"
+              ],
+              "events": [
+                {
+                  "id": "cloth_dye_1",
+                  "description": "A lifts the blue wet cloth"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "cloth.state": "blue and wet"
+              },
+              "postconditions": {
+                "cloth.state": "blue on bar"
+              },
+              "observable_pre": [
+                "cloth.state"
+              ],
+              "observable_post": [
+                "cloth.state"
+              ],
+              "events": [
+                {
+                  "id": "cloth_dye_2",
+                  "description": "A hangs it over a drying bar"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-wood_stain",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A works beside a bare wooden panel and a brush. Unless clothing is specified in the setup, A is an adult with curly brown hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A brushes stain over the left half. Then A coats the right half to match. Then A wipes excess stain while preserving the dark finish.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "state_transformation",
+        "split": "validation",
+        "scenario_group": "story350/wood_stain",
+        "scenario_id": "wood_stain",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/state_transformation.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A brushes stain over the left half",
+          "A coats the right half to match",
+          "A wipes excess stain while preserving the dark finish"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-wood_stain-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-wood_stain-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A brushes stain over the left half. Begin with panel.surface: bare wood. End with panel.surface: left half dark. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-wood_stain-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A coats the right half to match. Begin with panel.surface: left half dark. End with panel.surface: fully dark. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-wood_stain-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A wipes excess stain while preserving the dark finish. Begin with panel.surface: fully dark. End with panel.surface: even dark finish. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-wood_stain-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A works beside a bare wooden panel and a brush. Unless clothing is specified in the setup, A is an adult with curly brown hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "panel.surface": "bare wood"
+          },
+          "final_state": {
+            "panel.surface": "even dark finish"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "panel.surface": "bare wood"
+              },
+              "postconditions": {
+                "panel.surface": "left half dark"
+              },
+              "observable_pre": [
+                "panel.surface"
+              ],
+              "observable_post": [
+                "panel.surface"
+              ],
+              "events": [
+                {
+                  "id": "wood_stain_0",
+                  "description": "A brushes stain over the left half"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "panel.surface": "left half dark"
+              },
+              "postconditions": {
+                "panel.surface": "fully dark"
+              },
+              "observable_pre": [
+                "panel.surface"
+              ],
+              "observable_post": [
+                "panel.surface"
+              ],
+              "events": [
+                {
+                  "id": "wood_stain_1",
+                  "description": "A coats the right half to match"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "panel.surface": "fully dark"
+              },
+              "postconditions": {
+                "panel.surface": "even dark finish"
+              },
+              "observable_pre": [
+                "panel.surface"
+              ],
+              "observable_post": [
+                "panel.surface"
+              ],
+              "events": [
+                {
+                  "id": "wood_stain_2",
+                  "description": "A wipes excess stain while preserving the dark finish"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-clay_coil",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A has one long clay rope on a pottery mat. Unless clothing is specified in the setup, A is an adult with short dark hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A curves the rope into a flat spiral. Then A raises the outer coils into a wall. Then A smooths the joins without flattening the bowl.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "state_transformation",
+        "split": "test",
+        "scenario_group": "story350/clay_coil",
+        "scenario_id": "clay_coil",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/state_transformation.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A curves the rope into a flat spiral",
+          "A raises the outer coils into a wall",
+          "A smooths the joins without flattening the bowl"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-clay_coil-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-clay_coil-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A curves the rope into a flat spiral. Begin with clay.form: straight rope. End with clay.form: flat spiral. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-clay_coil-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A raises the outer coils into a wall. Begin with clay.form: flat spiral. End with clay.form: shallow bowl. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-clay_coil-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A smooths the joins without flattening the bowl. Begin with clay.form: shallow bowl. End with clay.form: smooth bowl. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-clay_coil-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A has one long clay rope on a pottery mat. Unless clothing is specified in the setup, A is an adult with short dark hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "clay.form": "straight rope"
+          },
+          "final_state": {
+            "clay.form": "smooth bowl"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "clay.form": "straight rope"
+              },
+              "postconditions": {
+                "clay.form": "flat spiral"
+              },
+              "observable_pre": [
+                "clay.form"
+              ],
+              "observable_post": [
+                "clay.form"
+              ],
+              "events": [
+                {
+                  "id": "clay_coil_0",
+                  "description": "A curves the rope into a flat spiral"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "clay.form": "flat spiral"
+              },
+              "postconditions": {
+                "clay.form": "shallow bowl"
+              },
+              "observable_pre": [
+                "clay.form"
+              ],
+              "observable_post": [
+                "clay.form"
+              ],
+              "events": [
+                {
+                  "id": "clay_coil_1",
+                  "description": "A raises the outer coils into a wall"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "clay.form": "shallow bowl"
+              },
+              "postconditions": {
+                "clay.form": "smooth bowl"
+              },
+              "observable_pre": [
+                "clay.form"
+              ],
+              "observable_post": [
+                "clay.form"
+              ],
+              "events": [
+                {
+                  "id": "clay_coil_2",
+                  "description": "A smooths the joins without flattening the bowl"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-gallery_loop",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A carries a sketchpad in a gallery with a central sculpture and one rear doorway. Unless clothing is specified in the setup, A is an adult with short gray hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks clockwise around the sculpture. Then A continues behind the sculpture. Then A exits through the rear doorway.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "spatial_continuity",
+        "split": "train",
+        "scenario_group": "story350/gallery_loop",
+        "scenario_id": "gallery_loop",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/spatial_continuity.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A walks clockwise around the sculpture",
+          "A continues behind the sculpture",
+          "A exits through the rear doorway"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-gallery_loop-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-gallery_loop-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A walks clockwise around the sculpture. Begin with A.location: front of sculpture. End with A.location: right of sculpture. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-gallery_loop-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A continues behind the sculpture. Begin with A.location: right of sculpture. End with A.location: behind sculpture. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-gallery_loop-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A exits through the rear doorway. Begin with A.location: behind sculpture. End with A.location: rear doorway. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-gallery_loop-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A carries a sketchpad in a gallery with a central sculpture and one rear doorway. Unless clothing is specified in the setup, A is an adult with short gray hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "A.location": "front of sculpture"
+          },
+          "final_state": {
+            "A.location": "rear doorway"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "A.location": "front of sculpture"
+              },
+              "postconditions": {
+                "A.location": "right of sculpture"
+              },
+              "observable_pre": [
+                "A.location"
+              ],
+              "observable_post": [
+                "A.location"
+              ],
+              "events": [
+                {
+                  "id": "gallery_loop_0",
+                  "description": "A walks clockwise around the sculpture"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "A.location": "right of sculpture"
+              },
+              "postconditions": {
+                "A.location": "behind sculpture"
+              },
+              "observable_pre": [
+                "A.location"
+              ],
+              "observable_post": [],
+              "events": [
+                {
+                  "id": "gallery_loop_1",
+                  "description": "A continues behind the sculpture"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "A.location": "behind sculpture"
+              },
+              "postconditions": {
+                "A.location": "rear doorway"
+              },
+              "observable_pre": [],
+              "observable_post": [
+                "A.location"
+              ],
+              "events": [
+                {
+                  "id": "gallery_loop_2",
+                  "description": "A exits through the rear doorway"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-bakery_counter",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A carries an empty tray in a bakery; a bread rack is left of the counter. Unless clothing is specified in the setup, A is an adult with short gray hair and a rust vest. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks to the rack on the left. Then A loads bread and carries the tray behind the counter. Then A sets the tray beside the register.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "spatial_continuity",
+        "split": "validation",
+        "scenario_group": "story350/bakery_counter",
+        "scenario_id": "bakery_counter",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/spatial_continuity.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A walks to the rack on the left",
+          "A loads bread and carries the tray behind the counter",
+          "A sets the tray beside the register"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-bakery_counter-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-bakery_counter-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A walks to the rack on the left. Begin with tray.location: A hands at entrance. End with tray.location: A hands at rack. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-bakery_counter-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A loads bread and carries the tray behind the counter. Begin with tray.location: A hands at rack. End with tray.location: A hands behind counter. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-bakery_counter-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A sets the tray beside the register. Begin with tray.location: A hands behind counter. End with tray.location: counter beside register. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-bakery_counter-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A carries an empty tray in a bakery; a bread rack is left of the counter. Unless clothing is specified in the setup, A is an adult with short gray hair and a rust vest. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "tray.location": "A hands at entrance"
+          },
+          "final_state": {
+            "tray.location": "counter beside register"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "tray.location": "A hands at entrance"
+              },
+              "postconditions": {
+                "tray.location": "A hands at rack"
+              },
+              "observable_pre": [
+                "tray.location"
+              ],
+              "observable_post": [
+                "tray.location"
+              ],
+              "events": [
+                {
+                  "id": "bakery_counter_0",
+                  "description": "A walks to the rack on the left"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "tray.location": "A hands at rack"
+              },
+              "postconditions": {
+                "tray.location": "A hands behind counter"
+              },
+              "observable_pre": [
+                "tray.location"
+              ],
+              "observable_post": [],
+              "events": [
+                {
+                  "id": "bakery_counter_1",
+                  "description": "A loads bread and carries the tray behind the counter"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "tray.location": "A hands behind counter"
+              },
+              "postconditions": {
+                "tray.location": "counter beside register"
+              },
+              "observable_pre": [],
+              "observable_post": [
+                "tray.location"
+              ],
+              "events": [
+                {
+                  "id": "bakery_counter_2",
+                  "description": "A sets the tray beside the register"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-harbor_route",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A carries a rope coil along a dock with a bollard before a moored boat. Unless clothing is specified in the setup, A is an adult with curly brown hair and a navy apron. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks past the bollard. Then A turns toward the moored boat. Then A lowers the coil into the boat while remaining on the dock.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "spatial_continuity",
+        "split": "test",
+        "scenario_group": "story350/harbor_route",
+        "scenario_id": "harbor_route",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/spatial_continuity.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A walks past the bollard",
+          "A turns toward the moored boat",
+          "A lowers the coil into the boat while remaining on the dock"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-harbor_route-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-harbor_route-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A walks past the bollard. Begin with A.location: dock entrance. End with A.location: beyond bollard. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-harbor_route-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A turns toward the moored boat. Begin with A.location: beyond bollard. End with A.location: boat edge. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-harbor_route-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A lowers the coil into the boat while remaining on the dock. Begin with A.location: boat edge. End with A.location: boat edge. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-harbor_route-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A carries a rope coil along a dock with a bollard before a moored boat. Unless clothing is specified in the setup, A is an adult with curly brown hair and a navy apron. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "A.location": "dock entrance"
+          },
+          "final_state": {
+            "A.location": "boat edge"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "A.location": "dock entrance"
+              },
+              "postconditions": {
+                "A.location": "beyond bollard"
+              },
+              "observable_pre": [
+                "A.location"
+              ],
+              "observable_post": [
+                "A.location"
+              ],
+              "events": [
+                {
+                  "id": "harbor_route_0",
+                  "description": "A walks past the bollard"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "A.location": "beyond bollard"
+              },
+              "postconditions": {
+                "A.location": "boat edge"
+              },
+              "observable_pre": [
+                "A.location"
+              ],
+              "observable_post": [
+                "A.location"
+              ],
+              "events": [
+                {
+                  "id": "harbor_route_1",
+                  "description": "A turns toward the moored boat"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "A.location": "boat edge"
+              },
+              "postconditions": {
+                "A.location": "boat edge"
+              },
+              "observable_pre": [
+                "A.location"
+              ],
+              "observable_post": [
+                "A.location"
+              ],
+              "events": [
+                {
+                  "id": "harbor_route_2",
+                  "description": "A lowers the coil into the boat while remaining on the dock"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-stuck_drawer",
+      "mode": "generation",
+      "duration_seconds": 24,
+      "prompt": "A faces a shallow drawer blocked by a visible cloth caught at its edge. Unless clothing is specified in the setup, A is an adult with curly brown hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A pulls gently and the drawer stops. Then A pushes it slightly inward. Then A pulls the cloth free. Then A opens the drawer fully.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "causal_repair",
+        "split": "train",
+        "scenario_group": "story350/stuck_drawer",
+        "scenario_id": "stuck_drawer",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/causal_repair.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A pulls gently and the drawer stops",
+          "A pushes it slightly inward",
+          "A pulls the cloth free",
+          "A opens the drawer fully"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-stuck_drawer-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-stuck_drawer-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A pulls gently and the drawer stops. Begin with drawer.state: blocked by cloth. End with drawer.state: blocked by cloth. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-stuck_drawer-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A pushes it slightly inward. Begin with drawer.state: blocked by cloth. End with drawer.state: ajar with slack cloth. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-stuck_drawer-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A pulls the cloth free. Begin with drawer.state: ajar with slack cloth. End with drawer.state: unblocked ajar. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-stuck_drawer-continuity"
+            ]
+          },
+          {
+            "prompt": "Establishing medium-wide view. A opens the drawer fully. Begin with drawer.state: unblocked ajar. End with drawer.state: fully open. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-stuck_drawer-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A faces a shallow drawer blocked by a visible cloth caught at its edge. Unless clothing is specified in the setup, A is an adult with curly brown hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "drawer.state": "blocked by cloth"
+          },
+          "final_state": {
+            "drawer.state": "fully open"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "drawer.state": "blocked by cloth"
+              },
+              "postconditions": {
+                "drawer.state": "blocked by cloth"
+              },
+              "observable_pre": [
+                "drawer.state"
+              ],
+              "observable_post": [
+                "drawer.state"
+              ],
+              "events": [
+                {
+                  "id": "stuck_drawer_0",
+                  "description": "A pulls gently and the drawer stops"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "drawer.state": "blocked by cloth"
+              },
+              "postconditions": {
+                "drawer.state": "ajar with slack cloth"
+              },
+              "observable_pre": [
+                "drawer.state"
+              ],
+              "observable_post": [
+                "drawer.state"
+              ],
+              "events": [
+                {
+                  "id": "stuck_drawer_1",
+                  "description": "A pushes it slightly inward"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "drawer.state": "ajar with slack cloth"
+              },
+              "postconditions": {
+                "drawer.state": "unblocked ajar"
+              },
+              "observable_pre": [
+                "drawer.state"
+              ],
+              "observable_post": [
+                "drawer.state"
+              ],
+              "events": [
+                {
+                  "id": "stuck_drawer_2",
+                  "description": "A pulls the cloth free"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "drawer.state": "unblocked ajar"
+              },
+              "postconditions": {
+                "drawer.state": "fully open"
+              },
+              "observable_pre": [
+                "drawer.state"
+              ],
+              "observable_post": [
+                "drawer.state"
+              ],
+              "events": [
+                {
+                  "id": "stuck_drawer_3",
+                  "description": "A opens the drawer fully"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-loose_stool",
+      "mode": "generation",
+      "duration_seconds": 24,
+      "prompt": "A stands by a wooden stool with one loose bolt visibly protruding. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A rocks the stool and the leg wobbles. Then A steadies the leg and inserts a wrench. Then A tightens the protruding bolt. Then A presses down and the stool stays steady.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "causal_repair",
+        "split": "validation",
+        "scenario_group": "story350/loose_stool",
+        "scenario_id": "loose_stool",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/causal_repair.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A rocks the stool and the leg wobbles",
+          "A steadies the leg and inserts a wrench",
+          "A tightens the protruding bolt",
+          "A presses down and the stool stays steady"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-loose_stool-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-loose_stool-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A rocks the stool and the leg wobbles. Begin with stool.state: loose bolt. End with stool.state: wobbling. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-loose_stool-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A steadies the leg and inserts a wrench. Begin with stool.state: wobbling. End with stool.state: held with wrench. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-loose_stool-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A tightens the protruding bolt. Begin with stool.state: held with wrench. End with stool.state: tight bolt. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-loose_stool-continuity"
+            ]
+          },
+          {
+            "prompt": "Establishing medium-wide view. A presses down and the stool stays steady. Begin with stool.state: tight bolt. End with stool.state: stable under pressure. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-loose_stool-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A stands by a wooden stool with one loose bolt visibly protruding. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "stool.state": "loose bolt"
+          },
+          "final_state": {
+            "stool.state": "stable under pressure"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "stool.state": "loose bolt"
+              },
+              "postconditions": {
+                "stool.state": "wobbling"
+              },
+              "observable_pre": [
+                "stool.state"
+              ],
+              "observable_post": [
+                "stool.state"
+              ],
+              "events": [
+                {
+                  "id": "loose_stool_0",
+                  "description": "A rocks the stool and the leg wobbles"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "stool.state": "wobbling"
+              },
+              "postconditions": {
+                "stool.state": "held with wrench"
+              },
+              "observable_pre": [
+                "stool.state"
+              ],
+              "observable_post": [
+                "stool.state"
+              ],
+              "events": [
+                {
+                  "id": "loose_stool_1",
+                  "description": "A steadies the leg and inserts a wrench"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "stool.state": "held with wrench"
+              },
+              "postconditions": {
+                "stool.state": "tight bolt"
+              },
+              "observable_pre": [
+                "stool.state"
+              ],
+              "observable_post": [
+                "stool.state"
+              ],
+              "events": [
+                {
+                  "id": "loose_stool_2",
+                  "description": "A tightens the protruding bolt"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "stool.state": "tight bolt"
+              },
+              "postconditions": {
+                "stool.state": "stable under pressure"
+              },
+              "observable_pre": [
+                "stool.state"
+              ],
+              "observable_post": [
+                "stool.state"
+              ],
+              "events": [
+                {
+                  "id": "loose_stool_3",
+                  "description": "A presses down and the stool stays steady"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-chain_toy",
+      "mode": "generation",
+      "duration_seconds": 24,
+      "prompt": "A has a toy vehicle whose drive chain is off one visible sprocket. Unless clothing is specified in the setup, A is an adult with short dark hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A turns the wheel and the chain stays slack. Then A lifts the chain onto the sprocket. Then A slowly turns the wheel. Then A rolls the toy forward smoothly.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "causal_repair",
+        "split": "test",
+        "scenario_group": "story350/chain_toy",
+        "scenario_id": "chain_toy",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/causal_repair.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A turns the wheel and the chain stays slack",
+          "A lifts the chain onto the sprocket",
+          "A slowly turns the wheel",
+          "A rolls the toy forward smoothly"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-chain_toy-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-chain_toy-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A turns the wheel and the chain stays slack. Begin with drive.state: chain off sprocket. End with drive.state: slack chain. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-chain_toy-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A lifts the chain onto the sprocket. Begin with drive.state: slack chain. End with drive.state: chain reseated. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-chain_toy-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A slowly turns the wheel. Begin with drive.state: chain reseated. End with drive.state: chain moving on sprocket. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-chain_toy-continuity"
+            ]
+          },
+          {
+            "prompt": "Establishing medium-wide view. A rolls the toy forward smoothly. Begin with drive.state: chain moving on sprocket. End with drive.state: toy moving. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-chain_toy-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A has a toy vehicle whose drive chain is off one visible sprocket. Unless clothing is specified in the setup, A is an adult with short dark hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "drive.state": "chain off sprocket"
+          },
+          "final_state": {
+            "drive.state": "toy moving"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "drive.state": "chain off sprocket"
+              },
+              "postconditions": {
+                "drive.state": "slack chain"
+              },
+              "observable_pre": [
+                "drive.state"
+              ],
+              "observable_post": [
+                "drive.state"
+              ],
+              "events": [
+                {
+                  "id": "chain_toy_0",
+                  "description": "A turns the wheel and the chain stays slack"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "drive.state": "slack chain"
+              },
+              "postconditions": {
+                "drive.state": "chain reseated"
+              },
+              "observable_pre": [
+                "drive.state"
+              ],
+              "observable_post": [
+                "drive.state"
+              ],
+              "events": [
+                {
+                  "id": "chain_toy_1",
+                  "description": "A lifts the chain onto the sprocket"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "drive.state": "chain reseated"
+              },
+              "postconditions": {
+                "drive.state": "chain moving on sprocket"
+              },
+              "observable_pre": [
+                "drive.state"
+              ],
+              "observable_post": [
+                "drive.state"
+              ],
+              "events": [
+                {
+                  "id": "chain_toy_2",
+                  "description": "A slowly turns the wheel"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 3,
+              "preconditions": {
+                "drive.state": "chain moving on sprocket"
+              },
+              "postconditions": {
+                "drive.state": "toy moving"
+              },
+              "observable_pre": [
+                "drive.state"
+              ],
+              "observable_post": [
+                "drive.state"
+              ],
+              "events": [
+                {
+                  "id": "chain_toy_3",
+                  "description": "A rolls the toy forward smoothly"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-book_behind_vase",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A holds a red book beside a tall vase on a desk. Unless clothing is specified in the setup, A is an adult with short dark hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A places the book behind the vase. Then The camera moves sideways until part of the book appears. Then A lifts the same book out from behind the vase.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "reveal_occlusion",
+        "split": "train",
+        "scenario_group": "story350/book_behind_vase",
+        "scenario_id": "book_behind_vase",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/reveal_occlusion.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A places the book behind the vase",
+          "The camera moves sideways until part of the book appears",
+          "A lifts the same book out from behind the vase"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-book_behind_vase-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-book_behind_vase-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A places the book behind the vase. Begin with book.location: A hands. End with book.location: behind vase. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-book_behind_vase-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. The camera moves sideways until part of the book appears. Begin with book.location: behind vase. End with book.location: behind vase partly visible. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-book_behind_vase-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A lifts the same book out from behind the vase. Begin with book.location: behind vase partly visible. End with book.location: A hands. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-book_behind_vase-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A holds a red book beside a tall vase on a desk. Unless clothing is specified in the setup, A is an adult with short dark hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "book.location": "A hands"
+          },
+          "final_state": {
+            "book.location": "A hands"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "book.location": "A hands"
+              },
+              "postconditions": {
+                "book.location": "behind vase"
+              },
+              "observable_pre": [
+                "book.location"
+              ],
+              "observable_post": [],
+              "events": [
+                {
+                  "id": "book_behind_vase_0",
+                  "description": "A places the book behind the vase"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "book.location": "behind vase"
+              },
+              "postconditions": {
+                "book.location": "behind vase partly visible"
+              },
+              "observable_pre": [],
+              "observable_post": [],
+              "events": [
+                {
+                  "id": "book_behind_vase_1",
+                  "description": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance."
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "book.location": "behind vase partly visible"
+              },
+              "postconditions": {
+                "book.location": "A hands"
+              },
+              "observable_pre": [],
+              "observable_post": [
+                "book.location"
+              ],
+              "events": [
+                {
+                  "id": "book_behind_vase_2",
+                  "description": "A lifts the same book out from behind the vase"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-actor_screen",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A in a striped jacket stands left of a freestanding screen. Unless clothing is specified in the setup, A is an adult with curly brown hair and a teal jacket. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks behind the screen. Then The camera holds on both screen edges as A continues. Then A emerges from the right edge in the same jacket.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "reveal_occlusion",
+        "split": "validation",
+        "scenario_group": "story350/actor_screen",
+        "scenario_id": "actor_screen",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/reveal_occlusion.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A walks behind the screen",
+          "The camera holds on both screen edges as A continues",
+          "A emerges from the right edge in the same jacket"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-actor_screen-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-actor_screen-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A walks behind the screen. Begin with A.location: left of screen. End with A.location: behind screen. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-actor_screen-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. The camera holds on both screen edges as A continues. Begin with A.location: behind screen. End with A.location: behind screen. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-actor_screen-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A emerges from the right edge in the same jacket. Begin with A.location: behind screen. End with A.location: right of screen. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-actor_screen-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A in a striped jacket stands left of a freestanding screen. Unless clothing is specified in the setup, A is an adult with curly brown hair and a teal jacket. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "A.location": "left of screen"
+          },
+          "final_state": {
+            "A.location": "right of screen"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "A.location": "left of screen"
+              },
+              "postconditions": {
+                "A.location": "behind screen"
+              },
+              "observable_pre": [
+                "A.location"
+              ],
+              "observable_post": [],
+              "events": [
+                {
+                  "id": "actor_screen_0",
+                  "description": "A walks behind the screen"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "A.location": "behind screen"
+              },
+              "postconditions": {
+                "A.location": "behind screen"
+              },
+              "observable_pre": [],
+              "observable_post": [],
+              "events": [
+                {
+                  "id": "actor_screen_1",
+                  "description": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance."
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "A.location": "behind screen"
+              },
+              "postconditions": {
+                "A.location": "right of screen"
+              },
+              "observable_pre": [],
+              "observable_post": [
+                "A.location"
+              ],
+              "events": [
+                {
+                  "id": "actor_screen_2",
+                  "description": "A emerges from the right edge in the same jacket"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    },
+    {
+      "task_id": "story350-toy_box_lid",
+      "mode": "generation",
+      "duration_seconds": 18,
+      "prompt": "A has an open box containing a yellow toy car. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A closes the box lid. Then A rotates the closed box on the table. Then A opens the lid and the yellow car remains inside.",
+      "metadata": {
+        "benchmark": "story350-draft-v1",
+        "benchmark_status": "authored_draft_assets_missing",
+        "task_family": "reveal_occlusion",
+        "split": "test",
+        "scenario_group": "story350/toy_box_lid",
+        "scenario_id": "toy_box_lid",
+        "generalization": "held_out_scenario_with_shared_skills_not_identity_or_mechanism_OOD",
+        "data_provenance": {
+          "origin": "assistant_authored",
+          "human_validated": false,
+          "source_catalog": "catalog/reveal_occlusion.txt",
+          "public_benchmark": false
+        },
+        "authored_events": [
+          "A closes the box lid",
+          "A rotates the closed box on the table",
+          "A opens the lid and the yellow car remains inside"
+        ],
+        "story_dataset_requires_assets": true,
+        "story_asset_ids": [
+          "story350-toy_box_lid-continuity"
+        ],
+        "missing_required_assets": [
+          "story350-toy_box_lid-continuity"
+        ],
+        "h3_shots": [
+          {
+            "prompt": "Establishing medium-wide view. A closes the box lid. Begin with car.visibility: visible in box. End with car.visibility: hidden in closed box. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-toy_box_lid-continuity"
+            ]
+          },
+          {
+            "prompt": "Clear medium view of the action. A rotates the closed box on the table. Begin with car.visibility: hidden in closed box. End with car.visibility: hidden in rotated box. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-toy_box_lid-continuity"
+            ]
+          },
+          {
+            "prompt": "Close enough to show the resulting state. A opens the lid and the yellow car remains inside. Begin with car.visibility: hidden in rotated box. End with car.visibility: visible in rotated box. Show the transition clearly without replaying previous events.",
+            "duration_seconds": 6,
+            "reference_ids": [
+              "story350-toy_box_lid-continuity"
+            ]
+          }
+        ],
+        "h3_global_constraints": "A has an open box containing a yellow toy car. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "evaluation": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "minimum_over_segments"
+          },
+          "motion_coherence": {
+            "description": "Visible movements and contacts are physically coherent, with no object duplication or discontinuous motion.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          },
+          "visual_quality": {
+            "description": "Subjects and required state transitions are legible, without severe deformation, flicker or blurred evidence.",
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "story_contract": {
+          "version": 1,
+          "initial_state": {
+            "car.visibility": "visible in box"
+          },
+          "final_state": {
+            "car.visibility": "visible in rotated box"
+          },
+          "shots": [
+            {
+              "shot_index": 0,
+              "preconditions": {
+                "car.visibility": "visible in box"
+              },
+              "postconditions": {
+                "car.visibility": "hidden in closed box"
+              },
+              "observable_pre": [
+                "car.visibility"
+              ],
+              "observable_post": [
+                "car.visibility"
+              ],
+              "events": [
+                {
+                  "id": "toy_box_lid_0",
+                  "description": "A closes the box lid"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 1,
+              "preconditions": {
+                "car.visibility": "hidden in closed box"
+              },
+              "postconditions": {
+                "car.visibility": "hidden in rotated box"
+              },
+              "observable_pre": [
+                "car.visibility"
+              ],
+              "observable_post": [
+                "car.visibility"
+              ],
+              "events": [
+                {
+                  "id": "toy_box_lid_1",
+                  "description": "A rotates the closed box on the table"
+                }
+              ],
+              "threshold": 0.9
+            },
+            {
+              "shot_index": 2,
+              "preconditions": {
+                "car.visibility": "hidden in rotated box"
+              },
+              "postconditions": {
+                "car.visibility": "visible in rotated box"
+              },
+              "observable_pre": [
+                "car.visibility"
+              ],
+              "observable_post": [
+                "car.visibility"
+              ],
+              "events": [
+                {
+                  "id": "toy_box_lid_2",
+                  "description": "A opens the lid and the yellow car remains inside"
+                }
+              ],
+              "threshold": 0.9
+            }
+          ]
+        },
+        "original_split": "train",
+        "development_only": true
+      }
+    }
+  ],
+  "qualification": "All 15 examples come from Story350 TRAIN. Internal development train/validation/test labels are for pipeline debugging, never final evaluation or additional independent data."
+}
