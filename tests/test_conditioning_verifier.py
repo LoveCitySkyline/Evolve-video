@@ -29,6 +29,68 @@ def profile(**kwargs):
 
 
 class EvidenceContractTests(unittest.TestCase):
+    def test_real_relay_baton_response_preserves_target_scores_and_evidence(self):
+        from evovideo_skill.story_contracts import prepare_story_task, acceptance_report
+        root = Path(__file__).resolve().parents[1]
+        tasks = json.loads((root / "benchmarks/story350/story350_smoke15.json").read_text())["tasks"]
+        task = prepare_story_task(VideoTask.from_dict(next(t for t in tasks if t["task_id"] == "story350-relay_baton")))
+        raw = json.loads((root / "tests/fixtures/relay_baton_shot_judgments.json").read_text())
+        original = deepcopy(raw)
+        rubric = {k: task.metadata["evaluation"][k] for k in raw["criteria"]}
+        parsed = parse_judgment(raw, rubric, windows(task))
+        for name, row in parsed.items():
+            self.assertEqual(row["score"], raw["criteria"][name]["score"])
+            target = rubric[name]["story_shot_index"]
+            self.assertEqual(row["segments"][target], raw["criteria"][name]["segments"][0])
+            for other in row["segments"]:
+                if other["segment_id"] != target:
+                    self.assertEqual(other["status"], "not_applicable")
+                    self.assertIsNone(other["score"])
+                    self.assertEqual(other["applicability_source"], "original_task_contract")
+        self.assertEqual(raw, original)
+        artifact = VideoArtifact("a", task.task_id, "", "generation", [], [], {"vlm_evaluation": {
+            "criterion_observations": {k: [v] for k, v in parsed.items()},
+            "verification_metadata": {"windows": windows(task)}}})
+        report = acceptance_report(task, artifact)
+        self.assertEqual(report["status"], "failed")
+        for name, row in raw["criteria"].items():
+            self.assertEqual(report["checks"][name]["score"], row["score"])
+            self.assertEqual(report["checks"][name]["status"], "passed" if row["score"] >= .9 else "failed")
+
+    def test_shot_scope_never_fills_missing_target_or_invalid_segment_ids(self):
+        spans = [{"segment_id": i} for i in range(3)]
+        rubric = {"shot": {"story_shot_index": 1}}
+        for ids in ([], [0], [0, 2], [1, 1], [1, 3], ["1"], [True]):
+            with self.subTest(ids=ids):
+                row = observed()
+                row["segments"] = [{**observed()["segments"][0], "segment_id": i} for i in ids]
+                with self.assertRaisesRegex(ValueError, "shot:"):
+                    parse_judgment({"criteria": {"shot": row}}, rubric, spans)
+        for index in (True, "1", -1, 3, None):
+            with self.subTest(index=index), self.assertRaisesRegex(ValueError, "story_shot_index"):
+                parse_judgment({"criteria": {"shot": observed()}}, {"shot": {"story_shot_index": index}}, spans)
+
+    def test_shot_scope_unknown_is_not_promoted_and_target_cannot_be_na(self):
+        spans = [{"segment_id": i} for i in range(3)]
+        rubric = {"shot": {"story_shot_index": 0}}
+        row = observed()
+        row["segments"][0].update(status="unobserved", score=None)
+        parsed = parse_judgment({"criteria": {"shot": row}}, rubric, spans)["shot"]
+        self.assertEqual(parsed["status"], "unobserved")
+        self.assertIsNone(parsed["score"])
+        row["segments"][0]["status"] = "not_applicable"
+        with self.assertRaisesRegex(ValueError, "mandatory criterion"):
+            parse_judgment({"criteria": {"shot": row}}, rubric, spans)
+
+    def test_global_and_unscoped_story_criteria_still_require_all_windows(self):
+        spans = [{"segment_id": i} for i in range(3)]
+        for name in ("identity_consistency_score", "story.s0.event.example"):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "required=\\[0, 1, 2\\]"):
+                parse_judgment({"criteria": {name: observed()}}, {name: {}}, spans)
+        row = observed(.25, 3)
+        result = parse_judgment({"criteria": {"shot": row}}, {"shot": {"story_shot_index": 1}}, spans)
+        self.assertEqual(result["shot"], row)
+
     def test_missing_and_boolean_scores_are_rejected(self):
         spans = [{"segment_id": 0}]
         with self.assertRaises(ValueError):
@@ -112,6 +174,26 @@ class EvidenceContractTests(unittest.TestCase):
 
 
 class VerifierTests(unittest.TestCase):
+    def test_scoped_prompt_accepts_sparse_low_score_without_correction_and_caches_raw(self):
+        verifier = ConditioningVideoVerifier(profile(), self.root)
+        spans = [{"segment_id": i, "start_seconds": i * 6, "end_seconds": (i + 1) * 6} for i in range(3)]
+        rubric = {"story.s1.event.pass": {"story_shot_index": 1}, "global": {}}
+        scoped = observed(.0)
+        scoped["segments"][0]["segment_id"] = 1
+        raw = {"criteria": {"story.s1.event.pass": scoped, "global": observed(.25, 3)}}
+        path = self.root / "group.json"
+        with patch.object(verifier, "request", return_value=raw) as request:
+            result = verifier._observe_group(path, {"criteria": rubric}, self.evidence, "test", rubric, spans)
+            cached = verifier._observe_group(path, {"criteria": rubric}, self.evidence, "test", rubric, spans)
+        self.assertEqual(request.call_count, 1)
+        contract = json.loads(request.call_args.args[0])["output_contract"]
+        self.assertEqual(contract["required_segment_ids"], {"story.s1.event.pass": [1], "global": [0, 1, 2]})
+        self.assertEqual(contract["temporal_windows"], spans)
+        self.assertEqual(result, cached)
+        self.assertEqual(result["story.s1.event.pass"]["score"], 0)
+        self.assertEqual(json.loads(path.read_text()), raw)
+        self.assertFalse(path.with_suffix(".correction-1.raw.json").exists())
+
     def setUp(self):
         self.temp = TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

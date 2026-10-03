@@ -1,0 +1,116 @@
+{
+  "criteria": {
+    "story.s0.pre.baton.holder": {
+      "status": "observed",
+      "score": 1.0,
+      "confidence": 0.98,
+      "evidence": "At 0.2s, the red-haired woman (A) is running toward the gray-haired woman (B) holding the striped baton. Baton is clearly visible in A's hands. This satisfies the pre-condition for shot 0 (0–6s): baton.holder = A.",
+      "segments": [
+        {
+          "segment_id": 0,
+          "status": "observed",
+          "score": 1.0,
+          "evidence": "0.2s–0.5s: A (red hair, teal jacket) runs toward B (gray hair, navy apron) with baton visible in her hands. Baton holder = A."
+        }
+      ]
+    },
+    "story.s0.post.baton.holder": {
+      "status": "observed",
+      "score": 0.0,
+      "confidence": 0.99,
+      "evidence": "By 5.0s–6.0s, A has already transferred the baton to B (visible at 4.2s–5.0s hand交接), and at 6.0s both are standing with B holding the baton. Thus, at the end of shot 0 (6s), baton.holder = B, violating the required postcondition (must be A).",
+      "segments": [
+        {
+          "segment_id": 0,
+          "status": "observed",
+          "score": 0.0,
+          "evidence": "At 5.0s–6.0s, B holds the baton; A’s hands are empty. The baton transfer completes by ~4.8s, so post-state of shot 0 is B, not A."
+        }
+      ]
+    },
+    "story.s0.event.relay_baton_0": {
+      "status": "observed",
+      "score": 0.75,
+      "confidence": 0.95,
+      "evidence": "A runs toward B with baton visible (0.2s–3.5s), satisfying the core action. However, the baton is passed *within* shot 0 (by ~4.8s), which violates the requirement that shot 0 ends with baton still held by A and no replay of prior events. The event is partially met but timing overlaps into next phase.",
+      "segments": [
+        {
+          "segment_id": 0,
+          "status": "observed",
+          "score": 0.75,
+          "evidence": "0.2s–3.5s: A runs toward B with baton visible — correct. But baton transfer begins at ~4.2s and completes by ~4.8s, i.e., within shot 0, whereas shot 0 should only contain 'A runs toward B with baton visible' and end with baton still with A. The pass occurs before 6s, violating shot-scoped event boundary."
+        }
+      ]
+    },
+    "story.s1.pre.baton.holder": {
+      "status": "observed",
+      "score": 0.0,
+      "confidence": 0.99,
+      "evidence": "Shot 1 starts at 6.0s. At 6.0s, B is holding the baton (as seen in frames 5.0–6.0). Therefore, pre-condition (baton.holder = A) is violated.",
+      "segments": [
+        {
+          "segment_id": 1,
+          "status": "observed",
+          "score": 0.0,
+          "evidence": "At 6.0s (start of shot 1), B holds the baton; A’s hands are empty. Precondition requires baton.holder = A, but it is B. No evidence of A regaining baton before 6s."
+        }
+      ]
+    },
+    "story.s1.post.baton.holder": {
+      "status": "observed",
+      "score": 1.0,
+      "confidence": 0.98,
+      "evidence": "At 12.0s (end of shot 1), B still holds the baton (visible at 11.0s–12.0s), satisfying post-condition baton.holder = B.",
+      "segments": [
+        {
+          "segment_id": 1,
+          "status": "observed",
+          "score": 1.0,
+          "evidence": "11.0s–12.0s: B holds baton; A stands aside with empty hands. Baton.holder = B at end of shot 1."
+        }
+      ]
+    },
+    "story.s1.event.relay_baton_1": {
+      "status": "observed",
+      "score": 0.25,
+      "confidence": 0.9,
+      "evidence": "The baton pass occurs early (~4.2s–4.8s), *before* shot 1 begins (6s). Shot 1 (6–12s) shows only static posing, brief hand gesture at 8.0s–9.0s without actual transfer (baton never leaves B’s hands), and B walking away later. Thus, the required event 'A passes the baton into B's waiting hand and releases it' is absent in shot 1.",
+      "segments": [
+        {
+          "segment_id": 1,
+          "status": "observed",
+          "score": 0.25,
+          "evidence": "6.0s–12.0s: No baton passing occurs; baton remains with B throughout. At 8.0s–9.0s they simulate a handoff gesture but without actual transfer (baton never leaves B’s hands). The real pass happened in shot 0, violating shot-scoped event requirement."
+        }
+      ]
+    },
+    "story.s2.pre.baton.holder": {
+      "status": "observed",
+      "score": 1.0,
+      "confidence": 0.99,
+      "evidence": "Shot 2 starts at 12.0s. At 12.0s, B holds the baton (confirmed at 12.0s frame). Precondition baton.holder = B is satisfied.",
+      "segments": [
+        {
+          "segment_id": 2,
+          "status": "observed",
+          "score": 1.0,
+          "evidence": "12.0s: B holds baton; A stands with empty hands. Precondition met. Also visible at 12.5s and 13.0s."
+        }
+      ]
+    },
+    "story.s2.post.baton.holder": {
+      "status": "observed",
+      "score": 1.0,
+      "confidence": 0.97,
+      "evidence": "At 18.0s (end of video), B is still holding the baton (last sampled frame at 17.0s shows B holding it while walking away; no evidence of release). Postcondition baton.holder = B holds.",
+      "segments": [
+        {
+          "segment_id": 2,
+          "status": "observed",
+          "score": 1.0,
+          "evidence": "15.0s–17.0s: B runs away holding baton; A remains stationary with empty hands. At final sampled frame (17.0s), baton still with B. End state matches requirement."
+        }
+      ]
+    }
+  }
+}

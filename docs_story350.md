@@ -43,6 +43,23 @@ python -m evovideo_skill.story_dataset audit
 
 从未做此对齐的旧版本更新后，用新实验目录，不能复用旧评分或 checkpoint。对于已生成但因总时长报错而停止的运行，可仅复制旧 `videos/` 到新目录的 `videos/`，保留原生请求 ledger 和原片缓存；相同请求、seed、条件内容、endpoint、模型 revision 才会复用。不要复制 `node_cache/`、`evaluations/`、`checkpoint.json` 或冻结策略。素材 prepared 目录不需重建。
 
+分镜评估以冻结 rubric 中的 `story_shot_index` 为准：例如 `story.s1.*` 必须明确返回窗口 1 的判断，其他窗口可以省略。省略的不相关窗口由程序标记 `not_applicable`／`score: null`，并注明 `applicability_source=original_task_contract`；不会补造视觉观察或分数。没有明确分镜范围的指标仍必须覆盖所有固定窗口。目标窗口缺失、编号非法或重复会拒绝；目标窗口 `unobserved` 会使该指标保持未知，不能通过顶层分数掩盖。低分和 0 分是有效失败观察，不触发重新评分以提高分数。
+
+旧版可能把 Qwen 仅返回目标镜头的合理响应误报为 `all fixed temporal windows need explicit judgments`。升级这一评估协议后，同样使用新实验目录，只复用 `videos/` 原生生成缓存；不复用旧评估或搜索 checkpoint。示例（在仓库根目录运行，替换 `old_run` 为实际旧目录）：
+
+```bash
+old_run=outputs/h3_story350_debug_durationfix_frHgil
+run_dir="$(mktemp -d outputs/h3_story350_debug_scopefix_XXXXXX)"
+cp -a "$old_run/videos" "$run_dir/videos"
+set -o pipefail
+bash scripts/run_h3_conditioning_graph_search.sh \
+  --config configs/h3_story350_debug.json \
+  --phase learn --output-dir "$run_dir" \
+  2>&1 | tee "$run_dir/run.log"
+```
+
+这会重新调用 verifier；满足缓存匹配条件的已有 H3 请求直接复用视频，新候选仍需要生成。已有 prepared 素材无需重新执行 `--generate-missing`。
+
 ## 先在服务器准备 15 条开发数据
 
 沿用你已经运行的 H3 SGLang 服务、Python 环境和 planner/verifier 配置，不需要重新部署模型。

@@ -27,7 +27,7 @@ from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 
 
-VERIFIER_PROTOCOL_VERSION = "native-video-criterion-format-v4"
+VERIFIER_PROTOCOL_VERSION = "native-video-criterion-scope-v5"
 
 GENERIC = {
     "identity_consistency_score": "Identity consistency of visible subjects over the complete video.",
@@ -68,10 +68,13 @@ Return JSON {criteria:{exact_key:{status:'observed'|'unobserved'|'not_applicable
 score:number|null, confidence:number, evidence:string,
 segments:[{segment_id:integer,status:'observed'|'unobserved'|'not_applicable',
 score:number|null,evidence:string}]}}}.
-Use the supplied segment IDs and their exact count for every criterion. These are
-fixed temporal windows, NOT detected cuts or proof of causal localization. Assess
-the task-defined requirement in each relevant window; unrelated windows can be
-not_applicable. The top-level score assesses the COMPLETE video, including cross-
+Follow output_contract.required_segment_ids for each criterion. These are fixed
+temporal windows, NOT detected cuts or proof of causal localization. A criterion
+with story_shot_index judges ONLY that shot, including its top-level score; return
+that segment explicitly, using unobserved if evidence is missing, never
+not_applicable. Other windows may be omitted for that shot-specific criterion.
+Criteria without story_shot_index require ALL windows; unrelated windows can be
+not_applicable. Their top-level score assesses the COMPLETE video, including cross-
 window identity, action order and transitions. Do not penalize a window merely
 because an action is correctly scheduled elsewhere. For minimum_over_segments,
 all applicable windows need evidence; the host computes the minimum. Explain any
@@ -96,6 +99,16 @@ def windows(task):
         result.append({"segment_id": i, "start_seconds": start, "end_seconds": start + duration})
         start += duration
     return result
+
+
+def required_segment_ids(name, definition, spans):
+    ids = [span["segment_id"] for span in spans]
+    if isinstance(definition, dict) and "story_shot_index" in definition:
+        index = definition["story_shot_index"]
+        if type(index) is not int or index not in ids:
+            raise ValueError(f"{name}: invalid task story_shot_index={index!r}")
+        return [index]
+    return ids
 
 
 def parse_judgment(raw, rubric, spans):
@@ -123,14 +136,30 @@ def parse_judgment(raw, rubric, spans):
                 raise ValueError("mandatory criterion cannot be not_applicable")
         check(item, name in GENERIC and not (isinstance(definition, dict) and definition.get("mandatory")))
         item["confidence"] = unit(item.get("confidence"))
+        required = required_segment_ids(name, definition, spans)
+        scoped = isinstance(definition, dict) and "story_shot_index" in definition
         segments = item.get("segments")
-        if not isinstance(segments, list) or len(segments) != len(spans) or any(
+        if not isinstance(segments, list) or any(
                 not isinstance(r, dict) or type(r.get("segment_id")) is not int for r in segments):
-            raise ValueError("all fixed temporal windows need explicit judgments")
-        if sorted(r["segment_id"] for r in segments) != list(range(len(spans))):
-            raise ValueError("missing/duplicate/out-of-range temporal windows")
+            raise ValueError(f"{name}: segments must be a list of judgments with integer segment_id; required={required}")
+        ids = [r["segment_id"] for r in segments]
+        allowed = [span["segment_id"] for span in spans]
+        if len(ids) != len(set(ids)) or set(ids) - set(allowed) or set(required) - set(ids):
+            raise ValueError(f"{name}: missing/duplicate/out-of-range temporal windows; required={required}; received={ids}")
         for row in segments:
-            check(row, True)
+            check(row, not (scoped and row["segment_id"] in required))
+        if scoped:
+            # Applicability comes from the frozen task, never from model scores.
+            # Only unrelated windows can be filled; the target must be explicit.
+            for index in allowed:
+                if index not in ids:
+                    segments.append({"segment_id": index, "status": "not_applicable", "score": None,
+                        "evidence": f"Original task scopes this criterion to segment {required[0]}, not segment {index}.",
+                        "applicability_source": "original_task_contract"})
+            segments.sort(key=lambda row: row["segment_id"])
+            target = next(row for row in segments if row["segment_id"] == required[0])
+            if target["status"] == "unobserved":
+                item.update(status="unobserved", score=None)
         if isinstance(definition, dict) and definition.get("scoring_scope") == "visible_appearance_only":
             checks = item.get("scope_checks", {})
             issues = []
@@ -384,8 +413,14 @@ class ConditioningVideoVerifier:
             prompt_data = deepcopy(payload)
             prompt_data["output_contract"] = {
                 "criterion_keys": list(subset),
+                "temporal_windows": spans,
+                "required_segment_ids": {name: required_segment_ids(name, rule, spans)
+                                         for name, rule in subset.items()},
                 "instruction": "Return exactly these keys in criteria. Do not rename, alias, add or omit keys. "
-                               "Similar names are distinct criteria. Missing evidence uses unobserved with null score."}
+                               "Similar names are distinct criteria. Each criterion must explicitly judge its required "
+                               "segment IDs. For story_shot_index, both the top-level and segment judgment refer only "
+                               "to that shot; other windows may be omitted. Otherwise return all temporal windows. "
+                               "Missing evidence uses unobserved with null score; never omit a required segment."}
             if feedback is not None:
                 prompt_data["format_feedback"] = feedback
             if self.cache_enabled and raw_path.exists():
