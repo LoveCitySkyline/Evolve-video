@@ -13,7 +13,7 @@ from unittest.mock import patch
 from evovideo_skill.api_tools import VideoApiError
 from evovideo_skill.conditioning_runner import ConditioningRunner, MeasurementUnavailable
 from evovideo_skill.conditioning_verifier import (ConditioningVideoVerifier, GENERIC,
-    parse_judgment, resolve_profiles, windows)
+    parse_judgment, resolve_profiles, windows, combine_window_judgments)
 from evovideo_skill.models import TaskMode, VideoArtifact, VideoTask
 from evovideo_skill.runtime import RuntimeSettings
 
@@ -30,6 +30,50 @@ def profile(**kwargs):
 
 
 class EvidenceContractTests(unittest.TestCase):
+    def test_global_minimum_uses_fixed_windows_without_discarding_global_lows_or_unknowns(self):
+        spans = [{"segment_id": i} for i in range(3)]
+        full = observed(1, 3)
+        full["segments"][2].update(status="unobserved", score=None,
+                                   evidence="No frames for 12–18s.")
+        components = [observed(1) for _ in spans]
+        for i, row in enumerate(components):
+            row["segments"][0]["segment_id"] = i
+        before = deepcopy(full)
+        result = combine_window_judgments(full, components, spans)
+        self.assertEqual(result["score"], 1)
+        self.assertEqual(result["full_video_judgment"], before)
+        self.assertEqual(full, before)
+        self.assertEqual(result["segments"][2]["evidence_source"], "fixed_window_clip")
+        components[2]["segments"][0]["score"] = .2
+        self.assertEqual(combine_window_judgments(full, components, spans)["score"], .2)
+        components[2]["segments"][0]["score"] = 1
+        full["score"] = .1  # Cross-cut failure cannot be rescued by stable isolated clips.
+        self.assertEqual(combine_window_judgments(full, components, spans)["score"], .1)
+        full["score"] = 1
+        full["segments"][0]["score"] = .3
+        self.assertEqual(combine_window_judgments(full, components, spans)["score"], .3)
+        full.update(status="unobserved", score=None)
+        self.assertIsNone(combine_window_judgments(full, components, spans)["score"])
+        full.update(status="observed", score=1)
+        components[2].update(status="unobserved", score=None)
+        components[2]["segments"][0].update(status="unobserved", score=None)
+        self.assertIsNone(combine_window_judgments(full, components, spans)["score"])
+        with self.assertRaisesRegex(ValueError, "every fixed-window"):
+            combine_window_judgments(full, components[:2], spans)
+
+    def test_global_window_components_allow_inapplicability_but_not_inconsistent_statuses(self):
+        row = observed()
+        row.update(status="not_applicable", score=None)
+        row["segments"][0].update(status="not_applicable", score=None)
+        rubric = {"geometry": {"story_shot_index": 0, "window_component_of_global": True, "mandatory": True}}
+        parsed = parse_judgment({"criteria": {"geometry": row}}, rubric, [{"segment_id": 0}])["geometry"]
+        result = combine_window_judgments(observed(), [parsed], [{"segment_id": 0}])
+        self.assertEqual(result["status"], "unobserved")
+        self.assertIsNone(result["score"])
+        row.update(status="observed", score=1)
+        with self.assertRaisesRegex(ValueError, "matching top-level"):
+            parse_judgment({"criteria": {"geometry": row}}, rubric, [{"segment_id": 0}])
+
     def test_observation_basis_requires_consistent_status_without_choosing_scores(self):
         rubric = {"event": {"story_shot_index": 0, "evidence_status_contract": "visible-outcome-v1"}}
         spans = [{"segment_id": 0}]
@@ -238,7 +282,8 @@ class VerifierTests(unittest.TestCase):
             "-map", "[v]", "-c:v", "libx264", str(video)], check=True, capture_output=True)
         self.task.duration_seconds = 18
         self.task.metadata = {"h3_shots": [{"duration_seconds": 6} for _ in range(3)],
-            "evaluation": {f"story.s{i}.event": {"story_shot_index": i} for i in range(3)}}
+            "evaluation": {"scene_geometry": {"aggregation": "minimum_over_segments"},
+                           **{f"story.s{i}.event": {"story_shot_index": i} for i in range(3)}}}
         self.artifact.metadata["local_video_path"] = str(video)
         verifier = ConditioningVideoVerifier(profile(), self.root / "judge")
         evidence, manifest = verifier.evidence(self.task, self.artifact)
@@ -282,12 +327,47 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(result["evaluation_status"], "complete")
         self.assertEqual([v["kind"] for v in calls], ["full_video"] + ["fixed_window_clip"] * 3)
         self.assertEqual(calls[-1]["source_time_offset_seconds"], 12)
+        self.assertEqual(result["criterion_scores"]["scene_geometry"], 0)
+        geometry = result["criterion_observations"]["scene_geometry"][0]
+        self.assertEqual(len(geometry["fixed_window_judgments"]), 3)
+        self.assertEqual(geometry["full_video_judgment"]["score"], 0)
+        # A global minimum criterion requires physical clips even without story.* metrics.
+        self.task.metadata["evaluation"] = {"scene_geometry": {"aggregation": "minimum_over_segments"}}
+        self.assertEqual(len(verifier.evidence(self.task, self.artifact)[1]["window_clips"]), 3)
         folder = Path(result["verification_metadata"]["judgment_path"])
         self.assertEqual(json.loads((folder / "group-003.evidence.json").read_text())["evaluation_view"]["segment_id"], 2)
         self.task.duration_seconds = 24
         self.task.metadata["h3_shots"][-1]["duration_seconds"] = 12
         with self.assertRaisesRegex(ValueError, "does not cover fixed window 2"):
             verifier.evidence(self.task, self.artifact)
+
+    def test_global_minimum_preplans_all_windows_for_every_repeat_and_keeps_unknown(self):
+        self.task.metadata["evaluation"] = {"scene_geometry": {"aggregation": "minimum_over_segments"}}
+        verifier = ConditioningVideoVerifier(profile(repeats=2), self.root)
+        calls = []
+        def request(prompt, media, operation):
+            data = json.loads(prompt)
+            view = data["evidence_manifest"]["evaluation_view"]
+            calls.append(view["kind"])
+            rows = {k: observed(1) for k in data["criteria"]}
+            if view["kind"] == "full_video":
+                self.assertEqual(data["criteria"]["scene_geometry"]["aggregation"], "full_video_assessment")
+                rows["scene_geometry"]["segments"][0].update(status="unobserved", score=None)
+            else:
+                self.assertTrue(data["criteria"]["scene_geometry"]["window_component_of_global"])
+                if len(calls) == 4:
+                    rows["scene_geometry"].update(status="unobserved", score=None)
+                    rows["scene_geometry"]["segments"][0].update(status="unobserved", score=None)
+            return {"criteria": rows}
+        with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                verifier, "request", side_effect=request):
+            result = verifier.evaluate(self.task, self.artifact)
+            self.assertEqual(result, verifier.evaluate(self.task, self.artifact))
+        self.assertEqual(calls, ["full_video", "full_video", "fixed_window_clip", "fixed_window_clip"])
+        self.assertEqual(result["evaluation_status"], "needs_review")
+        self.assertNotIn("scene_geometry", result["criterion_scores"])
+        self.assertEqual(result["criterion_observations"]["scene_geometry"][0]["score"], 1)
+        self.assertIsNone(result["criterion_observations"]["scene_geometry"][1]["score"])
 
     def test_story_status_contract_and_identity_context_preserve_valid_unknown_or_low_score(self):
         name = "story.s0.event.walk"

@@ -61,6 +61,12 @@ python -m evovideo_skill.story_dataset audit
 
 分镜分别请求可能增加 VLM 请求数和本地转码工作，不增加 H3 生成调用。所有候选、种子及 runtime/final 使用同一规则。该版本验证了程序的实际裁切、时间映射、输入分组和缓存行为，不能保证 VLM 对身份、遮挡或动作的语义判断正确；真正的未知仍停止，不能自动变成 0 分。更新后只复用旧 `videos/`，不要复用旧评估缓存或 checkpoint。
 
+`global-and-window-video-evidence-v8` 将固定裁片证据扩展到 `scene_geometry` 等全局 `minimum_over_segments` 指标。完整视频调用检查整体及跨镜头关系；每个固定窗口另外给出局部观察，并尽量与该窗口的分镜指标合并请求。这些调用对所有候选、所有重复都预先执行，不因低分或未知才追加，不能重试到得到更好的分数。原 rubric 的最低分语义不变，跨镜头检查不能被三个各自稳定的裁片替代。
+
+汇总保留完整视频的顶层分数及其中明确观察到的低分，再结合各裁片顶层与窗口分数取最低值。完整视频顶层未知、任何适用裁片未知，或所有裁片均不适用时，仍为未知；完整视频中的某个窗口定位失败可以由独立裁片观察补足，但不会直接借用其他窗口的分数。`criterion_observations` 同时保存 `full_video_judgment`、`fixed_window_judgments` 与最终窗口证据，`global_fixed_window_criteria` 标明参与这种汇总的指标。完整视频自身仍可能存在模型误判，结构校验不能证明语义准确。
+
+v7 升级 v8 改变了评估输入协议，须新建运行目录、仅复用生成 `videos/`；不要复用 v7 `verifier/`、验收记录、checkpoint 或策略记忆。素材无需重建，匹配的 H3 请求仍可命中缓存。评估会重新执行；若单个窗口的指标超过每组容量，也可能增加 VLM 请求数。
+
 旧版可能把 Qwen 仅返回目标镜头的合理响应误报为 `all fixed temporal windows need explicit judgments`。升级这一评估协议后，同样使用新实验目录，只复用 `videos/` 原生生成缓存；不复用旧评估或搜索 checkpoint。示例（在仓库根目录运行，替换 `old_run` 为实际旧目录）：
 
 ```bash

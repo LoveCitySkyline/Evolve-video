@@ -27,7 +27,7 @@ from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 
 
-VERIFIER_PROTOCOL_VERSION = "fixed-window-video-evidence-v7"
+VERIFIER_PROTOCOL_VERSION = "global-and-window-video-evidence-v8"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -113,6 +113,14 @@ A six-second clip for segment 2 at offset 12 covers original time 12..18;
 clip-local time 5 is original time 17, which is in segment 2, never segment 1.
 Use only this target clip for shot evidence; original references identify
 appearance, not what happened in the candidate. Do not invent other windows.
+For window_component_of_global=true, assess ONLY the locally observable part
+of the global criterion in this fixed clip. Do not claim cross-cut consistency
+from one clip. Top-level and target-segment statuses must agree; both may be
+not_applicable if this criterion truly does not apply to this window, or both
+unobserved if evidence is insufficient. The full video is assessed separately.
+For aggregation=full_video_assessment, judge cross-window consistency on the
+complete video. Separate fixed-clip calls provide the authoritative per-window
+observations. Do not pretend to see missing samples; retain visible failures.
 """
 
 
@@ -168,7 +176,8 @@ def parse_judgment(raw, rubric, spans):
                 raise ValueError("unobserved/inapplicable evidence must have null score")
             if row["status"] == "not_applicable" and not allow_na:
                 raise ValueError("mandatory criterion cannot be not_applicable")
-        check(item, name in GENERIC and not (isinstance(definition, dict) and definition.get("mandatory")))
+        component = isinstance(definition, dict) and definition.get("window_component_of_global") is True
+        check(item, component or name in GENERIC and not (isinstance(definition, dict) and definition.get("mandatory")))
         item["confidence"] = unit(item.get("confidence"))
         required = required_segment_ids(name, definition, spans)
         scoped = isinstance(definition, dict) and "story_shot_index" in definition
@@ -181,7 +190,7 @@ def parse_judgment(raw, rubric, spans):
         if len(ids) != len(set(ids)) or set(ids) - set(allowed) or set(required) - set(ids):
             raise ValueError(f"{name}: missing/duplicate/out-of-range temporal windows; required={required}; received={ids}")
         for row in segments:
-            check(row, not (scoped and row["segment_id"] in required))
+            check(row, component or not (scoped and row["segment_id"] in required))
         if scoped:
             # Applicability comes from the frozen task, never from model scores.
             # Only unrelated windows can be filled; the target must be explicit.
@@ -192,6 +201,8 @@ def parse_judgment(raw, rubric, spans):
                         "applicability_source": "original_task_contract"})
             segments.sort(key=lambda row: row["segment_id"])
             target = next(row for row in segments if row["segment_id"] == required[0])
+            if component and target["status"] != item["status"]:
+                raise ValueError(f"{name}: fixed-window component requires matching top-level and target-segment statuses")
             if definition.get("evidence_status_contract") == "visible-outcome-v1":
                 basis = item.get("observation_basis")
                 if not isinstance(basis, str) or basis not in OBSERVATION_BASIS:
@@ -232,6 +243,41 @@ def parse_judgment(raw, rubric, spans):
             else:
                 item["score"] = min(item["score"], *(r["score"] for r in applicable))
         result[name] = item
+    return result
+
+
+def combine_window_judgments(full, components, spans):
+    """Combine preplanned views, preserving global unknowns and observed lows."""
+    result = deepcopy(full)
+    result["full_video_judgment"] = deepcopy(full)
+    result["fixed_window_judgments"] = deepcopy(components)
+    segments, confidence = [], [full["confidence"]]
+    for span, component in zip(spans, components):
+        matches = [row for row in component["segments"] if row["segment_id"] == span["segment_id"]]
+        if len(matches) != 1:
+            raise ValueError("global criterion lacks a unique fixed-window component")
+        target = deepcopy(matches[0])
+        if target["status"] != component["status"]:
+            raise ValueError("global fixed-window component statuses disagree")
+        if target["status"] == "observed":
+            target["score"] = min(target["score"], component["score"])
+        target["evidence_source"] = "fixed_window_clip"
+        segments.append(target)
+        confidence.append(component["confidence"])
+    if len(components) != len(spans):
+        raise ValueError("global criterion needs every fixed-window component")
+    result["segments"] = segments
+    result["confidence"] = min(confidence)
+    result["evidence"] = full["evidence"] + " | " + " | ".join(
+        f"Fixed window {row['segment_id']}: {row['evidence']}" for row in segments)
+    applicable = [row for row in segments if row["status"] != "not_applicable"]
+    if full["status"] != "observed" or not applicable or any(row["status"] == "unobserved" for row in applicable):
+        result.update(status="unobserved", score=None)
+    else:
+        # A local clip must not erase a visible low score from the complete video.
+        full_lows = [row["score"] for row in full["segments"] if row["status"] == "observed"]
+        result.update(status="observed", score=min(full["score"], *full_lows,
+                                                  *(row["score"] for row in applicable)))
     return result
 
 
@@ -364,6 +410,9 @@ class ConditioningVideoVerifier:
         scoped = sorted({required_segment_ids(name, rule, spans)[0]
                          for name, rule in task.metadata.get("evaluation", {}).items()
                          if isinstance(rule, dict) and "story_shot_index" in rule})
+        if any(isinstance(rule, dict) and rule.get("aggregation") == "minimum_over_segments"
+               and "story_shot_index" not in rule for rule in task.metadata.get("evaluation", {}).values()):
+            scoped = [span["segment_id"] for span in spans]
         clips = []
         for index in scoped:
             span = spans[index]
@@ -384,16 +433,24 @@ class ConditioningVideoVerifier:
             "candidate_hash": full["source_hash"], "windows": spans,
             "full_candidate_label": full_label, "window_clips": clips}
 
-    def criterion_groups(self, names, criteria):
+    def criterion_groups(self, names, criteria, spans=None):
         # Keep global metrics on the full video, and each shot on one fixed clip.
         scopes = {}
         for name in names:
             rule = criteria[name]
             index = rule.get("story_shot_index") if isinstance(rule, dict) else None
-            scopes.setdefault(index, []).append(name)
+            if spans is not None and index is None and isinstance(rule, dict) and rule.get("aggregation") == "minimum_over_segments":
+                scopes.setdefault(None, {})[name] = {**rule, "aggregation": "full_video_assessment"}
+                for span in spans:
+                    scopes.setdefault(span["segment_id"], {})[name] = {**rule,
+                        "story_shot_index": span["segment_id"], "aggregation": "mean",
+                        "window_component_of_global": True}
+            else:
+                scopes.setdefault(index, {})[name] = rule
         for group in scopes.values():
-            for start in range(0, len(group), self.profile["criteria_per_call"]):
-                yield {name: criteria[name] for name in group[start:start + self.profile["criteria_per_call"]]}
+            keys = list(group)
+            for start in range(0, len(keys), self.profile["criteria_per_call"]):
+                yield {name: group[name] for name in keys[start:start + self.profile["criteria_per_call"]]}
 
     def group_evidence(self, evidence, manifest, subset):
         scopes = {rule.get("story_shot_index") if isinstance(rule, dict) else None for rule in subset.values()}
@@ -587,6 +644,7 @@ class ConditioningVideoVerifier:
             return json.loads(final.read_text())
         write_json(folder / "evidence.json", manifest)
         observations = {k: [] for k in criteria}
+        window_observations = {}
         host_na = {k: v["host_not_applicable"] for k, v in criteria.items()
                    if isinstance(v, dict) and v.get("host_not_applicable")}
         for name, reason in host_na.items():
@@ -595,7 +653,7 @@ class ConditioningVideoVerifier:
                 "segments": [{"segment_id": span["segment_id"], "status": "not_applicable",
                               "score": None, "evidence": reason} for span in manifest["windows"]]}]
         names = [k for k in criteria if k not in host_na]
-        for group, subset in enumerate(self.criterion_groups(names, criteria)):
+        for group, subset in enumerate(self.criterion_groups(names, criteria, manifest["windows"])):
             group_media, group_manifest = self.group_evidence(evidence, manifest, subset)
             payload = {"original_task": public, "criteria": subset, "evidence_manifest": group_manifest}
             write_json(folder / f"group-{group:03d}.evidence.json", group_manifest)
@@ -604,7 +662,15 @@ class ConditioningVideoVerifier:
                 parsed = self._observe_group(path, payload, group_media, f"{digest[:12]}/{group}/{repeat}",
                                              subset, manifest["windows"])
                 for k, v in parsed.items():
-                    observations[k].append(v)
+                    if subset[k].get("window_component_of_global"):
+                        index = subset[k]["story_shot_index"]
+                        window_observations.setdefault(k, {}).setdefault(index, []).append(v)
+                    else:
+                        observations[k].append(v)
+        for name, by_window in window_observations.items():
+            for repeat, full in enumerate(observations[name]):
+                components = [by_window[span["segment_id"]][repeat] for span in manifest["windows"]]
+                observations[name][repeat] = combine_window_judgments(full, components, manifest["windows"])
         scores, texts, unobserved, disagreements, failed = {}, {}, [], {}, []
         scope_issues = {}
         for name, rows in observations.items():
@@ -648,6 +714,7 @@ class ConditioningVideoVerifier:
             evaluation_status="needs_review" if unobserved or review else "complete",
             verification_metadata={**manifest, "unobserved_criteria": unobserved, "disagreement_criteria": review,
                 "verifier_protocol": VERIFIER_PROTOCOL_VERSION, "scope_issues": scope_issues,
+                "global_fixed_window_criteria": sorted(window_observations),
                 "criterion_contracts": rubric, "host_not_applicable_criteria": host_na,
                 "repeat_disagreement": disagreements, "judgment_path": str(folder), "profile": self.profile,
                 "limitations": ["Video-language scores are semantic proxies, not official VBench metrics.",
