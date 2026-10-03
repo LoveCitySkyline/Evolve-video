@@ -1,4 +1,5 @@
 from copy import deepcopy
+import base64
 import io
 import json
 import os
@@ -203,6 +204,91 @@ class EvidenceContractTests(unittest.TestCase):
 
 
 class VerifierTests(unittest.TestCase):
+    def test_group_routing_preserves_references_and_excludes_other_windows(self):
+        verifier = ConditioningVideoVerifier(profile(criteria_per_call=2), self.root)
+        criteria = {"global": {}, "shot2a": {"story_shot_index": 2},
+                    "shot0": {"story_shot_index": 0}, "shot2b": {"story_shot_index": 2},
+                    "shot2c": {"story_shot_index": 2}}
+        groups = list(verifier.criterion_groups(list(criteria), criteria))
+        self.assertEqual([list(g) for g in groups], [["global"], ["shot2a", "shot2b"], ["shot2c"], ["shot0"]])
+        clips = [{"segment_id": i, "media_label": f"clip{i}", "source_time_offset_seconds": 6 * i} for i in range(3)]
+        manifest = {"full_candidate_label": "full", "window_clips": clips}
+        evidence = [(label, {"data": label}) for label in ("reference", "full", "clip0", "clip1", "clip2")]
+        before = deepcopy(manifest)
+        media, view = verifier.group_evidence(evidence, manifest, groups[1])
+        self.assertEqual([label for label, _ in media], ["reference", "clip2"])
+        self.assertEqual(view["evaluation_view"]["source_time_offset_seconds"], 12)
+        self.assertEqual(view["window_clips"], [clips[2]])
+        media, view = verifier.group_evidence(evidence, manifest, groups[0])
+        self.assertEqual([label for label, _ in media], ["reference", "full"])
+        self.assertEqual(view["evaluation_view"]["kind"], "full_video")
+        self.assertEqual(manifest, before)
+        with self.assertRaisesRegex(ValueError, "missing physically extracted"):
+            verifier.group_evidence(evidence[:-1], manifest, groups[1])
+        with self.assertRaisesRegex(ValueError, "exactly one temporal scope"):
+            verifier.group_evidence(evidence, manifest, criteria)
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "requires ffmpeg")
+    def test_physical_window_clips_contain_only_correct_frames_and_use_local_time(self):
+        video = self.root / "three_colors.mp4"
+        command = ["ffmpeg", "-nostdin", "-v", "error", "-y"]
+        for color in ("red", "green", "blue"):
+            command += ["-f", "lavfi", "-i", f"color=c={color}:s=96x64:r=4:d=6"]
+        subprocess.run(command + ["-filter_complex", "[0:v][1:v][2:v]concat=n=3:v=1:a=0[v]",
+            "-map", "[v]", "-c:v", "libx264", str(video)], check=True, capture_output=True)
+        self.task.duration_seconds = 18
+        self.task.metadata = {"h3_shots": [{"duration_seconds": 6} for _ in range(3)],
+            "evaluation": {f"story.s{i}.event": {"story_shot_index": i} for i in range(3)}}
+        self.artifact.metadata["local_video_path"] = str(video)
+        verifier = ConditioningVideoVerifier(profile(), self.root / "judge")
+        evidence, manifest = verifier.evidence(self.task, self.artifact)
+        self.assertEqual(len(manifest["window_clips"]), 3)
+        for i, clip in enumerate(manifest["window_clips"]):
+            medium = dict(evidence)[clip["media_label"]]
+            path = self.root / f"decoded-window-{i}.mp4"
+            path.write_bytes(base64.b64decode(medium["data"]))
+            self.assertEqual(clip["sampled_frame_count"], 12)
+            self.assertAlmostEqual(clip["clip_duration_seconds"], 6)
+            self.assertEqual(clip["source_time_offset_seconds"], i * 6)
+            pixels = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-vf", "scale=1:1",
+                "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], check=True, capture_output=True).stdout
+            self.assertEqual(len(pixels), 36)
+            self.assertTrue(all(max(range(3), key=lambda c: pixels[j + c]) == i for j in range(0, len(pixels), 3)))
+            frames = json.loads(subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "frame=best_effort_timestamp_time", "-of", "json", str(path)],
+                check=True, capture_output=True).stdout)["frames"]
+            self.assertEqual(float(frames[0]["best_effort_timestamp_time"]), 0)
+            self.assertEqual(float(frames[-1]["best_effort_timestamp_time"]), 5.5)
+        with patch("evovideo_skill.conditioning_verifier.subprocess.run", wraps=subprocess.run) as run:
+            self.assertEqual(verifier.evidence(self.task, self.artifact), (evidence, manifest))
+        self.assertFalse(any(call.args[0][0] == "ffmpeg" for call in run.call_args_list))
+        calls = []
+        def request(prompt, media, operation):
+            payload = json.loads(prompt)
+            view = payload["evidence_manifest"]["evaluation_view"]
+            calls.append(view)
+            self.assertEqual(len(media), 1)
+            rows = {}
+            for name, rule in payload["criteria"].items():
+                row = observed(0, 3 if "story_shot_index" not in rule else 1)
+                if "story_shot_index" in rule:
+                    row["segments"][0]["segment_id"] = rule["story_shot_index"]
+                    row["observation_basis"] = "visible_mismatch"
+                    self.assertEqual(view["segment_id"], rule["story_shot_index"])
+                rows[name] = row
+            return {"criteria": rows}
+        with patch.object(verifier, "request", side_effect=request):
+            result = verifier.evaluate(self.task, self.artifact)
+        self.assertEqual(result["evaluation_status"], "complete")
+        self.assertEqual([v["kind"] for v in calls], ["full_video"] + ["fixed_window_clip"] * 3)
+        self.assertEqual(calls[-1]["source_time_offset_seconds"], 12)
+        folder = Path(result["verification_metadata"]["judgment_path"])
+        self.assertEqual(json.loads((folder / "group-003.evidence.json").read_text())["evaluation_view"]["segment_id"], 2)
+        self.task.duration_seconds = 24
+        self.task.metadata["h3_shots"][-1]["duration_seconds"] = 12
+        with self.assertRaisesRegex(ValueError, "does not cover fixed window 2"):
+            verifier.evidence(self.task, self.artifact)
+
     def test_story_status_contract_and_identity_context_preserve_valid_unknown_or_low_score(self):
         name = "story.s0.event.walk"
         identity = "A has auburn hair and a teal jacket. B has gray hair and a navy apron."
@@ -217,17 +303,18 @@ class VerifierTests(unittest.TestCase):
                     data = json.loads(prompt)
                     prompts.append(data)
                     rows = {k: observed() for k in data["criteria"]}
-                    rows[name].update(observation_basis=basis, status=status, score=score,
-                        evidence="The required action is missing; occlusion prevents deciding whether it occurred.")
-                    rows[name]["segments"][0].update(status=status, score=score)
+                    if name in rows:
+                        rows[name].update(observation_basis=basis, status=status, score=score,
+                            evidence="The required action is missing; occlusion prevents deciding whether it occurred.")
+                        rows[name]["segments"][0].update(status=status, score=score)
                     return {"criteria": rows}
                 with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
                         verifier, "request", side_effect=request) as call:
                     result = verifier.evaluate(self.task, self.artifact)
-                self.assertEqual(call.call_count, 1)
-                self.assertEqual(prompts[0]["frozen_identity_context"]["requirements"], identity)
-                self.assertEqual(prompts[0]["criteria"][name]["evidence_status_contract"], "visible-outcome-v1")
-                self.assertEqual(prompts[0]["output_contract"]["observation_basis"]["required_for"], [name])
+                self.assertEqual(call.call_count, 2)
+                self.assertEqual(prompts[1]["frozen_identity_context"]["requirements"], identity)
+                self.assertEqual(prompts[1]["criteria"][name]["evidence_status_contract"], "visible-outcome-v1")
+                self.assertEqual(prompts[1]["output_contract"]["observation_basis"]["required_for"], [name])
                 if status == "observed":
                     self.assertEqual(result["evaluation_status"], "complete")
                     self.assertEqual(result["criterion_scores"][name], 0)
@@ -247,19 +334,20 @@ class VerifierTests(unittest.TestCase):
             data = json.loads(prompt)
             calls.append((data, media))
             rows = {k: observed() for k in data["criteria"]}
-            rows[name].update(status="unobserved", score=None,
-                observation_basis="visible_mismatch" if len(calls) == 1 else "insufficient_evidence")
-            rows[name]["segments"][0].update(status="unobserved", score=None)
+            if name in rows:
+                rows[name].update(status="unobserved", score=None,
+                    observation_basis="visible_mismatch" if len(calls) == 2 else "insufficient_evidence")
+                rows[name]["segments"][0].update(status="unobserved", score=None)
             return {"criteria": rows}
         with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
                 verifier, "request", side_effect=request):
             result = verifier.evaluate(self.task, self.artifact)
             self.assertEqual(result, verifier.evaluate(self.task, self.artifact))
-        self.assertEqual(len(calls), 2)
-        self.assertEqual(calls[0][1], calls[1][1])
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(calls[1][1], calls[2][1])
         for key in ("original_task", "criteria", "evidence_manifest", "frozen_identity_context"):
-            self.assertEqual(calls[0][0][key], calls[1][0][key])
-        self.assertIn("observation_basis", calls[1][0]["format_feedback"]["error"])
+            self.assertEqual(calls[1][0][key], calls[2][0][key])
+        self.assertIn("observation_basis", calls[2][0]["format_feedback"]["error"])
         self.assertEqual(result["evaluation_status"], "needs_review")
         self.assertNotIn(name, result["criterion_scores"])
 
@@ -292,6 +380,10 @@ class VerifierTests(unittest.TestCase):
             {"local_video_path": "/not-used.mp4", "vlm_evaluation": {"score": 1}, "graph_id": "winner"})
         self.evidence = [("ANONYMOUS CANDIDATE VIDEO", {"mime": "video/mp4", "data": "AA==", "source_hash": "abc"})]
         self.manifest = {"windows": windows(self.task), "candidate_hash": "abc", "references": [], "fps": 2}
+        self.manifest["full_candidate_label"] = self.evidence[0][0]
+        self.manifest["window_clips"] = [{**windows(self.task)[0], "media_label": "FIXED WINDOW 0",
+                                         "source_time_offset_seconds": 0}]
+        self.evidence.append(("FIXED WINDOW 0", {"mime": "video/mp4", "data": "AQ==", "source_hash": "abc"}))
 
     def test_blinded_prompt_and_success_cache(self):
         verifier = ConditioningVideoVerifier(profile(), self.root)

@@ -27,7 +27,7 @@ from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 
 
-VERIFIER_PROTOCOL_VERSION = "native-video-evidence-status-v6"
+VERIFIER_PROTOCOL_VERSION = "fixed-window-video-evidence-v7"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -103,6 +103,16 @@ window identity, action order and transitions. Do not penalize a window merely
 because an action is correctly scheduled elsewhere. For minimum_over_segments,
 all applicable windows need evidence; the host computes the minimum. Explain any
 uncertainty or failures with approximate video-local timestamps. No markdown.
+Read evidence_manifest.evaluation_view before judging. For fixed_window_clip,
+the host has physically extracted ONLY the declared temporal window from the
+candidate. Clip-local time starts at 0; original-video time equals clip-local
+time plus source_time_offset_seconds. ALL frames in that candidate clip belong
+to the declared segment_id regardless of their content or detected cuts. Do not
+reassign them to an earlier shot because the expected event has not happened.
+A six-second clip for segment 2 at offset 12 covers original time 12..18;
+clip-local time 5 is original time 17, which is in segment 2, never segment 1.
+Use only this target clip for shot evidence; original references identify
+appearance, not what happened in the candidate. Do not invent other windows.
 """
 
 
@@ -278,21 +288,28 @@ class ConditioningVideoVerifier:
         self.cache_enabled = True
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def media(self, path, kind):
+    def media(self, path, kind, span=None):
         path = Path(path).expanduser().resolve()
         if not path.is_file():
             raise ValueError("verifier requires materialized original references and candidate media")
         source_hash = stable_hash(path.read_bytes().hex())
+        if span is not None and (kind != "video" or any(
+                type(span.get(k)) not in (int, float) or not math.isfinite(span[k])
+                for k in ("start_seconds", "end_seconds"))
+                or not 0 <= span["start_seconds"] < span["end_seconds"]):
+            raise ValueError("invalid fixed-window video interval")
         if kind == "video":
-            target = self.root / "media" / (stable_hash([source_hash, self.profile["fps"], self.profile["max_width"]]) + ".mp4")
+            target = self.root / "media" / (stable_hash([source_hash, self.profile["fps"], self.profile["max_width"], span]) + ".mp4")
             if not target.exists():
                 target.parent.mkdir(parents=True, exist_ok=True)
                 fd, name = tempfile.mkstemp(suffix=".mp4", dir=target.parent)
                 os.close(fd)
                 temporary = Path(name)
                 try:
+                    trim = (f"trim=start={span['start_seconds']}:end={span['end_seconds']},setpts=PTS-STARTPTS,"
+                            if span is not None else "")
                     subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(path),
-                        "-map", "0:v:0", "-an", "-vf", f"fps={self.profile['fps']},scale='min({self.profile['max_width']},iw)':-2",
+                        "-map", "0:v:0", "-an", "-vf", trim + f"fps={self.profile['fps']},scale='min({self.profile['max_width']},iw)':-2",
                         "-c:v", "libx264", "-crf", "20", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(temporary)],
                         check=True, capture_output=True, timeout=120)
                     temporary.replace(target)
@@ -305,7 +322,20 @@ class ConditioningVideoVerifier:
         mime = "video/mp4" if kind == "video" else mimetypes.guess_type(str(path))[0]
         if not mime or not mime.startswith(("video/", "image/")):
             raise ValueError("unsupported visual evidence MIME type")
-        return {"mime": mime, "data": base64.b64encode(data).decode("ascii"), "source_hash": source_hash}
+        result = {"mime": mime, "data": base64.b64encode(data).decode("ascii"), "source_hash": source_hash}
+        if span is not None:
+            streams = probe_media(str(path)).get("streams", [])
+            video = next((s for s in streams if s.get("codec_type") == "video"), {})
+            duration = float(video.get("duration", 0))
+            count = int(video.get("nb_frames", 0))
+            expected = span["end_seconds"] - span["start_seconds"]
+            if not math.isfinite(duration) or duration <= 0 or count <= 0 or abs(duration - expected) > 1 / self.profile["fps"] + .001:
+                raise ValueError("fixed-window evidence is empty or has incorrect duration; no padding or substituted window")
+            result["window_metadata"] = {**span, "clip_duration_seconds": duration,
+                "sampled_frame_count": count, "source_time_offset_seconds": span["start_seconds"],
+                "clip_time_origin_seconds": 0, "sampled_media_hash": stable_hash(data.hex()),
+                "sampled_media_file": path.name}
+        return result
 
     def evidence(self, task, artifact):
         references, manifest = [], []
@@ -327,11 +357,65 @@ class ConditioningVideoVerifier:
         duration = float(info.get("format", {}).get("duration", 0))
         if not math.isfinite(duration) or duration <= 0:
             raise ValueError("candidate video duration is unavailable")
-        references.append(("ANONYMOUS CANDIDATE VIDEO, local time starts at zero", self.media(candidate, "video")))
+        full_label = "ANONYMOUS CANDIDATE VIDEO, local time starts at zero"
+        full = self.media(candidate, "video")
+        references.append((full_label, full))
+        spans = windows(task)
+        scoped = sorted({required_segment_ids(name, rule, spans)[0]
+                         for name, rule in task.metadata.get("evaluation", {}).items()
+                         if isinstance(rule, dict) and "story_shot_index" in rule})
+        clips = []
+        for index in scoped:
+            span = spans[index]
+            video_stream = next((s for s in info.get("streams", []) if s.get("codec_type") == "video"), {})
+            source_duration = float(video_stream.get("duration", 0))
+            if not math.isfinite(source_duration) or source_duration + .05 < span["end_seconds"]:
+                raise ValueError(f"candidate video does not cover fixed window {index}; no fabricated temporal evidence")
+            medium = self.media(candidate, "video", span=span)
+            label = (f"ANONYMOUS CANDIDATE FIXED WINDOW segment_id={index}; "
+                     f"clip-local 0..{span['end_seconds'] - span['start_seconds']}s = "
+                     f"original-video {span['start_seconds']}..{span['end_seconds']}s; "
+                     "every frame belongs to this segment_id")
+            references.append((label, medium))
+            clips.append({**medium["window_metadata"], "media_label": label})
         return references, {"references": manifest, "candidate_duration_seconds": duration,
             "requested_duration_seconds": task.duration_seconds, "fps": self.profile["fps"],
             "audio_evidence_available": False, "full_rate_motion_verified": False,
-            "candidate_hash": references[-1][1]["source_hash"], "windows": windows(task)}
+            "candidate_hash": full["source_hash"], "windows": spans,
+            "full_candidate_label": full_label, "window_clips": clips}
+
+    def criterion_groups(self, names, criteria):
+        # Keep global metrics on the full video, and each shot on one fixed clip.
+        scopes = {}
+        for name in names:
+            rule = criteria[name]
+            index = rule.get("story_shot_index") if isinstance(rule, dict) else None
+            scopes.setdefault(index, []).append(name)
+        for group in scopes.values():
+            for start in range(0, len(group), self.profile["criteria_per_call"]):
+                yield {name: criteria[name] for name in group[start:start + self.profile["criteria_per_call"]]}
+
+    def group_evidence(self, evidence, manifest, subset):
+        scopes = {rule.get("story_shot_index") if isinstance(rule, dict) else None for rule in subset.values()}
+        if len(scopes) != 1:
+            raise ValueError("verifier group must have exactly one temporal scope")
+        index = next(iter(scopes))
+        clips = manifest.get("window_clips", [])
+        clip_labels = {clip["media_label"] for clip in clips}
+        group_manifest = deepcopy(manifest)
+        if index is None:
+            group_manifest["window_clips"] = []
+            group_manifest["evaluation_view"] = {"kind": "full_video", "source_time_offset_seconds": 0}
+            return [(label, medium) for label, medium in evidence if label not in clip_labels], group_manifest
+        selected = next((clip for clip in clips if clip["segment_id"] == index), None)
+        if selected is None or not any(label == selected["media_label"] for label, _ in evidence):
+            raise ValueError(f"missing physically extracted evidence for fixed window {index}")
+        group_manifest["window_clips"] = [selected]
+        group_manifest["evaluation_view"] = {"kind": "fixed_window_clip", **selected,
+            "time_mapping": "original_video_seconds = clip_local_seconds + source_time_offset_seconds"}
+        excluded = clip_labels | {manifest["full_candidate_label"]}
+        return [(label, medium) for label, medium in evidence
+                if label not in excluded or label == selected["media_label"]], group_manifest
 
     def request(self, prompt, evidence, operation):
         p = self.profile
@@ -511,12 +595,13 @@ class ConditioningVideoVerifier:
                 "segments": [{"segment_id": span["segment_id"], "status": "not_applicable",
                               "score": None, "evidence": reason} for span in manifest["windows"]]}]
         names = [k for k in criteria if k not in host_na]
-        for group in range(0, len(names), self.profile["criteria_per_call"]):
-            subset = {k: criteria[k] for k in names[group:group + self.profile["criteria_per_call"]]}
-            payload = {"original_task": public, "criteria": subset, "evidence_manifest": manifest}
+        for group, subset in enumerate(self.criterion_groups(names, criteria)):
+            group_media, group_manifest = self.group_evidence(evidence, manifest, subset)
+            payload = {"original_task": public, "criteria": subset, "evidence_manifest": group_manifest}
+            write_json(folder / f"group-{group:03d}.evidence.json", group_manifest)
             for repeat in range(self.profile["repeats"]):
                 path = folder / f"group-{group:03d}-repeat-{repeat}.json"
-                parsed = self._observe_group(path, payload, evidence, f"{digest[:12]}/{group}/{repeat}",
+                parsed = self._observe_group(path, payload, group_media, f"{digest[:12]}/{group}/{repeat}",
                                              subset, manifest["windows"])
                 for k, v in parsed.items():
                     observations[k].append(v)
