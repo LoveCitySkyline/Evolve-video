@@ -39,6 +39,10 @@ python -m evovideo_skill.story_dataset audit
 
 剧情约束中 `preconditions`／`postconditions` 保存期望的完整状态。可选的 `observable_pre`／`observable_post` 指明其中哪些能被直接评估。物体完全位于不透明遮挡物后面时，内部位置仍参与因果校验，但不会被编造成视觉证据；进入、离开、遮挡边界和重新出现后的状态仍需评估。原有任务不声明这些字段时保持原来的全部检查。当前可见性注释是规则生成的草案，人工审阅应检查是否有误免除或不可观测项目。
 
+本地 H3 有时返回略长于请求的生成片段。带 `story_contract` 的每次 native 生成现在采用统一输出协议：若视频流超出请求不超过 0.75 秒，保留原片并裁掉超出的尾部，再抽帧、复用条件或拼接。基线及 T2VA／Ref2VA／FL2VA 候选都使用相同规则，不改固定参考素材，不扩大最终总时长容差，不做补帧或变速；偏短或明显超长仍拒绝。每段 `h3_output_alignment` 与 `.alignment.json` 记录原片、校验和、实际时长和裁切量，拼接来源也保留这些记录。尾部可能包含最后一个动作或条件末帧；必须评估裁后实际视频的结尾，不能把裁切当作剧情已完成。生成秒数成本代理仍按请求计算，原始输出时长另行记录。
+
+从未做此对齐的旧版本更新后，用新实验目录，不能复用旧评分或 checkpoint。对于已生成但因总时长报错而停止的运行，可仅复制旧 `videos/` 到新目录的 `videos/`，保留原生请求 ledger 和原片缓存；相同请求、seed、条件内容、endpoint、模型 revision 才会复用。不要复制 `node_cache/`、`evaluations/`、`checkpoint.json` 或冻结策略。素材 prepared 目录不需重建。
+
 ## 先在服务器准备 15 条开发数据
 
 沿用你已经运行的 H3 SGLang 服务、Python 环境和 planner/verifier 配置，不需要重新部署模型。

@@ -469,6 +469,9 @@ class H3AVConcatTool(_H3MediaTool):
                 concat.append(f"[{label}]")
             lineage.append({"source_node": sources[index], "uri": str(path), "duration_seconds": duration,
                             "has_audio": info["has_audio"], "silent_tracks_added": audio_count - len(info["audio_streams"])})
+            alignment = context.input_artifacts[sources[index]].metadata.get("h3_output_alignment")
+            if alignment:
+                lineage[-1]["h3_output_alignment"] = deepcopy(alignment)
         outputs = "[video]" + "".join(f"[audio{track}]" for track in range(audio_count))
         filters.append("".join(concat) + f"concat=n={len(inputs)}:v=1:a={audio_count}" + outputs)
         args += ["-filter_complex", ";".join(filters), "-map", "[video]"]

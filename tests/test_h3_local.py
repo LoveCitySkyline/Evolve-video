@@ -119,6 +119,17 @@ class LocalH3Tests(unittest.TestCase):
         self.assertEqual(list(self.client.jobs.glob("*.lock.d")), [])
         self.assertFalse((self.client.jobs / ".lock.d").exists())
 
+    def test_completed_raw_cache_can_move_without_reusing_evaluations(self):
+        original = self.client.generate(self.payload, {"replicate_label": 42})
+        destination = self.root / "new-experiment" / "videos"
+        shutil.copytree(self.client.root, destination)
+        other = H3LocalClient(replace(self.config, output_dir=str(destination)), self.http)
+        with patch("evovideo_skill.h3_local._local_open", side_effect=AssertionError("must reuse downloaded media")):
+            recovered = other.generate(self.payload, {"replicate_label": 42})
+        self.assertEqual(len(self.http.posts), 1)
+        self.assertEqual(original[0], recovered[0])
+        self.assertEqual(Path(recovered[2]["local_video_path"]).parent, destination.resolve())
+
     def test_seed_and_revision_and_input_bytes_invalidate_cache(self):
         self.client.generate(self.payload, {"replicate_label": 42})
         self.client.generate(self.payload, {"replicate_label": 43})

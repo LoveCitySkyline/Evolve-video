@@ -529,7 +529,16 @@ class H3GenerationTool(VideoTool):
         print(f"[H3] start task={task.task_id} node={context.node_id} mode={mode} references={len(refs)}", flush=True)
         task_id, url, record = self.client.generate(payload, identity)
         local = self.client.root / f"{task_id}.mp4"
-        processed = self.client.processor.process(local.as_uri() if local.is_file() else url, task_id, task.prompt, {"plan": asdict(plan)})
+        alignment = None
+        processing_url, processing_id = local.as_uri() if local.is_file() else url, task_id
+        if self.client.provider_name == "local-h3" and task.metadata.get("story_contract"):
+            from evovideo_skill.h3_output_alignment import align_story_output
+            source = media_path(processing_url)
+            if source is None or not source.is_file():
+                raise VideoApiError("Local H3 story output must be materialized before duration alignment")
+            aligned, alignment = align_story_output(source, duration, self.client.root)
+            processing_url, processing_id = aligned.as_uri(), aligned.stem
+        processed = self.client.processor.process(processing_url, processing_id, task.prompt, {"plan": asdict(plan)})
         if not processed.sampled_frame_paths:
             raise VideoApiError(f"H3 generated video has no decodable frames: {processed.local_video_path}")
         media = probe_media(processed.local_video_path)
@@ -545,6 +554,8 @@ class H3GenerationTool(VideoTool):
                     "duration_seconds": float(media.get("format", {}).get("duration", duration)),
                     "upstream_conditioning_consumed": bool(refs) or planning_consumed,
                     "h3_usage": record.get("usage"), "real_video_processed": True}
+        if alignment is not None:
+            metadata["h3_output_alignment"] = alignment
         if repair_segment is not None:
             metadata.update(repair_timeline="segment", repair_segment=dict(repair_segment))
         elif repair_instructions:
@@ -580,6 +591,8 @@ class H3GenerationTool(VideoTool):
                                provider_seed_control=self.client.provider_seed_control, direct_generation_calls=len(clips),
                                baseline_protocol="independent_native_shot_calls_then_av_concat",
                                h3_usage=[clip.metadata.get("h3_usage") for clip in clips.values()])
+        result.metadata["h3_output_alignments"] = [clip.metadata["h3_output_alignment"]
+            for clip in clips.values() if clip.metadata.get("h3_output_alignment")]
         if self.client.provider_seed_control:
             first = next(iter(clips.values())).metadata
             result.metadata.update(generation_seed=first["generation_seed"], evaluation_seed=first["evaluation_seed"],
