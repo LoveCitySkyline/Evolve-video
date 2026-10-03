@@ -29,6 +29,35 @@ def profile(**kwargs):
 
 
 class EvidenceContractTests(unittest.TestCase):
+    def test_observation_basis_requires_consistent_status_without_choosing_scores(self):
+        rubric = {"event": {"story_shot_index": 0, "evidence_status_contract": "visible-outcome-v1"}}
+        spans = [{"segment_id": 0}]
+        for basis, status, score in (("visible_match", "observed", 1),
+                                     ("visible_mismatch", "observed", 0),
+                                     ("visible_mismatch", "observed", .25),
+                                     ("insufficient_evidence", "unobserved", None)):
+            row = observed(score)
+            row.update(observation_basis=basis, status=status)
+            row["segments"][0]["status"] = status
+            original = deepcopy(row)
+            with self.subTest(basis=basis, score=score):
+                parsed = parse_judgment({"criteria": {"event": row}}, rubric, spans)["event"]
+                self.assertEqual(parsed, original)
+                self.assertEqual(row, original)
+        for basis, top, segment in (("visible_mismatch", "unobserved", "unobserved"),
+                                    ("insufficient_evidence", "observed", "observed"),
+                                    ("visible_match", "observed", "unobserved"),
+                                    (None, "observed", "observed"),
+                                    ([], "observed", "observed")):
+            row = observed()
+            row.update(observation_basis=basis, status=top, score=None if top == "unobserved" else .8)
+            row["segments"][0].update(status=segment, score=None if segment == "unobserved" else .8)
+            original = deepcopy(row)
+            with self.subTest(basis=basis, top=top, segment=segment):
+                with self.assertRaisesRegex(ValueError, "observation_basis"):
+                    parse_judgment({"criteria": {"event": row}}, rubric, spans)
+                self.assertEqual(row, original)
+
     def test_real_relay_baton_response_preserves_target_scores_and_evidence(self):
         from evovideo_skill.story_contracts import prepare_story_task, acceptance_report
         root = Path(__file__).resolve().parents[1]
@@ -174,6 +203,66 @@ class EvidenceContractTests(unittest.TestCase):
 
 
 class VerifierTests(unittest.TestCase):
+    def test_story_status_contract_and_identity_context_preserve_valid_unknown_or_low_score(self):
+        name = "story.s0.event.walk"
+        identity = "A has auburn hair and a teal jacket. B has gray hair and a navy apron."
+        self.task.metadata.update(h3_global_constraints=identity, evaluation={name: {"story_shot_index": 0}})
+        original_task = deepcopy(self.task.metadata)
+        for basis, status, score in (("visible_mismatch", "observed", 0),
+                                     ("insufficient_evidence", "unobserved", None)):
+            with self.subTest(basis=basis):
+                verifier = ConditioningVideoVerifier(profile(), self.root / basis)
+                prompts = []
+                def request(prompt, evidence, operation):
+                    data = json.loads(prompt)
+                    prompts.append(data)
+                    rows = {k: observed() for k in data["criteria"]}
+                    rows[name].update(observation_basis=basis, status=status, score=score,
+                        evidence="The required action is missing; occlusion prevents deciding whether it occurred.")
+                    rows[name]["segments"][0].update(status=status, score=score)
+                    return {"criteria": rows}
+                with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                        verifier, "request", side_effect=request) as call:
+                    result = verifier.evaluate(self.task, self.artifact)
+                self.assertEqual(call.call_count, 1)
+                self.assertEqual(prompts[0]["frozen_identity_context"]["requirements"], identity)
+                self.assertEqual(prompts[0]["criteria"][name]["evidence_status_contract"], "visible-outcome-v1")
+                self.assertEqual(prompts[0]["output_contract"]["observation_basis"]["required_for"], [name])
+                if status == "observed":
+                    self.assertEqual(result["evaluation_status"], "complete")
+                    self.assertEqual(result["criterion_scores"][name], 0)
+                else:
+                    self.assertEqual(result["evaluation_status"], "needs_review")
+                    self.assertNotIn(name, result["criterion_scores"])
+                    folder = Path(result["verification_metadata"]["judgment_path"])
+                    self.assertTrue((folder / "needs_review.json").exists())
+                self.assertEqual(self.task.metadata, original_task)
+
+    def test_contradictory_story_status_has_one_correction_with_same_media_and_can_remain_unknown(self):
+        name = "story.s0.event.walk"
+        self.task.metadata["evaluation"] = {name: {"story_shot_index": 0}}
+        verifier = ConditioningVideoVerifier(profile(), self.root)
+        calls = []
+        def request(prompt, media, operation):
+            data = json.loads(prompt)
+            calls.append((data, media))
+            rows = {k: observed() for k in data["criteria"]}
+            rows[name].update(status="unobserved", score=None,
+                observation_basis="visible_mismatch" if len(calls) == 1 else "insufficient_evidence")
+            rows[name]["segments"][0].update(status="unobserved", score=None)
+            return {"criteria": rows}
+        with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
+                verifier, "request", side_effect=request):
+            result = verifier.evaluate(self.task, self.artifact)
+            self.assertEqual(result, verifier.evaluate(self.task, self.artifact))
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][1], calls[1][1])
+        for key in ("original_task", "criteria", "evidence_manifest", "frozen_identity_context"):
+            self.assertEqual(calls[0][0][key], calls[1][0][key])
+        self.assertIn("observation_basis", calls[1][0]["format_feedback"]["error"])
+        self.assertEqual(result["evaluation_status"], "needs_review")
+        self.assertNotIn(name, result["criterion_scores"])
+
     def test_scoped_prompt_accepts_sparse_low_score_without_correction_and_caches_raw(self):
         verifier = ConditioningVideoVerifier(profile(), self.root)
         spans = [{"segment_id": i, "start_seconds": i * 6, "end_seconds": (i + 1) * 6} for i in range(3)]

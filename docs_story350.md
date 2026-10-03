@@ -45,6 +45,12 @@ python -m evovideo_skill.story_dataset audit
 
 分镜评估以冻结 rubric 中的 `story_shot_index` 为准：例如 `story.s1.*` 必须明确返回窗口 1 的判断，其他窗口可以省略。省略的不相关窗口由程序标记 `not_applicable`／`score: null`，并注明 `applicability_source=original_task_contract`；不会补造视觉观察或分数。没有明确分镜范围的指标仍必须覆盖所有固定窗口。目标窗口缺失、编号非法或重复会拒绝；目标窗口 `unobserved` 会使该指标保持未知，不能通过顶层分数掩盖。低分和 0 分是有效失败观察，不触发重新评分以提高分数。
 
+`native-video-evidence-status-v6` 进一步要求每条分镜判断提供 `observation_basis`：`visible_match`（可见且符合）、`visible_mismatch`（可见但不符合／部分符合）或 `insufficient_evidence`（无法判定）。前两者对应顶层和目标窗口均为 `observed`，后者对应 `unobserved`／null。分类字段缺失或与状态冲突时，仅沿用原有的一次格式纠正机会，以相同任务和媒体复核；合法的未知或低分不会重试。程序不会通过“动作缺失”等文本关键词自动补 0 分，也不会把未知当作失败样本沉淀。
+
+每个分镜评估分组都重申来自原任务的角色与外观要求，不按当前持物者、画面位置或期望动作重新命名 A/B。提示明确区分“预期动作没有发生”和“视频证据不可见”，也说明最后采样时间早于名义终点不等于整个末镜头缺失，不能推断未采样的末尾状态。结构校验不能自动验证模型的角色识别和自然语言证据是否真实；若仍有遮挡、身份歧义或采样不足，评估继续停在 `needs_review`，须检查视频与原始响应。该协议是评估可靠性修正，不证明生成质量提升；同模型复核也不是独立验证。
+
+启动日志现在打印实际 `protocol` 和源码 `source` 路径，便于确认服务器已同步。升级评估协议后仍须新建实验目录并仅复用生成视频缓存，不能混用旧协议评分。
+
 旧版可能把 Qwen 仅返回目标镜头的合理响应误报为 `all fixed temporal windows need explicit judgments`。升级这一评估协议后，同样使用新实验目录，只复用 `videos/` 原生生成缓存；不复用旧评估或搜索 checkpoint。示例（在仓库根目录运行，替换 `old_run` 为实际旧目录）：
 
 ```bash

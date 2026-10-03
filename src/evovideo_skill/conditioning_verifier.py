@@ -27,7 +27,12 @@ from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 
 
-VERIFIER_PROTOCOL_VERSION = "native-video-criterion-scope-v5"
+VERIFIER_PROTOCOL_VERSION = "native-video-evidence-status-v6"
+OBSERVATION_BASIS = {
+    "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
+    "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
+    "insufficient_evidence": "Visibility, identity ambiguity, sampling or missing media prevents deciding; status=unobserved and score=null. Explain the specific limitation.",
+}
 
 GENERIC = {
     "identity_consistency_score": "Identity consistency of visible subjects over the complete video.",
@@ -61,6 +66,25 @@ Distinguish a visible failure (observed, possibly zero) from insufficient eviden
 criteria may NOT. If a requested event is absent throughout adequate video evidence,
 that is an observed failure, not automatically unobserved. Occluded tiny details
 or missing references may be genuinely unobservable; never invent evidence.
+For each shot criterion with evidence_status_contract=visible-outcome-v1, include
+a top-level observation_basis: visible_match, visible_mismatch, or
+insufficient_evidence. It describes whether the requirement can be assessed, NOT
+whether the desired action occurred. Both top-level and target-segment status
+must agree with this basis. Example: an adequately visible person remains still
+when walking is required -> visible_mismatch, observed, with a justified low
+score. An occluded person whose movement cannot be determined ->
+insufficient_evidence, unobserved, null. Do not infer failure solely from missing
+sampled evidence of a brief event. Desired-shot absence is not automatically
+missing video evidence: fixed windows exist independently of detected cuts.
+A last sampled timestamp earlier than the nominal endpoint does not by itself
+mean the whole final window is absent. Assess the supplied samples; do not claim
+to have seen the unsampled tail or extrapolate an earlier state into it.
+Bind actor labels to the ORIGINAL task's appearance definitions and references,
+never to who currently holds an object, screen position, or the desired action.
+Describe relevant actors by label AND distinguishing visible attributes in the
+evidence. Do not swap A/B to fit the action. If identity cannot be resolved,
+state that limitation rather than inventing an assignment. Evidence must be
+internally consistent about who holds an object at a given time.
 Score anchors: 0 absent/contradicted, .25 mostly wrong, .5 partial, .75 mostly met
 with visible defects, 1 fully met in the supplied evidence. Intermediate scores
 are allowed. Confidence is your self-report, NOT a calibrated probability.
@@ -158,6 +182,15 @@ def parse_judgment(raw, rubric, spans):
                         "applicability_source": "original_task_contract"})
             segments.sort(key=lambda row: row["segment_id"])
             target = next(row for row in segments if row["segment_id"] == required[0])
+            if definition.get("evidence_status_contract") == "visible-outcome-v1":
+                basis = item.get("observation_basis")
+                if not isinstance(basis, str) or basis not in OBSERVATION_BASIS:
+                    raise ValueError(f"{name}: observation_basis must be one of {list(OBSERVATION_BASIS)}")
+                expected = "unobserved" if basis == "insufficient_evidence" else "observed"
+                if item["status"] != expected or target["status"] != expected:
+                    raise ValueError(f"{name}: observation_basis={basis} requires top-level and target segment "
+                                     f"status={expected}; reconcile the classification against the same evidence, "
+                                     "not by inventing observations or scores")
             if target["status"] == "unobserved":
                 item.update(status="unobserved", score=None)
         if isinstance(definition, dict) and definition.get("scoring_scope") == "visible_appearance_only":
@@ -385,6 +418,8 @@ class ConditioningVideoVerifier:
             definition = criteria[name]
             criteria[name] = ({**definition, "mandatory": True} if isinstance(definition, dict)
                               else {"description": str(definition), "mandatory": True})
+            if "story_shot_index" in criteria[name]:
+                criteria[name]["evidence_status_contract"] = "visible-outcome-v1"
         if (task.mode == "generation" and not task.metadata.get("edit_operations")
                 and "target_edit_success_score" not in task.metadata.get("evaluation", {})):
             criteria["target_edit_success_score"]["host_not_applicable"] = (
@@ -421,6 +456,19 @@ class ConditioningVideoVerifier:
                                "segment IDs. For story_shot_index, both the top-level and segment judgment refer only "
                                "to that shot; other windows may be omitted. Otherwise return all temporal windows. "
                                "Missing evidence uses unobserved with null score; never omit a required segment."}
+            scoped = [name for name, rule in subset.items() if isinstance(rule, dict)
+                      and rule.get("evidence_status_contract") == "visible-outcome-v1"]
+            if scoped:
+                prompt_data["output_contract"]["observation_basis"] = {
+                    "required_for": scoped, "location": "top-level of each criterion judgment",
+                    "allowed_values": OBSERVATION_BASIS}
+                original = payload.get("original_task", {})
+                prompt_data["frozen_identity_context"] = {
+                    "source": "original_task",
+                    "requirements": original.get("metadata", {}).get("h3_global_constraints") or original.get("prompt", ""),
+                    "instruction": "Use these original actor definitions in this group. Never assign actor labels "
+                                   "from possession, desired actions or earlier judgments. If visible identity is "
+                                   "ambiguous, state why; do not invent a mapping."}
             if feedback is not None:
                 prompt_data["format_feedback"] = feedback
             if self.cache_enabled and raw_path.exists():
@@ -537,6 +585,8 @@ class ConditioningVideoVerifier:
 
 
 def build_conditioning_verifier(profile, root, settings):
+    print(f"[conditioning verifier] protocol={VERIFIER_PROTOCOL_VERSION} "
+          f"source={Path(__file__).resolve()} phase={Path(root).name}", flush=True)
     evaluator = ConditioningVideoVerifier(profile, root)
     if settings.h3_audio_verifier_command:
         evaluator = H3MultimodalEvaluator(evaluator, json.loads(settings.h3_audio_verifier_command),
