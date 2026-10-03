@@ -256,11 +256,14 @@ class VerifierTests(unittest.TestCase):
         groups = list(verifier.criterion_groups(list(criteria), criteria))
         self.assertEqual([list(g) for g in groups], [["global"], ["shot2a", "shot2b"], ["shot2c"], ["shot0"]])
         clips = [{"segment_id": i, "media_label": f"clip{i}", "source_time_offset_seconds": 6 * i} for i in range(3)]
+        for i, clip in enumerate(clips):
+            clip["boundary_frames"] = [{"media_label": f"first{i}"}, {"media_label": f"last{i}"}]
         manifest = {"full_candidate_label": "full", "window_clips": clips}
         evidence = [(label, {"data": label}) for label in ("reference", "full", "clip0", "clip1", "clip2")]
+        evidence += [(label, {"data": label}) for i in range(3) for label in (f"first{i}", f"last{i}")]
         before = deepcopy(manifest)
         media, view = verifier.group_evidence(evidence, manifest, groups[1])
-        self.assertEqual([label for label, _ in media], ["reference", "clip2"])
+        self.assertEqual([label for label, _ in media], ["reference", "clip2", "first2", "last2"])
         self.assertEqual(view["evaluation_view"]["source_time_offset_seconds"], 12)
         self.assertEqual(view["window_clips"], [clips[2]])
         media, view = verifier.group_evidence(evidence, manifest, groups[0])
@@ -268,6 +271,8 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(view["evaluation_view"]["kind"], "full_video")
         self.assertEqual(manifest, before)
         with self.assertRaisesRegex(ValueError, "missing physically extracted"):
+            verifier.group_evidence([(label, m) for label, m in evidence if label != "clip2"], manifest, groups[1])
+        with self.assertRaisesRegex(ValueError, "missing boundary frame"):
             verifier.group_evidence(evidence[:-1], manifest, groups[1])
         with self.assertRaisesRegex(ValueError, "exactly one temporal scope"):
             verifier.group_evidence(evidence, manifest, criteria)
@@ -312,7 +317,11 @@ class VerifierTests(unittest.TestCase):
             payload = json.loads(prompt)
             view = payload["evidence_manifest"]["evaluation_view"]
             calls.append(view)
-            self.assertEqual(len(media), 1)
+            self.assertEqual(len(media), 1 if view["kind"] == "full_video" else 3)
+            if view["kind"] == "fixed_window_clip":
+                self.assertEqual([m["mime"] for _, m in media], ["video/mp4", "image/png", "image/png"])
+                self.assertEqual([b["boundary"] for b in view["boundary_frames"]], ["first", "last"])
+                self.assertLess(view["boundary_frames"][-1]["source_timestamp_seconds"], view["end_seconds"])
             rows = {}
             for name, rule in payload["criteria"].items():
                 row = observed(0, 3 if "story_shot_index" not in rule else 1)
@@ -340,6 +349,39 @@ class VerifierTests(unittest.TestCase):
         self.task.metadata["h3_shots"][-1]["duration_seconds"] = 12
         with self.assertRaisesRegex(ValueError, "does not cover fixed window 2"):
             verifier.evidence(self.task, self.artifact)
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "requires ffmpeg")
+    def test_boundary_last_frame_preserves_change_after_last_uniform_sample(self):
+        video = self.root / "late_change.mp4"
+        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "lavfi", "-i",
+            "color=c=red:s=96x64:r=24:d=6", "-vf", "drawbox=x=0:y=0:w=iw:h=ih:color=blue:t=fill:enable='eq(n,143)'",
+            "-c:v", "libx264", str(video)], check=True, capture_output=True)
+        verifier = ConditioningVideoVerifier(profile(), self.root / "judge")
+        span = {"segment_id": 0, "start_seconds": 0, "end_seconds": 6}
+        sampled = verifier.media(video, "video", span)
+        times = verifier.frame_times(video, sampled["source_hash"])
+        frames = verifier.boundary_frames(video, span, times, sampled["source_hash"])
+        last = frames[-1][1]["boundary_metadata"]
+        self.assertEqual(last["source_frame_index"], 143)
+        self.assertAlmostEqual(last["source_timestamp_seconds"], 143 / 24, places=5)
+        self.assertGreater(last["clip_timestamp_seconds"], 5.5)
+        def pixels(data, suffix):
+            path = self.root / ("inspect" + suffix)
+            path.write_bytes(base64.b64decode(data))
+            return subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-vf", "scale=1:1",
+                "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], check=True, capture_output=True).stdout
+        sampled_pixels = pixels(sampled["data"], ".mp4")
+        self.assertTrue(all(sampled_pixels[j] > sampled_pixels[j + 2] for j in range(0, len(sampled_pixels), 3)))
+        first_pixel = pixels(frames[0][1]["data"], ".png")
+        last_pixel = pixels(frames[-1][1]["data"], ".png")
+        self.assertGreater(first_pixel[0], first_pixel[2])
+        self.assertGreater(last_pixel[2], last_pixel[0])
+        # Adjacent windows must not borrow the next window's first frame.
+        split = {"segment_id": 0, "start_seconds": 0, "end_seconds": 3}
+        before_cut = verifier.boundary_frames(video, split, times, sampled["source_hash"])
+        self.assertEqual(before_cut[-1][1]["boundary_metadata"]["source_frame_index"], 71)
+        with self.assertRaisesRegex(ValueError, "no original candidate frames"):
+            verifier.boundary_frames(video, {"segment_id": 1, "start_seconds": 6, "end_seconds": 7}, times, sampled["source_hash"])
 
     def test_global_minimum_preplans_all_windows_for_every_repeat_and_keeps_unknown(self):
         self.task.metadata["evaluation"] = {"scene_geometry": {"aggregation": "minimum_over_segments"}}
@@ -634,6 +676,8 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(result["evaluation_status"], "complete")
 
     def test_native_transport_payloads_and_no_secret_logs(self):
+        media = self.evidence + [("CANDIDATE BOUNDARY FRAME LAST at 5.958333s",
+                                  {"mime": "image/png", "data": "AQ==", "source_hash": "boundary"})]
         for transport in ("dashscope_video", "gemini_video"):
             verifier = ConditioningVideoVerifier(profile(transport=transport, api_key_env="TEST_KEY"), self.root / transport)
             response = {"choices": [{"message": {"content": '{"criteria":{}}'}}],
@@ -643,11 +687,18 @@ class VerifierTests(unittest.TestCase):
                 captured.append(json.loads(request.data))
                 return io.BytesIO(json.dumps(response).encode())
             with patch.dict(os.environ, {"TEST_KEY": "secret-not-loggable"}), patch("urllib.request.urlopen", side_effect=urlopen):
-                self.assertEqual(verifier.request("prompt", self.evidence, "unit"), {"criteria": {}})
+                self.assertEqual(verifier.request("prompt", media, "unit"), {"criteria": {}})
             if transport == "gemini_video":
-                self.assertEqual(captured[0]["contents"][0]["parts"][-1]["video_metadata"]["fps"], 2)
+                parts = captured[0]["contents"][0]["parts"]
+                self.assertTrue(all(part["video_metadata"]["fps"] == 2 for part in parts if "video_metadata" in part))
+                self.assertEqual(parts[-1]["inline_data"]["mime_type"], "image/png")
+                self.assertNotIn("video_metadata", parts[-1])
             else:
-                self.assertEqual(captured[0]["messages"][1]["content"][-1]["type"], "video_url")
+                parts = captured[0]["messages"][1]["content"]
+                self.assertTrue(all(part["fps"] == 2 for part in parts if part["type"] == "video_url"))
+                self.assertEqual(parts[-1]["type"], "image_url")
+                self.assertTrue(parts[-1]["image_url"]["url"].startswith("data:image/png;base64,"))
+            self.assertIn("CANDIDATE BOUNDARY FRAME LAST at 5.958333s", json.dumps(captured[0]))
             self.assertNotIn("secret-not-loggable", (verifier.root / "calls.jsonl").read_text())
 
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "requires ffmpeg")

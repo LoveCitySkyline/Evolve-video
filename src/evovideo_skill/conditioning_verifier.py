@@ -27,7 +27,7 @@ from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 
 
-VERIFIER_PROTOCOL_VERSION = "global-and-window-video-evidence-v8"
+VERIFIER_PROTOCOL_VERSION = "boundary-grounded-video-evidence-v9"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -121,6 +121,19 @@ unobserved if evidence is insufficient. The full video is assessed separately.
 For aggregation=full_video_assessment, judge cross-window consistency on the
 complete video. Separate fixed-clip calls provide the authoritative per-window
 observations. Do not pretend to see missing samples; retain visible failures.
+Each fixed clip also has CANDIDATE BOUNDARY FRAME images extracted from the
+original, unsampled candidate video. They are output observations, NOT desired
+reference images. Use the FIRST boundary image for preconditions and the LAST
+boundary image for postconditions. Their source timestamps and frame indices
+are supplied by the host; do not replace them with guessed video timestamps.
+The last boundary image is the last decoded frame strictly before the fixed
+window end, not the next shot's first frame. Uniform FPS sampling can miss it.
+Judge the visible state at that boundary. If it clearly contradicts the required
+post-state (e.g. an object is still held instead of resting on its required
+support), use observed with a justified failure score. A target not visible due
+to genuine occlusion/ambiguity remains unobserved. Boundary images establish
+instantaneous visible state only, not an action's completion or persistence
+outside the supplied evidence. Keep the clip for motion and invariant checks.
 """
 
 
@@ -383,6 +396,57 @@ class ConditioningVideoVerifier:
                 "sampled_media_file": path.name}
         return result
 
+    def frame_times(self, path, source_hash):
+        cache = self.root / "media" / f"{source_hash}.frame-times.json"
+        if cache.exists():
+            times = json.loads(cache.read_text())["timestamps_seconds"]
+        else:
+            raw = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "frame=best_effort_timestamp_time", "-of", "json", str(path)],
+                check=True, capture_output=True, timeout=120)
+            times = [float(row["best_effort_timestamp_time"]) for row in json.loads(raw.stdout)["frames"]]
+        if (not times or any(type(t) not in (int, float) or not math.isfinite(t) or t < 0 for t in times)
+                or times != sorted(times)):
+            raise ValueError("candidate frame timestamps are unavailable or not ordered; cannot establish boundary evidence")
+        if not cache.exists():
+            write_json(cache, {"source_hash": source_hash, "timestamps_seconds": times})
+        return times
+
+    def boundary_frames(self, path, span, times, source_hash):
+        indices = [i for i, t in enumerate(times) if span["start_seconds"] <= t < span["end_seconds"]]
+        if not indices:
+            raise ValueError(f"no original candidate frames in fixed window {span['segment_id']}")
+        result = []
+        for boundary, index in (("first", indices[0]), ("last", indices[-1])):
+            digest = stable_hash([source_hash, index, self.profile["max_width"], "boundary-png-v1"])
+            target = self.root / "media" / f"boundary-{digest}.png"
+            if not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                fd, name = tempfile.mkstemp(suffix=".png", dir=target.parent)
+                os.close(fd)
+                temporary = Path(name)
+                try:
+                    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(path),
+                        "-map", "0:v:0", "-vf", f"select='eq(n,{index})',scale='min({self.profile['max_width']},iw)':-2",
+                        "-frames:v", "1", "-fps_mode", "vfr", str(temporary)],
+                        check=True, capture_output=True, timeout=120)
+                    if not temporary.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"):
+                        raise ValueError("failed to extract original boundary frame; no substituted image")
+                    temporary.replace(target)
+                finally:
+                    temporary.unlink(missing_ok=True)
+            medium = self.media(target, "image")
+            label = (f"CANDIDATE BOUNDARY FRAME {boundary.upper()}, segment_id={span['segment_id']}; "
+                     f"original-video timestamp={times[index]:.6f}s; "
+                     f"clip-local timestamp={times[index] - span['start_seconds']:.6f}s; "
+                     "extracted from generated output, NOT a target reference")
+            medium["boundary_metadata"] = {"boundary": boundary, "segment_id": span["segment_id"],
+                "source_timestamp_seconds": times[index], "clip_timestamp_seconds": times[index] - span["start_seconds"],
+                "source_frame_index": index, "candidate_source_hash": source_hash,
+                "image_hash": medium["source_hash"], "media_file": target.name, "media_label": label}
+            result.append((label, medium))
+        return result
+
     def evidence(self, task, artifact):
         references, manifest = [], []
         for ref in task.metadata.get("h3_references", []):
@@ -414,6 +478,7 @@ class ConditioningVideoVerifier:
                and "story_shot_index" not in rule for rule in task.metadata.get("evaluation", {}).values()):
             scoped = [span["segment_id"] for span in spans]
         clips = []
+        frame_times = self.frame_times(candidate, full["source_hash"]) if scoped else []
         for index in scoped:
             span = spans[index]
             video_stream = next((s for s in info.get("streams", []) if s.get("codec_type") == "video"), {})
@@ -426,7 +491,10 @@ class ConditioningVideoVerifier:
                      f"original-video {span['start_seconds']}..{span['end_seconds']}s; "
                      "every frame belongs to this segment_id")
             references.append((label, medium))
-            clips.append({**medium["window_metadata"], "media_label": label})
+            boundaries = self.boundary_frames(candidate, span, frame_times, full["source_hash"])
+            references.extend(boundaries)
+            clips.append({**medium["window_metadata"], "media_label": label,
+                          "boundary_frames": [value["boundary_metadata"] for _, value in boundaries]})
         return references, {"references": manifest, "candidate_duration_seconds": duration,
             "requested_duration_seconds": task.duration_seconds, "fps": self.profile["fps"],
             "audio_evidence_available": False, "full_rate_motion_verified": False,
@@ -459,20 +527,24 @@ class ConditioningVideoVerifier:
         index = next(iter(scopes))
         clips = manifest.get("window_clips", [])
         clip_labels = {clip["media_label"] for clip in clips}
+        boundary_labels = {frame["media_label"] for clip in clips for frame in clip.get("boundary_frames", [])}
         group_manifest = deepcopy(manifest)
         if index is None:
             group_manifest["window_clips"] = []
             group_manifest["evaluation_view"] = {"kind": "full_video", "source_time_offset_seconds": 0}
-            return [(label, medium) for label, medium in evidence if label not in clip_labels], group_manifest
+            return [(label, medium) for label, medium in evidence if label not in clip_labels | boundary_labels], group_manifest
         selected = next((clip for clip in clips if clip["segment_id"] == index), None)
         if selected is None or not any(label == selected["media_label"] for label, _ in evidence):
             raise ValueError(f"missing physically extracted evidence for fixed window {index}")
+        selected_labels = {selected["media_label"]} | {frame["media_label"] for frame in selected.get("boundary_frames", [])}
+        if not selected_labels <= {label for label, _ in evidence}:
+            raise ValueError(f"missing boundary frame evidence for fixed window {index}")
         group_manifest["window_clips"] = [selected]
         group_manifest["evaluation_view"] = {"kind": "fixed_window_clip", **selected,
             "time_mapping": "original_video_seconds = clip_local_seconds + source_time_offset_seconds"}
-        excluded = clip_labels | {manifest["full_candidate_label"]}
+        excluded = clip_labels | boundary_labels | {manifest["full_candidate_label"]}
         return [(label, medium) for label, medium in evidence
-                if label not in excluded or label == selected["media_label"]], group_manifest
+                if label not in excluded or label in selected_labels], group_manifest
 
     def request(self, prompt, evidence, operation):
         p = self.profile
