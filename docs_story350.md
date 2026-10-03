@@ -39,6 +39,10 @@ python -m evovideo_skill.story_dataset audit
 
 剧情约束中 `preconditions`／`postconditions` 保存期望的完整状态。可选的 `observable_pre`／`observable_post` 指明其中哪些能被直接评估。物体完全位于不透明遮挡物后面时，内部位置仍参与因果校验，但不会被编造成视觉证据；进入、离开、遮挡边界和重新出现后的状态仍需评估。原有任务不声明这些字段时保持原来的全部检查。当前可见性注释是规则生成的草案，人工审阅应检查是否有误免除或不可观测项目。
 
+验收报告的时间线同样遵守 `observable_post`：被原任务排除的隐状态保留在 `desired_postconditions`，对应观察显示 `unknown`、`value: null` 和 `observation_scope: excluded_by_original_task`，不查找不存在的评分、不补造成功观察，也不额外加入必评指标。必评事件和可见状态仍按原 rubric 验收。此处修复了 `gallery_loop` 等遮挡任务报告阶段的 `KeyError: story.s1.post.A.location`，并用全部 350 条任务测试报告构建；合成测试分数不属于实验结果。
+
+若仅更新这次验收报告修复，评估器仍为 `fixed-window-video-evidence-v7`，且任务、参考素材、评估配置与模型未变，可在新运行目录中复制旧 `videos/` 和 `verifier/`：已有视频和完全匹配的评估缓存可继续使用，验收报告重新计算。保留旧目录，因为缓存报告中的审计来源路径可能仍指向它。不复制旧 checkpoint、evaluations 或策略记忆；代码签名改变后不能直接 `--continue`。这项缓存复用仅适用于评估协议未改变的报告修复，不适用于之前 v5/v6 到 v7 的升级。新 planner 提案仍可能产生不同候选和新的生成开销。
+
 本地 H3 有时返回略长于请求的生成片段。带 `story_contract` 的每次 native 生成现在采用统一输出协议：若视频流超出请求不超过 0.75 秒，保留原片并裁掉超出的尾部，再抽帧、复用条件或拼接。基线及 T2VA／Ref2VA／FL2VA 候选都使用相同规则，不改固定参考素材，不扩大最终总时长容差，不做补帧或变速；偏短或明显超长仍拒绝。每段 `h3_output_alignment` 与 `.alignment.json` 记录原片、校验和、实际时长和裁切量，拼接来源也保留这些记录。尾部可能包含最后一个动作或条件末帧；必须评估裁后实际视频的结尾，不能把裁切当作剧情已完成。生成秒数成本代理仍按请求计算，原始输出时长另行记录。
 
 从未做此对齐的旧版本更新后，用新实验目录，不能复用旧评分或 checkpoint。对于已生成但因总时长报错而停止的运行，可仅复制旧 `videos/` 到新目录的 `videos/`，保留原生请求 ledger 和原片缓存；相同请求、seed、条件内容、endpoint、模型 revision 才会复用。不要复制 `node_cache/`、`evaluations/`、`checkpoint.json` 或冻结策略。素材 prepared 目录不需重建。

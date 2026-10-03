@@ -6,8 +6,8 @@ from tempfile import TemporaryDirectory
 import unittest
 import zlib
 
-from evovideo_skill.models import VideoTask
-from evovideo_skill.story_contracts import prepare_story_task
+from evovideo_skill.models import VideoTask, VideoArtifact
+from evovideo_skill.story_contracts import prepare_story_task, acceptance_report
 from evovideo_skill.story_dataset import DEFAULT_ROOT, FAMILIES, audit_suite, budget_report, build_task, read_catalog
 from evovideo_skill.story_assets import TASK_FILE, prepare, verify_prepared, verify_story_task
 from evovideo_skill.conditioning_curriculum import prepare as prepare_curriculum
@@ -24,6 +24,64 @@ def write_png(path, color):
 
 
 class StoryDatasetTests(unittest.TestCase):
+    def test_all_350_acceptance_reports_keep_latent_state_unknown_without_new_criteria(self):
+        from evovideo_skill.conditioning_verifier import windows
+        tasks = json.loads((DEFAULT_ROOT / 'story350.json').read_text())['tasks']
+        excluded_count = 0
+        for raw in tasks:
+            with self.subTest(task_id=raw['task_id']):
+                task = prepare_story_task(VideoTask.from_dict(deepcopy(raw)))
+                original = deepcopy(task.metadata)
+                rubric = task.metadata['evaluation']
+                # Synthetic observations exercise report logic only, not video quality.
+                scores = {name: 1. for name in rubric}
+                rows = {name: [{'status': 'observed', 'segments': [{
+                    'segment_id': rule['story_shot_index'], 'status': 'observed',
+                    'score': 1., 'evidence': 'Synthetic test observation.'}]}]
+                    for name, rule in rubric.items() if 'story_shot_index' in rule}
+                artifact = VideoArtifact('fixture', task.task_id, '', task.mode, [], [], {'vlm_evaluation': {
+                    'criterion_scores': scores, 'criterion_observations': rows,
+                    'verification_metadata': {'windows': windows(task)}}})
+                report = acceptance_report(task, artifact)
+                self.assertEqual(report['status'], 'passed')
+                for shot, timeline in zip(task.metadata['story_contract']['shots'], report['story_timeline']):
+                    post = shot['postconditions']
+                    observable = shot.get('observable_post', list(post))
+                    self.assertEqual(timeline['desired_postconditions'], post)
+                    for key, value in post.items():
+                        observation = timeline['observed_postconditions'][key]
+                        if key in observable:
+                            self.assertEqual(observation['status'], 'passed')
+                            self.assertEqual(observation['value'], value)
+                        else:
+                            excluded_count += 1
+                            self.assertEqual(observation['status'], 'unknown')
+                            self.assertIsNone(observation['value'])
+                            self.assertEqual(observation['evidence'], [])
+                            self.assertEqual(observation['observation_scope'], 'excluded_by_original_task')
+                            self.assertNotIn(f"story.s{shot['shot_index']}.post.{key}", report['checks'])
+                artifact.metadata = {}
+                missing = acceptance_report(task, artifact)
+                self.assertEqual(missing['status'], 'unknown')
+                self.assertTrue(all(row['status'] == 'unknown' for row in missing['checks'].values()))
+                self.assertEqual(task.metadata, original)
+        self.assertGreater(excluded_count, 0)
+
+    def test_gallery_loop_acceptance_does_not_require_hidden_location_score(self):
+        raw = next(t for t in json.loads((DEFAULT_ROOT / 'story350.json').read_text())['tasks']
+                   if t['task_id'] == 'story350-gallery_loop')
+        task = prepare_story_task(VideoTask.from_dict(raw))
+        artifact = VideoArtifact('fixture', task.task_id, '', task.mode, [], [], {})
+        report = acceptance_report(task, artifact)
+        self.assertNotIn('story.s1.post.A.location', report['checks'])
+        hidden = report['story_timeline'][1]['observed_postconditions']['A.location']
+        self.assertIsNone(hidden['value'])
+        self.assertEqual(hidden['status'], 'unknown')
+        self.assertEqual(hidden['observation_scope'], 'excluded_by_original_task')
+        del task.metadata['evaluation']['story.s0.post.A.location']
+        with self.assertRaisesRegex(ValueError, 'missing mandatory story postcondition'):
+            acceptance_report(task, artifact)
+
     def test_catalogue_reproduces_frozen_manifest_and_balanced_splits(self):
         tasks = [build_task(row)[0] for row in read_catalog()]
         frozen = json.loads((DEFAULT_ROOT/'story350.json').read_text())

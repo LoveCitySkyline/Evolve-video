@@ -173,11 +173,26 @@ def acceptance_report(task, artifact):
     timeline = []
     for rule in task.metadata.get("story_contract", {}).get("shots", []):
         i = rule["shot_index"]
+        post = rule.get("postconditions", {})
+        observable = rule.get("observable_post", list(post))
+        observations = {}
+        for key, desired_value in post.items():
+            if key not in observable:
+                # Latent desired state is kept for causal validation, not scored
+                # as a visual observation or added as a new mandatory criterion.
+                observations[key] = {"status": "unknown", "value": None, "evidence": [],
+                    "observation_scope": "excluded_by_original_task",
+                    "reason": "The frozen task excludes this postcondition from direct visual evaluation."}
+                continue
+            name = f"story.s{i}.post.{key}"
+            if name not in checks:
+                raise ValueError(f"missing mandatory story postcondition criterion: {name}; compile the original story task first")
+            check = checks[name]
+            observations[key] = {"status": check["status"],
+                "value": desired_value if check["status"] == "passed" else None,
+                "evidence": check["evidence"]}
         timeline.append({"shot_index": i, "desired_postconditions": deepcopy(rule.get("postconditions", {})),
-            "observed_postconditions": {k: {"status": checks[f"story.s{i}.post.{k}"]["status"],
-                "value": v if checks[f"story.s{i}.post.{k}"]["status"] == "passed" else None,
-                "evidence": checks[f"story.s{i}.post.{k}"]["evidence"]}
-                for k, v in rule.get("postconditions", {}).items()}})
+            "observed_postconditions": observations})
     return {"status": status, "checks": checks, "story_timeline": timeline,
             "qualification": "Observed contract satisfaction under the configured verifier, not ground truth."}
 
