@@ -73,6 +73,12 @@ v7 升级 v8 改变了评估输入协议，须新建运行目录、仅复用生�
 
 视频按 FPS 采样不保证保留真实末帧。[阿里云官方视频理解示例](https://help.aliyun.com/zh/model-studio/vision)中 `fps` 与 `video_url` 同级，当前请求格式与之相符；v9 没有改变这个参数位置。图片作为候选输出边界证据单独输入，不冒充原始目标参考图。此版本增加本地抽帧和图片 token，通常不增加 VLM 请求次数，不增加 H3 生成调用。由 v8 升级时仍须新目录、仅复用 `videos/`，旧评估不能混用。实际角色、状态与动作判断仍需服务器运行验证。
 
+若 v9 已提供真实末帧，模型仍报告目标角色或物体出画，未知可能是候选视频本身的可观察性问题。不能从“A 手空”推断“B 必然持物”，也不能把未知填成零分或改成通过。默认 `candidate_review_policy=stop` 继续保持严格停机。训练可显式传 `--candidate-review-policy skip-experiment`（仅支持 single/factorial）：候选 anchor/a/b/joint 出现仅含未知指标、没有分歧或作用域错误的有效评估时，整轮实验被标记 `evidence_incomplete`，保留父路径并继续下一轮搜索。基线/当前父路径未知、API/格式错误、评估分歧、作用域错误、预算耗尽，以及验证集和测试集的未知，仍会停止。
+
+该选项不会丢掉一个未知 seed 后用剩余 seed 算平均，也不会用其他已完成 cell 更新本轮策略记忆、交互图或提前停止计数。已生成素材、已完成评估和预算保留；未知评估详情写入 `unobserved_evaluations/`，整轮记录写入 `interactions/`，质量成本 HTML 显示排除原因。`learning_summary.json` 的 `evidence_exclusions` 给出排除数与实验报告数；结果汇报必须同时报告排除频率，不可仅汇报可观察候选的条件收益。该策略是对未知实验的保守处理，不是证明失败路径的质量为零，也不保证其他任务不会因基线未知而停机。
+
+策略会纳入实验协议哈希，切换策略或升级执行代码须使用新目录，不得直接改旧 checkpoint 来继续。只复用视频缓存；旧实验目录保留作为审计依据。
+
 旧版可能把 Qwen 仅返回目标镜头的合理响应误报为 `all fixed temporal windows need explicit judgments`。升级这一评估协议后，同样使用新实验目录，只复用 `videos/` 原生生成缓存；不复用旧评估或搜索 checkpoint。示例（在仓库根目录运行，替换 `old_run` 为实际旧目录）：
 
 ```bash

@@ -142,6 +142,15 @@ class CostTests(unittest.TestCase):
             self.assertNotIn('<script>', html)
             self.assertIn('&lt;script&gt;', html)
             self.assertIn('尚无完整成本观测', html)
+            (root / 'interactions/0001.json').write_text(json.dumps({'iteration': 1,
+                'task_id': '<script>unknown</script>', 'status': 'evidence_incomplete',
+                'failed_cell': 'b', 'failed_seed': 456, 'reason': '<script>occluded</script>',
+                'budget': {'calls': 12}}))
+            export_cost_report(root, {'nodes': [], 'edges': []}, cost_options(CONFIG))
+            html = (root / 'quality_cost_report.html').read_text()
+            self.assertNotIn('<script>', html)
+            self.assertIn('证据不足，整轮排除', html)
+            self.assertIn('未知不等于零分', html)
 
 
 class CostRunnerTests(unittest.TestCase):

@@ -49,6 +49,14 @@ def export_cost_report(root, summary, objective):
     experiments = []
     for path in sorted((root/'interactions').glob('*.json')):
         report = json.loads(path.read_text())
+        if report.get('status') == 'evidence_incomplete':
+            experiments.append('<section><h3>实验 '+str(report['iteration'])+' · '+escape(report['task_id'])+
+                ' · 证据不足，整轮排除</h3><p>父路径保持不变；不计算本轮收益或交互，不更新经验图。'
+                '已消耗预算仍计入总账。未知不等于零分，也不等于通过。</p><pre><code>'+escape(json.dumps({
+                    'failed_cell': report['failed_cell'], 'failed_seed': report['failed_seed'],
+                    'reason': report['reason'], 'budget': report['budget']}, ensure_ascii=False, indent=2))+
+                '</code></pre></section>')
+            continue
         points = report.get('pareto_frontier', [])
         rows = []
         if points:

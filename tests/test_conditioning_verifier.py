@@ -241,6 +241,22 @@ class EvidenceContractTests(unittest.TestCase):
         with self.assertRaisesRegex(MeasurementUnavailable, "/evidence"):
             ConditioningRunner.check_measurement(artifact, .9)
 
+    def test_only_pure_unknown_evidence_is_eligible_for_training_exclusion(self):
+        from evovideo_skill.conditioning_runner import EvidenceIncomplete
+        artifact = VideoArtifact("a", "t", "x", "generation", [], [], {"vlm_evaluation": {
+            "evaluation_status": "needs_review", "verification_metadata": {
+                "judgment_path": "/evidence", "unobserved_criteria": ["holder"],
+                "disagreement_criteria": [], "scope_issues": {}, "verifier_protocol": "v9"}}})
+        with self.assertRaises(EvidenceIncomplete):
+            ConditioningRunner.check_measurement(artifact, .9)
+        for changes in ({"disagreement_criteria": ["holder"]}, {"scope_issues": {"holder": ["wrong scope"]}},
+                        {"verifier_protocol": None}, {"unobserved_criteria": []}):
+            copy = deepcopy(artifact)
+            copy.metadata["vlm_evaluation"]["verification_metadata"].update(changes)
+            with self.subTest(changes=changes), self.assertRaises(MeasurementUnavailable) as caught:
+                ConditioningRunner.check_measurement(copy, .9)
+            self.assertNotIsInstance(caught.exception, EvidenceIncomplete)
+
     def test_credentials_cannot_be_embedded_in_logged_profiles(self):
         for changes in ({"api_key": "secret"}, {"base_url": "https://example.test/v1?key=secret"}):
             with self.assertRaises(ValueError):

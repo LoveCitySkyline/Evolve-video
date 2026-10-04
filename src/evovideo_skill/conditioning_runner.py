@@ -60,6 +60,13 @@ class MeasurementUnavailable(RuntimeError):
     pass
 
 
+class EvidenceIncomplete(MeasurementUnavailable):
+    """A valid verifier response with unknown criteria, not an API or scope error."""
+    def __init__(self, message, details):
+        super().__init__(message)
+        self.details = deepcopy(details)
+
+
 def balanced_training_order(tasks):
     families = {}
     for task in tasks:
@@ -213,6 +220,14 @@ class ConditioningRunner:
             raise
         except Exception as exc:
             workspace.failed(exc, "needs_review" if isinstance(exc, MeasurementUnavailable) else "failed")
+            if isinstance(exc, EvidenceIncomplete):
+                exc.details.update(evaluation_id=ident, task_id=task.task_id, seed=seed,
+                    graph_id=graph.graph_id, episode=episode, project_state_path=str(workspace.path),
+                    reserved_budget_delta={k: self.state["episodes"].get(episode, {}).get(k, 0) - usage_before.get(k, 0)
+                                           for k in ("calls", "seconds")},
+                    wall_seconds=time.monotonic() - started)
+                write_json(self.root / "unobserved_evaluations" / (ident + ".json"),
+                           {"status": "evidence_incomplete", "error": str(exc), **exc.details})
             append_json(self.root / "errors.jsonl", {"episode": episode, "task_id": task.task_id,
                 "graph_id": graph.graph_id, "error": str(exc), "type": type(exc).__name__,
                 "project_state_path": str(workspace.path)})
@@ -231,6 +246,12 @@ class ConditioningRunner:
             raise MeasurementUnavailable("verifier unavailable; no valid quality observation")
         if vlm.get("evaluation_status") == "needs_review":
             details = vlm.get("verification_metadata", {})
+            if (details.get("unobserved_criteria") and not details.get("disagreement_criteria")
+                    and not details.get("scope_issues") and details.get("verifier_protocol")):
+                raise EvidenceIncomplete("verifier has unobserved criteria; inspect " +
+                    str(details.get("judgment_path", "verifier logs")),
+                    {"verification": details, "criterion_observations": vlm.get("criterion_observations", {}),
+                     "video": artifact.metadata.get("local_video_path")})
             raise MeasurementUnavailable("verifier evidence is incomplete or disputed; inspect " + str(details.get("judgment_path", "verifier logs")))
         if not isinstance(score, (int, float)) or not math.isfinite(score) or not 0 <= score <= 1:
             raise ValueError("nonfinite/out-of-range quality score")
@@ -456,20 +477,33 @@ class ConditioningRunner:
                 continue
             graphs, strategies = proposal
             labels = ("anchor", "a", "b", "joint") if self.config["search_mode"] == "factorial" else ("anchor", "a", "b")
-            cells, errors = {}, {}
+            cells, errors, excluded = {}, {}, False
             for label in labels:
                 graph = graphs[label]
                 write_json(self.root / "graphs" / (graph.graph_id + ".json"), graph.to_dict())
                 self.archive.record_graph(graph, stage="factorial", status="proposed", iteration=index,
                     metadata={"cell": label, "connections": connection_manifest(graph)})
                 try:
-                    cells[label] = [self.evaluate(task, graph, s, episode) for s in self.seeds]
+                    partial = []
+                    for seed in self.seeds:
+                        partial.append(self.evaluate(task, graph, seed, episode))
+                    cells[label] = partial
                 except ResearchBudgetExceeded:
                     raise
+                except EvidenceIncomplete as exc:
+                    if self.config.get("candidate_review_policy", "stop") != "skip-experiment":
+                        raise
+                    self.exclude_incomplete_experiment(index, task, parent, graphs, labels, label, seed,
+                                                       cells, partial, errors, exc)
+                    self.commit_interaction_cursor(index, parents, visited)
+                    excluded = True
+                    break
                 except Exception as exc:
                     if h3_run_should_stop(exc) or isinstance(exc, MeasurementUnavailable):
                         raise
                     errors[label] = str(exc)
+            if excluded:
+                continue
             interaction = interaction_effect(cells) if set(cells) == {"anchor", "a", "b", "joint"} else None
             if interaction and self.active_selection:
                 self.signed_graph.observe(task, self.active_selection["descriptors"], interaction, f"factorial/{index}")
@@ -549,7 +583,41 @@ class ConditioningRunner:
             "cost_objective": cost_options(self.config),
             "signed_graph_nodes": len(self.signed_graph.data["nodes"]),
             "signed_graph_edges": len(self.signed_graph.data["edges"]),
+            "evidence_exclusions": self.evidence_exclusion_summary(),
             "note": "Local paired-seed graph interventions. No real improvement is guaranteed."})
+
+    def evidence_exclusion_summary(self):
+        reports = [json.loads(p.read_text()) for p in (self.root / "interactions").glob("*.json")]
+        excluded = [r for r in reports if r.get("status") == "evidence_incomplete"]
+        return {"policy": self.config.get("candidate_review_policy", "stop"),
+                "reported_experiments": len(reports), "excluded_experiments": len(excluded),
+                "excluded_iterations": sorted(r["iteration"] for r in excluded),
+                "note": "Excluded experiments are not zero gains or successful observations; report their frequency alongside measured gains."}
+
+    def exclude_incomplete_experiment(self, index, task, parent, graphs, labels, label, seed,
+                                      cells, partial, errors, exc):
+        # Keep the complete planned seed set as the unit of inference. Never
+        # drop an unknown replicate and estimate an effect from the survivors.
+        records = {**cells, label: partial}
+        report = {"iteration": index, "task_id": task.task_id, "search_mode": self.config["search_mode"],
+            "status": "evidence_incomplete", "excluded_from_estimation": True,
+            "parent_graph": parent.graph_id, "selected_cell": "parent", "selected_graph": graph_payload(parent),
+            "failed_cell": label, "failed_seed": seed, "reason": str(exc), "unknown_evaluation": exc.details,
+            "planned_seeds": list(self.seeds), "unexecuted_cells": list(labels[labels.index(label) + 1:]),
+            "interaction": None, "comparisons_to_parent": {}, "selection_gains": {}, "decision_checks": {},
+            "pareto_frontier": [], "bargaining_frontier": [], "execution_errors": errors,
+            "active_search": deepcopy(self.active_selection), "budget": asdict(self.ledger),
+            "cells": {k: [{field: r.get(field) for field in ("evaluation_id", "seed", "score", "video",
+                       "reserved_budget_delta")} for r in rows] for k, rows in records.items()}}
+        write_json(self.root / "interactions" / f"{index:04d}.json", report)
+        for cell in labels:
+            self.archive.record_graph(graphs[cell], stage="factorial", status="excluded_evidence_incomplete",
+                iteration=index, metadata={"cell": cell, "excluded_from_estimation": True,
+                                           "failed_cell": label, "failed_seed": seed})
+        self.archive.export(programs=[], feedback=[], weighted_categories={}, frontier=[])
+        print(f"[conditioning] excluded experiment={index} task={task.task_id} cell={label} seed={seed}: "
+              "incomplete evidence; no gain/interaction learned, parent retained, spent budget retained; "
+              f"report={self.root / 'interactions' / f'{index:04d}.json'}", flush=True)
 
     def commit_interaction_cursor(self, index, parents, visited):
         self.state["interaction_cursor"] = {"next_index": index + 1,
@@ -907,11 +975,15 @@ def validate_config(config):
         "min_gain": .02, "max_metric_regression": .05, "selection_min_gain": .01,
         "test_max_attempts": 3, "test_max_generation_calls": 12, "test_max_generated_seconds": 180}
     defaults.update(search_mode="legacy", min_positive_seed_fraction=2 / 3, gain_se_multiplier=1.0,
-                    comparison_baseline="single")
+                    comparison_baseline="single", candidate_review_policy="stop")
     for key, value in defaults.items():
         config.setdefault(key, value)
     if config["search_mode"] not in {"legacy", "single", "factorial"}:
         raise ValueError("search_mode must be legacy, single or factorial")
+    if config["candidate_review_policy"] not in {"stop", "skip-experiment"}:
+        raise ValueError("candidate_review_policy must be stop or skip-experiment")
+    if config["candidate_review_policy"] == "skip-experiment" and config["search_mode"] == "legacy":
+        raise ValueError("skip-experiment requires single or factorial training")
     search_options(config)
     cost_options(config)
     bargain = bargaining.options(config)
@@ -958,6 +1030,8 @@ def main():
     parser.add_argument("--active-search", choices=["on", "off"], help="Use a signed interaction graph to select a factorial pair")
     parser.add_argument("--local-repair", choices=["on", "off"], help="Use bounded separators and preservation gates")
     parser.add_argument("--max-searches", type=int)
+    parser.add_argument("--candidate-review-policy", choices=["stop", "skip-experiment"],
+                        help="Training only: stop or exclude an entire experiment on unknown candidate evidence")
     parser.add_argument("--require-independent-final", action="store_true")
     parser.add_argument("--continue", dest="resume", action="store_true")
     parser.add_argument("--smoke", action="store_true")
@@ -966,7 +1040,7 @@ def main():
     if args.memory and args.phase != "test":
         parser.error("--memory is only accepted for --phase test")
     config = json.loads(Path(args.config).read_text())
-    for key in ("task_file", "search_mode", "max_searches"):
+    for key in ("task_file", "search_mode", "max_searches", "candidate_review_policy"):
         if getattr(args, key) is not None:
             config[key] = getattr(args, key)
     for arg, key in (("active_search", "enabled"), ("local_repair", "local_repair")):

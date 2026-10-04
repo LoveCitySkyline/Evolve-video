@@ -12,7 +12,8 @@ from evovideo_skill.conditioning_interactions import (condition_only, decode_exp
     effect_supported, interaction_effect, merge_factors)
 from evovideo_skill.conditioning_memory import StrategyMemory
 from evovideo_skill.conditioning_planner import ConditioningSmokePlanner
-from evovideo_skill.conditioning_runner import ConditioningRunner, FixedTaskPlanner, validate_config
+from evovideo_skill.conditioning_runner import (ConditioningRunner, FixedTaskPlanner, validate_config,
+                                               EvidenceIncomplete, MeasurementUnavailable)
 from evovideo_skill.benchmarks import BenchmarkSuite
 from evovideo_skill.evolution_data import stratified_task_split
 from evovideo_skill.graph_evolver import GraphToolPathEvolver
@@ -190,6 +191,87 @@ class InteractionRunnerTests(unittest.TestCase):
         self.assertTrue(state["output"]["artifact_id"])
         self.assertEqual(self.runner.memory.entries, {})
         self.assertFalse(list((self.runner.root / "evaluations").glob("*.json")))
+
+    def test_unknown_candidate_excludes_whole_round_and_continues_without_refund(self):
+        self.config["candidate_review_policy"] = "skip-experiment"
+        self.runner = ConditioningRunner(self.dataset, self.ev, ConditioningSmokePlanner(),
+            self.root / "skip-run", self.config, {"provider": "local-fake"})
+        original = self.ev.rollout
+        unknowns = []
+        def execute(task, graph, **kwargs):
+            result = original(task, graph, **kwargs)
+            cfg = graph.nodes[-1].config
+            if (not unknowns and "reference_ids" in cfg and "duration_seconds" not in cfg
+                    and task.metadata["evaluation_seed"] == 456):
+                unknowns.append(self.runner.ledger.reserved_calls)
+                result.artifact.metadata["vlm_evaluation"] = {
+                    "evaluation_status": "needs_review", "verification_metadata": {
+                        "unobserved_criteria": ["holder"], "disagreement_criteria": [], "scope_issues": {},
+                        "verifier_protocol": "boundary-grounded-video-evidence-v9", "judgment_path": "/evidence"},
+                    "criterion_observations": {"holder": [{"status": "unobserved", "score": None}]}}
+            return result
+        with patch.object(self.ev, "rollout", side_effect=execute), \
+                patch.object(self.runner.memory, "observe", wraps=self.runner.memory.observe) as observe:
+            self.runner.learn()
+        self.assertEqual(len(unknowns), 1)
+        self.assertTrue(observe.called)
+        self.assertTrue(all("factorial/0/" not in call.args[4] for call in observe.call_args_list))
+        report = json.loads((self.runner.root / "interactions/0000.json").read_text())
+        self.assertEqual(report["status"], "evidence_incomplete")
+        self.assertEqual((report["failed_cell"], report["failed_seed"]), ("b", 456))
+        self.assertEqual(len(report["cells"]["b"]), 2)
+        self.assertEqual(report["unexecuted_cells"], ["joint"])
+        self.assertEqual(report["selected_cell"], "parent")
+        self.assertEqual(report["comparisons_to_parent"], {})
+        self.assertIsNone(report["interaction"])
+        self.assertEqual(report["budget"]["reserved_calls"], unknowns[0])
+        self.assertGreaterEqual(self.runner.ledger.reserved_calls, unknowns[0])
+        self.assertEqual(json.loads((self.runner.root / "interactions/0001.json").read_text())["status"], "complete")
+        summary = json.loads((self.runner.root / "learning_summary.json").read_text())["evidence_exclusions"]
+        self.assertEqual(summary["excluded_iterations"], [0])
+        self.assertEqual(summary["reported_experiments"], 2)
+        audit = json.loads(next((self.runner.root / "unobserved_evaluations").glob("*.json")).read_text())
+        self.assertEqual(audit["seed"], 456)
+        self.assertNotIn("score", audit)
+        self.assertEqual(audit["criterion_observations"]["holder"][0]["score"], None)
+        self.assertTrue(Path(audit["project_state_path"]).exists())
+        self.assertFalse((self.runner.root / "evaluations" / (audit["evaluation_id"] + ".json")).exists())
+        with patch.object(self.ev, "rollout", side_effect=AssertionError("must not rerun excluded experiments")):
+            resumed = ConditioningRunner(self.dataset, self.ev, ConditioningSmokePlanner(),
+                self.runner.root, self.config, {"provider": "local-fake"})
+            resumed.learn()
+
+    def test_unknown_baseline_and_api_failures_still_stop(self):
+        self.runner.config["candidate_review_policy"] = "skip-experiment"
+        with patch.object(self.runner, "evaluate", side_effect=EvidenceIncomplete("baseline unknown", {})):
+            with self.assertRaises(EvidenceIncomplete):
+                self.runner.learn()
+        original = self.runner.evaluate
+        def evaluate(task, graph, seed, episode):
+            if "reference_ids" in graph.nodes[-1].config:
+                raise MeasurementUnavailable("API failure")
+            return original(task, graph, seed, episode)
+        with patch.object(self.runner, "evaluate", side_effect=evaluate):
+            with self.assertRaisesRegex(MeasurementUnavailable, "API failure"):
+                self.runner.learn()
+        self.assertFalse(self.runner.state["learned"])
+        self.assertFalse(list((self.runner.root / "interactions").glob("*.json")))
+
+    def test_unknown_candidate_default_policy_still_stops(self):
+        original = self.runner.evaluate
+        def evaluate(task, graph, seed, episode):
+            if "reference_ids" in graph.nodes[-1].config:
+                raise EvidenceIncomplete("candidate unknown", {})
+            return original(task, graph, seed, episode)
+        with patch.object(self.runner, "evaluate", side_effect=evaluate):
+            with self.assertRaises(EvidenceIncomplete):
+                self.runner.learn()
+        self.assertFalse(self.runner.state["learned"])
+
+    def test_skip_policy_is_validated(self):
+        for policy, mode in (("ignore", "factorial"), ("skip-experiment", "legacy")):
+            with self.subTest(policy=policy, mode=mode), self.assertRaises(ValueError):
+                validate_config({**self.config, "candidate_review_policy": policy, "search_mode": mode})
 
 
 if __name__ == "__main__":
