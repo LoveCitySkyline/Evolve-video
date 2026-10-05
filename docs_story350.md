@@ -4,6 +4,44 @@
 
 **完成的是任务规格和准备工具；仓库不包含已生成的参考图片、真实 H3 实验结果或人工标注。** `benchmark_status`、审计报告和素材报告会分别显示这些状态。350 个不同场景 ID 不等于已经验证了 350 个统计独立样本，也不能据此宣布预沉淀规模足够。
 
+## 当前通用修复：Story350 draft v2 / verifier v11
+
+`source-backed-obligations-video-v11` 应用于全部 350 条任务，不按任务 ID 选择评估规则。原有面包任务的多状态标注保留为开发回归案例。通用编译器增加以下行为：
+
+- 每个事件保留完整原文，并为可明确拆分的动作、同时条件、先后关系和 `without` 限制保存原文跨度。当前拆分 129 个复合事件；名词并列、否定或复杂条件句不能可靠拆分时保留整句，不猜测新事实。
+- 子要求各自为必需检查。程序按同一重复中的事件与子要求最低分汇总事件；任一证据未知，事件也保持未知。原模型事件判断保存在 `verification_metadata.event_conjunctions` 中。每个事件及其子项的 rubric 权重合计仍为 1，但新增检查改变了评估协议，不能与旧版本总分直接比较。
+- 每条任务检查原文的可见初始场景；每个镜头检查已建立的内容物、持有关系和物体状态是否按剧情延续。允许明确的转移、变形、增加和移除，不把采样空隙当作凭空出现的证据。原文明确隐藏的状态不被强行要求可见。
+- 生成提示从同一契约渲染，并提供此前已完成的事件作为历史上下文。Planner 通过原有公共任务接口读取同一份契约。镜头时长和动作原文不变。
+- 跨镜头状态检查输入上一镜头的真实末帧、当前镜头裁片和当前首末帧。上一末帧只用于入口状态比较，不是目标参考，也不证明上一镜头内部动作发生过。
+
+这实现了通用动作分解和状态延续检查，**不等于把自然语言自动变成了人工验证的完整世界状态模型**。`semantic_audit_report.json` 覆盖所有任务：349 条仍只有一个显式命名状态变量，38 条事件因复杂表达保留整句、列入审阅清单。它们仍按完整事件及状态延续规则评估，不被免除或自动判通过。补充精确的多物体状态须依据原文逐条标注；不能根据某个候选结果反向改写测试标准。
+
+原有净收益、KS/Nash、预算及准入保护保留。必需检查不参与任意抵消；策略准入仍保护基线已满足的约束，完整视频验收则检查所有必需项，因此“策略准入”和“视频全部满足剧情”不能混为一谈。新增检查和跨帧上下文增加 VLM 调用及 token，不会自动增加 H3 生成节点；本地单元测试不代表真实 VLM 已能可靠识别这些错误。
+
+### 从旧运行迁移
+
+保留正在运行的旧目录及其结果。更新代码应在该运行结束后进行，或使用独立 checkout。旧任务契约仍可读，但不会静默升级评分；新实验必须准备 v2 清单。以下在服务器仓库根目录执行，沿用已经配置好的 H3、Codex 和 verifier 环境变量：
+
+```bash
+# 旧参考图片规格没有改变，可以复用；不需要 --generate-missing。
+bash scripts/prepare_story350_h3.sh \
+  --source benchmarks/story350/story350_smoke15.json \
+  --asset-manifest outputs/story350_smoke15_prepared/assets.json \
+  --prepared-dir outputs/story350_smoke15_semantics_v2_prepared
+
+set -o pipefail
+run_dir="$(mktemp -d outputs/h3_story350_semantics_v2_XXXXXX)"
+bash scripts/run_h3_conditioning_graph_search.sh \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --phase learn --output-dir "$run_dir" \
+  2>&1 | tee "$run_dir/run.log"
+```
+
+若参考图片实际放在其他 prepared 目录，将 `--asset-manifest` 指向其 `assets.json`。本次生成提示也改变了，旧视频不保证命中缓存；新运行会产生新的生成开销。不要复制旧评估缓存、checkpoint 或策略记忆到新运行。全量使用 `story350.json`、全量素材 manifest 和新的 prepared/output 目录；三个方法必须使用相同 v2 清单，定好协议后再做最终测试。
+
+先诊断已有视频时，可用 `scripts/recheck_story_video.py --task-file <新清单> --task-id <任务ID> --video <基线路径> --video <候选路径> --output-dir <新空目录> --config configs/h3_story350_debug.json`。它只重新评估，不调用 H3；这些视频由旧提示生成，结果只能用于开发诊断，不能冒充 v2 方法的新生成实验。
+
 ## 数据组成
 
 | 任务族 | 训练 | 验证 | 测试 | 主要检验内容 |

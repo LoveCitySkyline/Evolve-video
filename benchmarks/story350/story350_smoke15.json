@@ -1,6 +1,6 @@
 {
   "name": "Story350 development subset 15",
-  "version": "story350-draft-v1",
+  "version": "story350-draft-v2",
   "description": "Authored multi-shot narrative task specifications. Synthetic draft, not a validated benchmark.",
   "tasks": [
     {
@@ -9,7 +9,7 @@
       "duration_seconds": 18,
       "prompt": "A and B practice on an empty running track; A holds one striped baton. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a teal jacket. B is a distinct adult with short gray hair and a navy apron. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A runs toward B with the baton visible. Then A passes the baton into B's waiting hand and releases it. Then B runs away while A stops with empty hands.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "object_custody",
         "split": "train",
@@ -36,21 +36,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A runs toward B with the baton visible. Begin with baton.holder: A. End with baton.holder: A. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A and B practice on an empty running track; A holds one striped baton. Begin with baton.holder: A. Required event: A runs toward B with the baton visible. End with baton.holder: A. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-relay_baton-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A passes the baton into B's waiting hand and releases it. Begin with baton.holder: A. End with baton.holder: B. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A runs toward B with the baton visible Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with baton.holder: A. Required event: A passes the baton into B's waiting hand and releases it. All clauses must be satisfied in context: A passes the baton into B's waiting hand / and releases it. End with baton.holder: B. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-relay_baton-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. B runs away while A stops with empty hands. Begin with baton.holder: B. End with baton.holder: B. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A runs toward B with the baton visible A passes the baton into B's waiting hand and releases it Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with baton.holder: B. Required event: B runs away while A stops with empty hands. All clauses must be satisfied in context: B runs away / while A stops with empty hands. End with baton.holder: B. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-relay_baton-continuity"
@@ -112,7 +112,15 @@
               "events": [
                 {
                   "id": "relay_baton_0",
-                  "description": "A runs toward B with the baton visible"
+                  "description": "A runs toward B with the baton visible",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 38,
+                      "quote": "A runs toward B with the baton visible",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -134,7 +142,21 @@
               "events": [
                 {
                   "id": "relay_baton_1",
-                  "description": "A passes the baton into B's waiting hand and releases it"
+                  "description": "A passes the baton into B's waiting hand and releases it",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 40,
+                      "quote": "A passes the baton into B's waiting hand",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 41,
+                      "end": 56,
+                      "quote": "and releases it",
+                      "relation": "and"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -156,12 +178,31 @@
               "events": [
                 {
                   "id": "relay_baton_2",
-                  "description": "B runs away while A stops with empty hands"
+                  "description": "B runs away while A stops with empty hands",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 11,
+                      "quote": "B runs away",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 12,
+                      "end": 42,
+                      "quote": "while A stops with empty hands",
+                      "relation": "while"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A and B practice on an empty running track; A holds one striped baton.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -173,7 +214,7 @@
       "duration_seconds": 18,
       "prompt": "A librarian and B assistant stand at a returns desk with one rubber stamp. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a ochre overshirt. B is a distinct adult with short gray hair and a cream cardigan. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A lifts the stamp and stamps a return slip. Then A places the stamp on B's open palm. Then B puts the stamp in the open drawer.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "object_custody",
         "split": "validation",
@@ -200,21 +241,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A lifts the stamp and stamps a return slip. Begin with stamp.location: desk. End with stamp.location: A hand. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A librarian and B assistant stand at a returns desk with one rubber stamp. Begin with stamp.location: desk. Required event: A lifts the stamp and stamps a return slip. All clauses must be satisfied in context: A lifts the stamp / and stamps a return slip. End with stamp.location: A hand. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-library_stamp-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A places the stamp on B's open palm. Begin with stamp.location: A hand. End with stamp.location: B hand. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A lifts the stamp and stamps a return slip Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with stamp.location: A hand. Required event: A places the stamp on B's open palm. End with stamp.location: B hand. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-library_stamp-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. B puts the stamp in the open drawer. Begin with stamp.location: B hand. End with stamp.location: drawer. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A lifts the stamp and stamps a return slip A places the stamp on B's open palm Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with stamp.location: B hand. Required event: B puts the stamp in the open drawer. End with stamp.location: drawer. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-library_stamp-continuity"
@@ -276,7 +317,21 @@
               "events": [
                 {
                   "id": "library_stamp_0",
-                  "description": "A lifts the stamp and stamps a return slip"
+                  "description": "A lifts the stamp and stamps a return slip",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 17,
+                      "quote": "A lifts the stamp",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 18,
+                      "end": 42,
+                      "quote": "and stamps a return slip",
+                      "relation": "and"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -298,7 +353,15 @@
               "events": [
                 {
                   "id": "library_stamp_1",
-                  "description": "A places the stamp on B's open palm"
+                  "description": "A places the stamp on B's open palm",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 35,
+                      "quote": "A places the stamp on B's open palm",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -320,12 +383,25 @@
               "events": [
                 {
                   "id": "library_stamp_2",
-                  "description": "B puts the stamp in the open drawer"
+                  "description": "B puts the stamp in the open drawer",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 35,
+                      "quote": "B puts the stamp in the open drawer",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A librarian and B assistant stand at a returns desk with one rubber stamp.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -337,7 +413,7 @@
       "duration_seconds": 18,
       "prompt": "A customer holds one large brass token at B's stall. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a navy apron. B is a distinct adult with short gray hair and a rust vest. Never swap A and B. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A places the token in a shallow payment tray. Then B slides the tray toward the till. Then B tips the token into the open till.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "object_custody",
         "split": "test",
@@ -364,21 +440,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A places the token in a shallow payment tray. Begin with token.location: A hand. End with token.location: tray. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A customer holds one large brass token at B's stall. Begin with token.location: A hand. Required event: A places the token in a shallow payment tray. End with token.location: tray. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-market_change-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. B slides the tray toward the till. Begin with token.location: tray. End with token.location: tray beside till. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A places the token in a shallow payment tray Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with token.location: tray. Required event: B slides the tray toward the till. End with token.location: tray beside till. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-market_change-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. B tips the token into the open till. Begin with token.location: tray beside till. End with token.location: till. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A places the token in a shallow payment tray B slides the tray toward the till Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with token.location: tray beside till. Required event: B tips the token into the open till. End with token.location: till. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-market_change-continuity"
@@ -440,7 +516,15 @@
               "events": [
                 {
                   "id": "market_change_0",
-                  "description": "A places the token in a shallow payment tray"
+                  "description": "A places the token in a shallow payment tray",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 44,
+                      "quote": "A places the token in a shallow payment tray",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -462,7 +546,15 @@
               "events": [
                 {
                   "id": "market_change_1",
-                  "description": "B slides the tray toward the till"
+                  "description": "B slides the tray toward the till",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 33,
+                      "quote": "B slides the tray toward the till",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -484,12 +576,25 @@
               "events": [
                 {
                   "id": "market_change_2",
-                  "description": "B tips the token into the open till"
+                  "description": "B tips the token into the open till",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 35,
+                      "quote": "B tips the token into the open till",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A customer holds one large brass token at B's stall.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -501,7 +606,7 @@
       "duration_seconds": 18,
       "prompt": "A works over a basin with a plain white cloth. Unless clothing is specified in the setup, A is an adult with curly brown hair and a navy apron. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A dips the cloth into blue dye. Then A lifts the blue wet cloth. Then A hangs it over a drying bar.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "state_transformation",
         "split": "train",
@@ -528,21 +633,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A dips the cloth into blue dye. Begin with cloth.state: white and dry. End with cloth.state: submerged in blue dye. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A works over a basin with a plain white cloth. Begin with cloth.state: white and dry. Required event: A dips the cloth into blue dye. End with cloth.state: submerged in blue dye. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-cloth_dye-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A lifts the blue wet cloth. Begin with cloth.state: submerged in blue dye. End with cloth.state: blue and wet. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A dips the cloth into blue dye Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with cloth.state: submerged in blue dye. Required event: A lifts the blue wet cloth. End with cloth.state: blue and wet. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-cloth_dye-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A hangs it over a drying bar. Begin with cloth.state: blue and wet. End with cloth.state: blue on bar. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A dips the cloth into blue dye A lifts the blue wet cloth Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with cloth.state: blue and wet. Required event: A hangs it over a drying bar. End with cloth.state: blue on bar. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-cloth_dye-continuity"
@@ -604,7 +709,15 @@
               "events": [
                 {
                   "id": "cloth_dye_0",
-                  "description": "A dips the cloth into blue dye"
+                  "description": "A dips the cloth into blue dye",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 30,
+                      "quote": "A dips the cloth into blue dye",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -626,7 +739,15 @@
               "events": [
                 {
                   "id": "cloth_dye_1",
-                  "description": "A lifts the blue wet cloth"
+                  "description": "A lifts the blue wet cloth",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 26,
+                      "quote": "A lifts the blue wet cloth",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -648,12 +769,25 @@
               "events": [
                 {
                   "id": "cloth_dye_2",
-                  "description": "A hangs it over a drying bar"
+                  "description": "A hangs it over a drying bar",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 28,
+                      "quote": "A hangs it over a drying bar",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A works over a basin with a plain white cloth.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -665,7 +799,7 @@
       "duration_seconds": 18,
       "prompt": "A works beside a bare wooden panel and a brush. Unless clothing is specified in the setup, A is an adult with curly brown hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A brushes stain over the left half. Then A coats the right half to match. Then A wipes excess stain while preserving the dark finish.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "state_transformation",
         "split": "validation",
@@ -692,21 +826,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A brushes stain over the left half. Begin with panel.surface: bare wood. End with panel.surface: left half dark. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A works beside a bare wooden panel and a brush. Begin with panel.surface: bare wood. Required event: A brushes stain over the left half. End with panel.surface: left half dark. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-wood_stain-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A coats the right half to match. Begin with panel.surface: left half dark. End with panel.surface: fully dark. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A brushes stain over the left half Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with panel.surface: left half dark. Required event: A coats the right half to match. End with panel.surface: fully dark. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-wood_stain-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A wipes excess stain while preserving the dark finish. Begin with panel.surface: fully dark. End with panel.surface: even dark finish. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A brushes stain over the left half A coats the right half to match Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with panel.surface: fully dark. Required event: A wipes excess stain while preserving the dark finish. All clauses must be satisfied in context: A wipes excess stain / while preserving the dark finish. End with panel.surface: even dark finish. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-wood_stain-continuity"
@@ -768,7 +902,15 @@
               "events": [
                 {
                   "id": "wood_stain_0",
-                  "description": "A brushes stain over the left half"
+                  "description": "A brushes stain over the left half",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 34,
+                      "quote": "A brushes stain over the left half",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -790,7 +932,15 @@
               "events": [
                 {
                   "id": "wood_stain_1",
-                  "description": "A coats the right half to match"
+                  "description": "A coats the right half to match",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 31,
+                      "quote": "A coats the right half to match",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -812,12 +962,31 @@
               "events": [
                 {
                   "id": "wood_stain_2",
-                  "description": "A wipes excess stain while preserving the dark finish"
+                  "description": "A wipes excess stain while preserving the dark finish",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 20,
+                      "quote": "A wipes excess stain",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 21,
+                      "end": 53,
+                      "quote": "while preserving the dark finish",
+                      "relation": "while"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A works beside a bare wooden panel and a brush.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -829,7 +998,7 @@
       "duration_seconds": 18,
       "prompt": "A has one long clay rope on a pottery mat. Unless clothing is specified in the setup, A is an adult with short dark hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A curves the rope into a flat spiral. Then A raises the outer coils into a wall. Then A smooths the joins without flattening the bowl.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "state_transformation",
         "split": "test",
@@ -856,21 +1025,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A curves the rope into a flat spiral. Begin with clay.form: straight rope. End with clay.form: flat spiral. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A has one long clay rope on a pottery mat. Begin with clay.form: straight rope. Required event: A curves the rope into a flat spiral. End with clay.form: flat spiral. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-clay_coil-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A raises the outer coils into a wall. Begin with clay.form: flat spiral. End with clay.form: shallow bowl. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A curves the rope into a flat spiral Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with clay.form: flat spiral. Required event: A raises the outer coils into a wall. End with clay.form: shallow bowl. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-clay_coil-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A smooths the joins without flattening the bowl. Begin with clay.form: shallow bowl. End with clay.form: smooth bowl. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A curves the rope into a flat spiral A raises the outer coils into a wall Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with clay.form: shallow bowl. Required event: A smooths the joins without flattening the bowl. All clauses must be satisfied in context: A smooths the joins / without flattening the bowl. End with clay.form: smooth bowl. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-clay_coil-continuity"
@@ -932,7 +1101,15 @@
               "events": [
                 {
                   "id": "clay_coil_0",
-                  "description": "A curves the rope into a flat spiral"
+                  "description": "A curves the rope into a flat spiral",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 36,
+                      "quote": "A curves the rope into a flat spiral",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -954,7 +1131,15 @@
               "events": [
                 {
                   "id": "clay_coil_1",
-                  "description": "A raises the outer coils into a wall"
+                  "description": "A raises the outer coils into a wall",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 36,
+                      "quote": "A raises the outer coils into a wall",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -976,12 +1161,31 @@
               "events": [
                 {
                   "id": "clay_coil_2",
-                  "description": "A smooths the joins without flattening the bowl"
+                  "description": "A smooths the joins without flattening the bowl",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 19,
+                      "quote": "A smooths the joins",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 20,
+                      "end": 47,
+                      "quote": "without flattening the bowl",
+                      "relation": "without"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A has one long clay rope on a pottery mat.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -993,7 +1197,7 @@
       "duration_seconds": 18,
       "prompt": "A carries a sketchpad in a gallery with a central sculpture and one rear doorway. Unless clothing is specified in the setup, A is an adult with short gray hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks clockwise around the sculpture. Then A continues behind the sculpture. Then A exits through the rear doorway.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "spatial_continuity",
         "split": "train",
@@ -1020,21 +1224,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A walks clockwise around the sculpture. Begin with A.location: front of sculpture. End with A.location: right of sculpture. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A carries a sketchpad in a gallery with a central sculpture and one rear doorway. Begin with A.location: front of sculpture. Required event: A walks clockwise around the sculpture. End with A.location: right of sculpture. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-gallery_loop-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A continues behind the sculpture. Begin with A.location: right of sculpture. End with A.location: behind sculpture. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A walks clockwise around the sculpture Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with A.location: right of sculpture. Required event: A continues behind the sculpture. End with A.location: behind sculpture. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-gallery_loop-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A exits through the rear doorway. Begin with A.location: behind sculpture. End with A.location: rear doorway. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A walks clockwise around the sculpture A continues behind the sculpture Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with A.location: behind sculpture. Required event: A exits through the rear doorway. End with A.location: rear doorway. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-gallery_loop-continuity"
@@ -1096,7 +1300,15 @@
               "events": [
                 {
                   "id": "gallery_loop_0",
-                  "description": "A walks clockwise around the sculpture"
+                  "description": "A walks clockwise around the sculpture",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 38,
+                      "quote": "A walks clockwise around the sculpture",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1116,7 +1328,15 @@
               "events": [
                 {
                   "id": "gallery_loop_1",
-                  "description": "A continues behind the sculpture"
+                  "description": "A continues behind the sculpture",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 32,
+                      "quote": "A continues behind the sculpture",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1136,12 +1356,25 @@
               "events": [
                 {
                   "id": "gallery_loop_2",
-                  "description": "A exits through the rear doorway"
+                  "description": "A exits through the rear doorway",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 32,
+                      "quote": "A exits through the rear doorway",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A carries a sketchpad in a gallery with a central sculpture and one rear doorway.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -1153,7 +1386,7 @@
       "duration_seconds": 18,
       "prompt": "A carries an empty tray in a bakery; a bread rack is left of the counter. Unless clothing is specified in the setup, A is an adult with short gray hair and a rust vest. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. selected_bread denotes the bread A selects for this tray, not every loaf on the rack. Tray contents describe what is visibly inside the same tray. A begins already carrying the empty tray; do not pick the tray up from the bread rack. Loading means taking bread FROM the rack and placing it INTO the tray. Keep that bread in the tray while carrying and setting it down. Changing camera angle does not change the scene's physical layout; no exact distance or two-handed grip is required. Required events: A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot. A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport. Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure. A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "spatial_continuity",
         "split": "validation",
@@ -1184,21 +1417,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot. Begin with tray.location: A hands at entrance; tray.contents: empty; selected_bread.location: bread rack. End with tray.location: A hands at rack; tray.contents: empty; selected_bread.location: bread rack. Throughout this shot preserve tray.contents: empty; selected_bread.location: bread rack. Show the required state changes and transfer direction clearly. Keep the relevant objects and container contents legible at declared visible boundaries. Do not reverse, skip or replay actions, or reset to the reference image state.",
+            "prompt": "Shot 0. Initial scene: A carries an empty tray in a bakery; a bread rack is left of the counter. Begin with tray.location: A hands at entrance; tray.contents: empty; selected_bread.location: bread rack. Required event: A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot.. End with tray.location: A hands at rack; tray.contents: empty; selected_bread.location: bread rack. Throughout preserve tray.contents: empty; selected_bread.location: bread rack. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-bakery_counter-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport. Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure. Begin with tray.location: A hands at rack; tray.contents: empty; selected_bread.location: bread rack. End with tray.location: A hands behind counter; tray.contents: selected bread; selected_bread.location: tray. Show the required state changes and transfer direction clearly. Keep the relevant objects and container contents legible at declared visible boundaries. Do not reverse, skip or replay actions, or reset to the reference image state.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot. Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with tray.location: A hands at rack; tray.contents: empty; selected_bread.location: bread rack. Required event: A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport.. Required event: Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure.. End with tray.location: A hands behind counter; tray.contents: selected bread; selected_bread.location: tray. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-bakery_counter-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray. Begin with tray.location: A hands behind counter; tray.contents: selected bread; selected_bread.location: tray. End with tray.location: counter beside register; tray.contents: selected bread; selected_bread.location: tray. Throughout this shot preserve tray.contents: selected bread; selected_bread.location: tray. Show the required state changes and transfer direction clearly. Keep the relevant objects and container contents legible at declared visible boundaries. Do not reverse, skip or replay actions, or reset to the reference image state.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot. A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport. Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure. Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with tray.location: A hands behind counter; tray.contents: selected bread; selected_bread.location: tray. Required event: A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray.. End with tray.location: counter beside register; tray.contents: selected bread; selected_bread.location: tray. Throughout preserve tray.contents: selected bread; selected_bread.location: tray. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-bakery_counter-continuity"
@@ -1266,7 +1499,15 @@
               "events": [
                 {
                   "id": "bakery_counter_0",
-                  "description": "A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot."
+                  "description": "A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot.",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 187,
+                      "quote": "A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot.",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1290,11 +1531,27 @@
               "events": [
                 {
                   "id": "bakery_counter_1",
-                  "description": "A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport."
+                  "description": "A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport.",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 168,
+                      "quote": "A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport.",
+                      "relation": "whole"
+                    }
+                  ]
                 },
                 {
                   "id": "bakery_counter_load_direction",
-                  "description": "Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure."
+                  "description": "Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure.",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 528,
+                      "quote": "Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure.",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1322,12 +1579,25 @@
               "events": [
                 {
                   "id": "bakery_counter_2",
-                  "description": "A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray."
+                  "description": "A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray.",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 215,
+                      "quote": "A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray.",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A carries an empty tray in a bakery; a bread rack is left of the counter.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "story_fact_definitions": "selected_bread denotes the bread A selects for this tray, not every loaf on the rack. Tray contents describe what is visibly inside the same tray. A begins already carrying the empty tray; do not pick the tray up from the bread rack. Loading means taking bread FROM the rack and placing it INTO the tray. Keep that bread in the tray while carrying and setting it down. Changing camera angle does not change the scene's physical layout; no exact distance or two-handed grip is required.",
         "original_split": "train",
@@ -1340,7 +1610,7 @@
       "duration_seconds": 18,
       "prompt": "A carries a rope coil along a dock with a bollard before a moored boat. Unless clothing is specified in the setup, A is an adult with curly brown hair and a navy apron. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks past the bollard. Then A turns toward the moored boat. Then A lowers the coil into the boat while remaining on the dock.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "spatial_continuity",
         "split": "test",
@@ -1367,21 +1637,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A walks past the bollard. Begin with A.location: dock entrance. End with A.location: beyond bollard. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A carries a rope coil along a dock with a bollard before a moored boat. Begin with A.location: dock entrance. Required event: A walks past the bollard. End with A.location: beyond bollard. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-harbor_route-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A turns toward the moored boat. Begin with A.location: beyond bollard. End with A.location: boat edge. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A walks past the bollard Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with A.location: beyond bollard. Required event: A turns toward the moored boat. End with A.location: boat edge. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-harbor_route-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A lowers the coil into the boat while remaining on the dock. Begin with A.location: boat edge. End with A.location: boat edge. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A walks past the bollard A turns toward the moored boat Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with A.location: boat edge. Required event: A lowers the coil into the boat while remaining on the dock. All clauses must be satisfied in context: A lowers the coil into the boat / while remaining on the dock. End with A.location: boat edge. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-harbor_route-continuity"
@@ -1443,7 +1713,15 @@
               "events": [
                 {
                   "id": "harbor_route_0",
-                  "description": "A walks past the bollard"
+                  "description": "A walks past the bollard",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 24,
+                      "quote": "A walks past the bollard",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1465,7 +1743,15 @@
               "events": [
                 {
                   "id": "harbor_route_1",
-                  "description": "A turns toward the moored boat"
+                  "description": "A turns toward the moored boat",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 30,
+                      "quote": "A turns toward the moored boat",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1487,12 +1773,31 @@
               "events": [
                 {
                   "id": "harbor_route_2",
-                  "description": "A lowers the coil into the boat while remaining on the dock"
+                  "description": "A lowers the coil into the boat while remaining on the dock",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 31,
+                      "quote": "A lowers the coil into the boat",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 32,
+                      "end": 59,
+                      "quote": "while remaining on the dock",
+                      "relation": "while"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A carries a rope coil along a dock with a bollard before a moored boat.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -1504,7 +1809,7 @@
       "duration_seconds": 24,
       "prompt": "A faces a shallow drawer blocked by a visible cloth caught at its edge. Unless clothing is specified in the setup, A is an adult with curly brown hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A pulls gently and the drawer stops. Then A pushes it slightly inward. Then A pulls the cloth free. Then A opens the drawer fully.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "causal_repair",
         "split": "train",
@@ -1532,28 +1837,28 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A pulls gently and the drawer stops. Begin with drawer.state: blocked by cloth. End with drawer.state: blocked by cloth. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A faces a shallow drawer blocked by a visible cloth caught at its edge. Begin with drawer.state: blocked by cloth. Required event: A pulls gently and the drawer stops. All clauses must be satisfied in context: A pulls gently / and the drawer stops. End with drawer.state: blocked by cloth. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-stuck_drawer-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A pushes it slightly inward. Begin with drawer.state: blocked by cloth. End with drawer.state: ajar with slack cloth. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A pulls gently and the drawer stops Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with drawer.state: blocked by cloth. Required event: A pushes it slightly inward. End with drawer.state: ajar with slack cloth. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-stuck_drawer-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A pulls the cloth free. Begin with drawer.state: ajar with slack cloth. End with drawer.state: unblocked ajar. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A pulls gently and the drawer stops A pushes it slightly inward Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with drawer.state: ajar with slack cloth. Required event: A pulls the cloth free. End with drawer.state: unblocked ajar. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-stuck_drawer-continuity"
             ]
           },
           {
-            "prompt": "Establishing medium-wide view. A opens the drawer fully. Begin with drawer.state: unblocked ajar. End with drawer.state: fully open. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 3. Narrative history already completed, not actions to replay: A pulls gently and the drawer stops A pushes it slightly inward A pulls the cloth free Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with drawer.state: unblocked ajar. Required event: A opens the drawer fully. End with drawer.state: fully open. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-stuck_drawer-continuity"
@@ -1615,7 +1920,21 @@
               "events": [
                 {
                   "id": "stuck_drawer_0",
-                  "description": "A pulls gently and the drawer stops"
+                  "description": "A pulls gently and the drawer stops",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 14,
+                      "quote": "A pulls gently",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 15,
+                      "end": 35,
+                      "quote": "and the drawer stops",
+                      "relation": "and"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1637,7 +1956,15 @@
               "events": [
                 {
                   "id": "stuck_drawer_1",
-                  "description": "A pushes it slightly inward"
+                  "description": "A pushes it slightly inward",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 27,
+                      "quote": "A pushes it slightly inward",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1659,7 +1986,15 @@
               "events": [
                 {
                   "id": "stuck_drawer_2",
-                  "description": "A pulls the cloth free"
+                  "description": "A pulls the cloth free",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 22,
+                      "quote": "A pulls the cloth free",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1681,12 +2016,25 @@
               "events": [
                 {
                   "id": "stuck_drawer_3",
-                  "description": "A opens the drawer fully"
+                  "description": "A opens the drawer fully",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 24,
+                      "quote": "A opens the drawer fully",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A faces a shallow drawer blocked by a visible cloth caught at its edge.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -1698,7 +2046,7 @@
       "duration_seconds": 24,
       "prompt": "A stands by a wooden stool with one loose bolt visibly protruding. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A rocks the stool and the leg wobbles. Then A steadies the leg and inserts a wrench. Then A tightens the protruding bolt. Then A presses down and the stool stays steady.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "causal_repair",
         "split": "validation",
@@ -1726,28 +2074,28 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A rocks the stool and the leg wobbles. Begin with stool.state: loose bolt. End with stool.state: wobbling. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A stands by a wooden stool with one loose bolt visibly protruding. Begin with stool.state: loose bolt. Required event: A rocks the stool and the leg wobbles. All clauses must be satisfied in context: A rocks the stool / and the leg wobbles. End with stool.state: wobbling. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-loose_stool-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A steadies the leg and inserts a wrench. Begin with stool.state: wobbling. End with stool.state: held with wrench. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A rocks the stool and the leg wobbles Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with stool.state: wobbling. Required event: A steadies the leg and inserts a wrench. All clauses must be satisfied in context: A steadies the leg / and inserts a wrench. End with stool.state: held with wrench. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-loose_stool-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A tightens the protruding bolt. Begin with stool.state: held with wrench. End with stool.state: tight bolt. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A rocks the stool and the leg wobbles A steadies the leg and inserts a wrench Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with stool.state: held with wrench. Required event: A tightens the protruding bolt. End with stool.state: tight bolt. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-loose_stool-continuity"
             ]
           },
           {
-            "prompt": "Establishing medium-wide view. A presses down and the stool stays steady. Begin with stool.state: tight bolt. End with stool.state: stable under pressure. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 3. Narrative history already completed, not actions to replay: A rocks the stool and the leg wobbles A steadies the leg and inserts a wrench A tightens the protruding bolt Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with stool.state: tight bolt. Required event: A presses down and the stool stays steady. All clauses must be satisfied in context: A presses down / and the stool stays steady. End with stool.state: stable under pressure. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-loose_stool-continuity"
@@ -1809,7 +2157,21 @@
               "events": [
                 {
                   "id": "loose_stool_0",
-                  "description": "A rocks the stool and the leg wobbles"
+                  "description": "A rocks the stool and the leg wobbles",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 17,
+                      "quote": "A rocks the stool",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 18,
+                      "end": 37,
+                      "quote": "and the leg wobbles",
+                      "relation": "and"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1831,7 +2193,21 @@
               "events": [
                 {
                   "id": "loose_stool_1",
-                  "description": "A steadies the leg and inserts a wrench"
+                  "description": "A steadies the leg and inserts a wrench",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 18,
+                      "quote": "A steadies the leg",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 19,
+                      "end": 39,
+                      "quote": "and inserts a wrench",
+                      "relation": "and"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1853,7 +2229,15 @@
               "events": [
                 {
                   "id": "loose_stool_2",
-                  "description": "A tightens the protruding bolt"
+                  "description": "A tightens the protruding bolt",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 30,
+                      "quote": "A tightens the protruding bolt",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -1875,12 +2259,31 @@
               "events": [
                 {
                   "id": "loose_stool_3",
-                  "description": "A presses down and the stool stays steady"
+                  "description": "A presses down and the stool stays steady",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 14,
+                      "quote": "A presses down",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 15,
+                      "end": 41,
+                      "quote": "and the stool stays steady",
+                      "relation": "and"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A stands by a wooden stool with one loose bolt visibly protruding.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -1892,7 +2295,7 @@
       "duration_seconds": 24,
       "prompt": "A has a toy vehicle whose drive chain is off one visible sprocket. Unless clothing is specified in the setup, A is an adult with short dark hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A turns the wheel and the chain stays slack. Then A lifts the chain onto the sprocket. Then A slowly turns the wheel. Then A rolls the toy forward smoothly.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "causal_repair",
         "split": "test",
@@ -1920,28 +2323,28 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A turns the wheel and the chain stays slack. Begin with drive.state: chain off sprocket. End with drive.state: slack chain. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A has a toy vehicle whose drive chain is off one visible sprocket. Begin with drive.state: chain off sprocket. Required event: A turns the wheel and the chain stays slack. All clauses must be satisfied in context: A turns the wheel / and the chain stays slack. End with drive.state: slack chain. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-chain_toy-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A lifts the chain onto the sprocket. Begin with drive.state: slack chain. End with drive.state: chain reseated. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A turns the wheel and the chain stays slack Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with drive.state: slack chain. Required event: A lifts the chain onto the sprocket. End with drive.state: chain reseated. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-chain_toy-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A slowly turns the wheel. Begin with drive.state: chain reseated. End with drive.state: chain moving on sprocket. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A turns the wheel and the chain stays slack A lifts the chain onto the sprocket Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with drive.state: chain reseated. Required event: A slowly turns the wheel. End with drive.state: chain moving on sprocket. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-chain_toy-continuity"
             ]
           },
           {
-            "prompt": "Establishing medium-wide view. A rolls the toy forward smoothly. Begin with drive.state: chain moving on sprocket. End with drive.state: toy moving. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 3. Narrative history already completed, not actions to replay: A turns the wheel and the chain stays slack A lifts the chain onto the sprocket A slowly turns the wheel Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with drive.state: chain moving on sprocket. Required event: A rolls the toy forward smoothly. End with drive.state: toy moving. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-chain_toy-continuity"
@@ -2003,7 +2406,21 @@
               "events": [
                 {
                   "id": "chain_toy_0",
-                  "description": "A turns the wheel and the chain stays slack"
+                  "description": "A turns the wheel and the chain stays slack",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 17,
+                      "quote": "A turns the wheel",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 18,
+                      "end": 43,
+                      "quote": "and the chain stays slack",
+                      "relation": "and"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2025,7 +2442,15 @@
               "events": [
                 {
                   "id": "chain_toy_1",
-                  "description": "A lifts the chain onto the sprocket"
+                  "description": "A lifts the chain onto the sprocket",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 35,
+                      "quote": "A lifts the chain onto the sprocket",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2047,7 +2472,15 @@
               "events": [
                 {
                   "id": "chain_toy_2",
-                  "description": "A slowly turns the wheel"
+                  "description": "A slowly turns the wheel",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 24,
+                      "quote": "A slowly turns the wheel",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2069,12 +2502,25 @@
               "events": [
                 {
                   "id": "chain_toy_3",
-                  "description": "A rolls the toy forward smoothly"
+                  "description": "A rolls the toy forward smoothly",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 32,
+                      "quote": "A rolls the toy forward smoothly",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A has a toy vehicle whose drive chain is off one visible sprocket.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -2086,7 +2532,7 @@
       "duration_seconds": 18,
       "prompt": "A holds a red book beside a tall vase on a desk. Unless clothing is specified in the setup, A is an adult with short dark hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A places the book behind the vase. Then The camera moves sideways until part of the book appears. Then A lifts the same book out from behind the vase.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "reveal_occlusion",
         "split": "train",
@@ -2113,21 +2559,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A places the book behind the vase. Begin with book.location: A hands. End with book.location: behind vase. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A holds a red book beside a tall vase on a desk. Begin with book.location: A hands. Required event: A places the book behind the vase. End with book.location: behind vase. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-book_behind_vase-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. The camera moves sideways until part of the book appears. Begin with book.location: behind vase. End with book.location: behind vase partly visible. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A places the book behind the vase Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with book.location: behind vase. Required event: Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.. End with book.location: behind vase partly visible. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-book_behind_vase-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A lifts the same book out from behind the vase. Begin with book.location: behind vase partly visible. End with book.location: A hands. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A places the book behind the vase Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance. Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with book.location: behind vase partly visible. Required event: A lifts the same book out from behind the vase. End with book.location: A hands. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-book_behind_vase-continuity"
@@ -2187,7 +2633,15 @@
               "events": [
                 {
                   "id": "book_behind_vase_0",
-                  "description": "A places the book behind the vase"
+                  "description": "A places the book behind the vase",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 33,
+                      "quote": "A places the book behind the vase",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2205,7 +2659,15 @@
               "events": [
                 {
                   "id": "book_behind_vase_1",
-                  "description": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance."
+                  "description": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 240,
+                      "quote": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2225,12 +2687,25 @@
               "events": [
                 {
                   "id": "book_behind_vase_2",
-                  "description": "A lifts the same book out from behind the vase"
+                  "description": "A lifts the same book out from behind the vase",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 46,
+                      "quote": "A lifts the same book out from behind the vase",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A holds a red book beside a tall vase on a desk.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -2242,7 +2717,7 @@
       "duration_seconds": 18,
       "prompt": "A in a striped jacket stands left of a freestanding screen. Unless clothing is specified in the setup, A is an adult with curly brown hair and a teal jacket. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks behind the screen. Then The camera holds on both screen edges as A continues. Then A emerges from the right edge in the same jacket.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "reveal_occlusion",
         "split": "validation",
@@ -2269,21 +2744,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A walks behind the screen. Begin with A.location: left of screen. End with A.location: behind screen. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A in a striped jacket stands left of a freestanding screen. Begin with A.location: left of screen. Required event: A walks behind the screen. End with A.location: behind screen. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-actor_screen-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. The camera holds on both screen edges as A continues. Begin with A.location: behind screen. End with A.location: behind screen. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A walks behind the screen Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with A.location: behind screen. Required event: Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.. End with A.location: behind screen. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-actor_screen-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A emerges from the right edge in the same jacket. Begin with A.location: behind screen. End with A.location: right of screen. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A walks behind the screen Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance. Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with A.location: behind screen. Required event: A emerges from the right edge in the same jacket. End with A.location: right of screen. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-actor_screen-continuity"
@@ -2343,7 +2818,15 @@
               "events": [
                 {
                   "id": "actor_screen_0",
-                  "description": "A walks behind the screen"
+                  "description": "A walks behind the screen",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 25,
+                      "quote": "A walks behind the screen",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2361,7 +2844,15 @@
               "events": [
                 {
                   "id": "actor_screen_1",
-                  "description": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance."
+                  "description": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 240,
+                      "quote": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2381,12 +2872,25 @@
               "events": [
                 {
                   "id": "actor_screen_2",
-                  "description": "A emerges from the right edge in the same jacket"
+                  "description": "A emerges from the right edge in the same jacket",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 48,
+                      "quote": "A emerges from the right edge in the same jacket",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A in a striped jacket stands left of a freestanding screen.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true
@@ -2398,7 +2902,7 @@
       "duration_seconds": 18,
       "prompt": "A has an open box containing a yellow toy car. Unless clothing is specified in the setup, A is an adult with tied-back auburn hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A closes the box lid. Then A rotates the closed box on the table. Then A opens the lid and the yellow car remains inside.",
       "metadata": {
-        "benchmark": "story350-draft-v1",
+        "benchmark": "story350-draft-v2",
         "benchmark_status": "authored_draft_assets_missing",
         "task_family": "reveal_occlusion",
         "split": "test",
@@ -2425,21 +2929,21 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A closes the box lid. Begin with car.visibility: visible in box. End with car.visibility: hidden in closed box. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 0. Initial scene: A has an open box containing a yellow toy car. Begin with car.visibility: visible in box. Required event: A closes the box lid. End with car.visibility: hidden in closed box. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-toy_box_lid-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A rotates the closed box on the table. Begin with car.visibility: hidden in closed box. End with car.visibility: hidden in rotated box. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 1. Narrative history already completed, not actions to replay: A closes the box lid Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with car.visibility: hidden in closed box. Required event: A rotates the closed box on the table. End with car.visibility: hidden in rotated box. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-toy_box_lid-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A opens the lid and the yellow car remains inside. Begin with car.visibility: hidden in rotated box. End with car.visibility: visible in rotated box. Show the transition clearly without replaying previous events.",
+            "prompt": "Shot 2. Narrative history already completed, not actions to replay: A closes the box lid A rotates the closed box on the table Carry forward the resulting contents, custody and physical condition except where this shot explicitly changes them. Begin with car.visibility: hidden in rotated box. Required event: A opens the lid and the yellow car remains inside. All clauses must be satisfied in context: A opens the lid / and the yellow car remains inside. End with car.visibility: visible in rotated box. Follow every declared action and qualifier, including its actor, object, direction, contents, order and explicit retention conditions. Correct end positions alone do not establish that the required actions occurred. Do not reverse actions, introduce unexplained object appearance, or reset state at a cut. Allow only changes specified by the story. Hidden state is not direct visual evidence; do not force hidden objects into view.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-toy_box_lid-continuity"
@@ -2501,7 +3005,15 @@
               "events": [
                 {
                   "id": "toy_box_lid_0",
-                  "description": "A closes the box lid"
+                  "description": "A closes the box lid",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 20,
+                      "quote": "A closes the box lid",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2523,7 +3035,15 @@
               "events": [
                 {
                   "id": "toy_box_lid_1",
-                  "description": "A rotates the closed box on the table"
+                  "description": "A rotates the closed box on the table",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 37,
+                      "quote": "A rotates the closed box on the table",
+                      "relation": "whole"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
@@ -2545,12 +3065,31 @@
               "events": [
                 {
                   "id": "toy_box_lid_2",
-                  "description": "A opens the lid and the yellow car remains inside"
+                  "description": "A opens the lid and the yellow car remains inside",
+                  "obligations": [
+                    {
+                      "start": 0,
+                      "end": 15,
+                      "quote": "A opens the lid",
+                      "relation": "whole"
+                    },
+                    {
+                      "start": 16,
+                      "end": 49,
+                      "quote": "and the yellow car remains inside",
+                      "relation": "and"
+                    }
+                  ]
                 }
               ],
               "threshold": 0.9
             }
-          ]
+          ],
+          "semantics": {
+            "version": "source-backed-obligations-v1",
+            "initial_setup": "A has an open box containing a yellow toy car.",
+            "inference_policy": "explicit_source_only"
+          }
         },
         "original_split": "train",
         "development_only": true

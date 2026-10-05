@@ -27,7 +27,7 @@ from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 
 
-VERIFIER_PROTOCOL_VERSION = "state-transition-video-evidence-v10"
+VERIFIER_PROTOCOL_VERSION = "source-backed-obligations-video-v11"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -48,6 +48,12 @@ infer which method produced it. Ignore production polish unless a criterion asks
 for it. Judge every criterion separately; identity improvements do not excuse
 motion suppression, frozen poses, scene leakage, missing shots or style failures.
 Respect each criterion's definition and scoring_scope, not just its name.
+For source-backed action obligations, use the complete original event to resolve
+pronouns, negation and connective scope. Score each required clause independently.
+The parent event is a conjunction: a correct destination cannot compensate for
+reversed transfer, missing contents, or an explicit retention/order violation.
+Do not convert a vague conjunction into an unstated strict temporal order. A
+sampling gap or occlusion is still unknown, not proof of spontaneous appearance.
 Missing cuts belong to shot_and_action_coverage, not appearance consistency.
 For scoring_scope=visible_appearance_only, judge the visible attributes throughout
 the video even if it has a single shot. Do not award missing shot coverage through
@@ -113,6 +119,11 @@ A six-second clip for segment 2 at offset 12 covers original time 12..18;
 clip-local time 5 is original time 17, which is in segment 2, never segment 1.
 Use only this target clip for shot evidence; original references identify
 appearance, not what happened in the candidate. Do not invent other windows.
+For requires_previous_boundary only, evaluation_view.previous_boundary_context
+provides the preceding shot's real last frame. Compare it to the target shot's
+first frame for entry-state continuity. This is candidate context, not a desired
+reference or evidence of actions inside the previous shot. It never changes the
+target segment ID or authorizes judging unrelated criteria outside their window.
 For window_component_of_global=true, assess ONLY the locally observable part
 of the global criterion in this fixed clip. Do not claim cross-cut consistency
 from one clip. Top-level and target-segment statuses must agree; both may be
@@ -493,6 +504,12 @@ class ConditioningVideoVerifier:
         if any(isinstance(rule, dict) and rule.get("aggregation") == "minimum_over_segments"
                and "story_shot_index" not in rule for rule in task.metadata.get("evaluation", {}).values()):
             scoped = [span["segment_id"] for span in spans]
+        prior_context = {required_segment_ids(name, rule, spans)[0] - 1
+                         for name, rule in task.metadata.get("evaluation", {}).items()
+                         if isinstance(rule, dict) and rule.get("requires_previous_boundary")}
+        if any(index < 0 for index in prior_context):
+            raise ValueError("the first window cannot require a preceding boundary")
+        scoped = sorted(set(scoped) | prior_context)
         clips = []
         frame_times = self.frame_times(candidate, full["source_hash"]) if scoped else []
         for index in scoped:
@@ -558,6 +575,13 @@ class ConditioningVideoVerifier:
         group_manifest["window_clips"] = [selected]
         group_manifest["evaluation_view"] = {"kind": "fixed_window_clip", **selected,
             "time_mapping": "original_video_seconds = clip_local_seconds + source_time_offset_seconds"}
+        if any(rule.get("requires_previous_boundary") for rule in subset.values()):
+            previous = next((clip for clip in clips if clip["segment_id"] == index-1), {})
+            frames = [frame for frame in previous.get("boundary_frames", []) if frame.get("boundary") == "last"]
+            if len(frames) != 1 or frames[0]["media_label"] not in {label for label, _ in evidence}:
+                raise ValueError(f"missing preceding boundary context for fixed window {index}")
+            selected_labels.add(frames[0]["media_label"])
+            group_manifest["evaluation_view"]["previous_boundary_context"] = frames[0]
         excluded = clip_labels | boundary_labels | {manifest["full_candidate_label"]}
         return [(label, medium) for label, medium in evidence
                 if label not in excluded or label in selected_labels], group_manifest
@@ -759,6 +783,8 @@ class ConditioningVideoVerifier:
             for repeat, full in enumerate(observations[name]):
                 components = [by_window[span["segment_id"]][repeat] for span in manifest["windows"]]
                 observations[name][repeat] = combine_window_judgments(full, components, manifest["windows"])
+        from evovideo_skill.story_semantics import combine_obligations
+        conjunction_audit = combine_obligations(task, observations)
         scores, texts, unobserved, disagreements, failed = {}, {}, [], {}, []
         scope_issues = {}
         for name, rows in observations.items():
@@ -803,6 +829,7 @@ class ConditioningVideoVerifier:
             verification_metadata={**manifest, "unobserved_criteria": unobserved, "disagreement_criteria": review,
                 "verifier_protocol": VERIFIER_PROTOCOL_VERSION, "scope_issues": scope_issues,
                 "global_fixed_window_criteria": sorted(window_observations),
+                "event_conjunctions": conjunction_audit,
                 "criterion_contracts": rubric, "host_not_applicable_criteria": host_na,
                 "repeat_disagreement": disagreements, "judgment_path": str(folder), "profile": self.profile,
                 "limitations": ["Video-language scores are semantic proxies, not official VBench metrics.",

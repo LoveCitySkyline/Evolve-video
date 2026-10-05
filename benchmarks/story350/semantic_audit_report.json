@@ -1,0 +1,5135 @@
+{
+  "version": "source-backed-obligations-v1",
+  "tasks": 350,
+  "split_events": 129,
+  "review_items": 38,
+  "single_fact_tasks": 349,
+  "qualification": "All original event text remains mandatory. Clause spans are structural, not a verified semantic parse. Single-fact models may omit secondary state; source-backed clauses cover explicit actions but do not invent missing facts. Audit the listed cases before claiming a semantically validated benchmark.",
+  "records": [
+    {
+      "task_id": "story350-relay_baton",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "baton.holder"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-library_stamp",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "stamp.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-pottery_turntable",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "bowl.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-camera_tripod",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "camera.location"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-market_change",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "token.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-dog_leash",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "leash.free_end"
+      ],
+      "events": 3,
+      "obligations": 6,
+      "split_events": 3,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-soup_ladle",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "ladle.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-violin_case",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "violin.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ferry_coin",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "coin.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-garden_shears",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "shears.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-chess_piece",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "rook.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-laundry_clip",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "clip.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sketchbook_exchange",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "sketchbook.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ball_return",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "ball.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-helmet_hook",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "helmet.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-menu_stand",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "board.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fishing_net",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "net.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-workshop_gauge",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "gauge.location"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-florist_vase",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "vase.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-theater_mask",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "mask.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bakery_tongs",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "tongs.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-pool_cue",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "cue.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-museum_audio_guide",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "guide.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-beach_bucket",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "bucket.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sewing_spool",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "spool.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "sewing_spool_1",
+          "source": "B stops the spool and picks it up",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ice_skate_bag",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "bag.location"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-orchard_basket",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "basket.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-conductor_whistle",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "whistle.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-magician_ring",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "ring.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-barber_mirror",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "mirror.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stapler_cart",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "stapler.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rowing_oar",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "oar.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-scoreboard_tile",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "tile.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-teapot_tray",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "teapot.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-tent_mallet",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "mallet.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-marble_tube",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "marble.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-flag_raising",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "pennant.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-apron_handoff",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "apron.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-mail_slot",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "postcard.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-scarf_mannequin",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "scarf.location"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-baton_conveyor",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "parcel.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-umbrella_check",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "umbrella.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "umbrella_check_2",
+          "source": "B lifts the same umbrella and gives it back to A",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-lobster_model",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "model.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-measuring_tape",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "tape.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bread_peel",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "loaf.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-tool_magnet",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "wrench.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-hat_rack",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "hat.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [
+        {
+          "event_id": "hat_rack_0",
+          "source": "A removes the hat and offers it to B",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-coin_slide",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "disk.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-photo_easel",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "frame.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [
+        {
+          "event_id": "photo_easel_2",
+          "source": "A lifts the frame and hands it to B",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-flute_cleanup",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "flute.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-crane_magnet",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "plate.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_tablet",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "tablet.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-puppet_glove",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "puppet.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-beehive_frame",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "frame.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-baggage_sling",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "duffel.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-curling_stone",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "stone.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-archery_quiver",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "arrow.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-weaving_shuttle",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "shuttle.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-survey_prism",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "prism.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "survey_prism_2",
+          "source": "A unfastens the prism and stores it in a case",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-glass_suction",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "panel.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-wheelchair_book",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "book.location"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-loom_bobbin",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "bobbin.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "loom_bobbin_2",
+          "source": "B closes the shuttle and gives it to A",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-astronomy_eyepiece",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "eyepiece.location"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-oyster_basket",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "basket.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-pot_lifter",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "pot.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-token_turnstile",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "token.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sled_crate",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "crate.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-prosthetic_demo",
+      "split": "train",
+      "family": "object_custody",
+      "fact_keys": [
+        "cylinder.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-printing_plate",
+      "split": "test",
+      "family": "object_custody",
+      "fact_keys": [
+        "plate.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sample_tongs",
+      "split": "validation",
+      "family": "object_custody",
+      "fact_keys": [
+        "block.location"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cloth_dye",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "cloth.state"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_cup",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "clay.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fruit_salad",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "banana.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_fan",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paper.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ice_break",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "ice.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-wood_stain",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "panel.surface"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ribbon_bow",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "ribbon.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_coil",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "clay.form"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-lemon_juice",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "lemon.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-chalk_erasure",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "board.mark"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fabric_patch",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "cloth.tear"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-soap_carving",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "soap.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-dough_ring",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "dough.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-leaf_print",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paper.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-shell_mosaic",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "tile.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cardboard_cube",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "cardboard.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paint_mix",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paint.state"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-apple_peel",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "apple.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bead_string",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "cord.contents"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-wire_heart",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "wire.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_window",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paper.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_leaf",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "clay.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-chalk_pastel",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paper.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-button_card",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "card.state"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-wax_imprint",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "wax.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-foil_boat",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "foil.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rice_mold",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "rice.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-orange_sections",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "orange.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fabric_roll",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "napkin.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stencil_star",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "board.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-salt_pattern",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "salt.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-plait_cord",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "cords.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_stamp",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "clay.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_chain",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paper.form"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sponge_paint",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "disk.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-corn_husk",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "corn.covering"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_snail",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "snail.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-snow_stack",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "snowman.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_weave",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "weave.state"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "paper_weave_0",
+          "source": "A threads a red strip over and under",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fruit_skewer",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "skewer.contents"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-felt_flower",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "felt.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_arch",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "arch.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_spiral",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paper.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cream_swirl",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "cupcake.top"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-seed_packet",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "packet.state"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_texture",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "slab.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fabric_fringe",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "fabric.edge"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-chocolate_shards",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "chocolate.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_lid",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "lid.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_rosette",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "rosette.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ceramic_slip",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "tile.surface"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-loom_pattern",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "fabric.pattern"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-glass_beads_water",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "jar.contents"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-resin_free_pendant",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "pendant.state"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cyanotype_mock",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "card.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rubber_band_ball",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "ball.covering"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-mesh_sieve",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "sieve.contents"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "mesh_sieve_0",
+          "source": "A shakes the sieve and sand begins falling",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-embossed_leaf",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "foil.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-pencil_shavings",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "pencil.tip"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rolled_poster",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "poster.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_puzzle",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "puzzle.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-coconut_model",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "model.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-woven_basket_handle",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "basket.state"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-crayon_rubbing",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paper.surface"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fabric_twist",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "cloth.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_lantern_shell",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "lantern.form"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ink_blot_fold",
+      "split": "test",
+      "family": "state_transformation",
+      "fact_keys": [
+        "paper.pattern"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-leaf_crown",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "crown.state"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clay_wheel",
+      "split": "train",
+      "family": "state_transformation",
+      "fact_keys": [
+        "wheel.state"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_pinwheel",
+      "split": "validation",
+      "family": "state_transformation",
+      "fact_keys": [
+        "pinwheel.form"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-gallery_loop",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bakery_counter",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "selected_bread.location",
+        "tray.contents",
+        "tray.location"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "bakery_counter_0",
+          "source": "A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        },
+        {
+          "event_id": "bakery_counter_1",
+          "source": "A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        },
+        {
+          "event_id": "bakery_counter_load_direction",
+          "source": "Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        },
+        {
+          "event_id": "bakery_counter_2",
+          "source": "A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": false,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-greenhouse_aisle",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-station_stairs",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "suitcase.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-harbor_route",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-library_aisle",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "book.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-courtyard_fountain",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-studio_ladder",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "backdrop.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-garden_steps",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "pot.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cafe_window",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "cup.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-warehouse_ramp",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "crate.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-market_alley",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-theater_wings",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "stool.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-attic_hatch",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "basket.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-river_stones",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "river_stones_1",
+          "source": "A crosses the second and third stones",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-workbench_walk",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "frame.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-book_cart_turn",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "cart.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-pedestrian_bridge",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-loft_shelf",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "box.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-flower_cart",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "cart.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sewing_room",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "fabric.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-aquarium_walk",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-orchard_ladder",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "basket.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-museum_bench",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "coat.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bus_shelter",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "board.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-boathouse_door",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "paddle.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-terrace_table",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "table.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-hallway_corner",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-beach_boardwalk",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-school_cubby",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "mat.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-mill_walkway",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stage_platform",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "stand.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rooftop_hose",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "hose.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-park_pavilion",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-tram_depot",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "toolbox.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-camp_walk",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "kettle.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-courier_ramp",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "portfolio.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-gallery_partition",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "sculpture.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-greenroom_route",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "bag.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-pond_pier",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "boat.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-spiral_stair",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-mezzanine_cart",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "cart.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-studio_track",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "reflector.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-island_kitchen",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "bowl.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-garden_pergola",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "stool.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-corner_stall",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "tray.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-balcony_planter",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "planter.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-underpass_bike",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-loft_walkway",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "blanket.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-harbor_steps",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "ring.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-observatory_dome",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "cover.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-canal_lock",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-vineyard_rows",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "tray.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-railcar_passage",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-pottery_kiln_room",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "pot.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-waterwheel_path",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-museum_ramp_loop",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "cart.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-greenhouse_crosswalk",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "tray.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "greenhouse_crosswalk_1",
+          "source": "A crosses and steps down on the right",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cave_boardwalk",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sculpture_courtyard",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "cover.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ferry_gangway",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "case.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rooftop_bridge",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-textile_catwalk",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-aqueduct_path",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-library_sunken_area",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "cushion.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-marina_finger_pier",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "hose.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-orchard_tunnel",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clocktower_landing",
+      "split": "train",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-exhibit_platform",
+      "split": "validation",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "frame.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-houseboat_entry",
+      "split": "test",
+      "family": "spatial_continuity",
+      "fact_keys": [
+        "bag.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stuck_drawer",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "drawer.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-loose_stool",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "stool.state"
+      ],
+      "events": 4,
+      "obligations": 7,
+      "split_events": 3,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-chain_toy",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "drive.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-blocked_watering_can",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "spout.state"
+      ],
+      "events": 4,
+      "obligations": 6,
+      "split_events": 2,
+      "review_items": [
+        {
+          "event_id": "blocked_watering_can_0",
+          "source": "A tilts the can and water fails to pour",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-crooked_picture",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "frame.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-zipper_fabric",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "zipper.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-gutter_leaf",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "gutter.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-toy_track_gap",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "track.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fallen_books",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "books.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-tent_line",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "line.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-wheel_brake",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "wheel.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-door_wedge",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "door.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-spilled_pencils",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "desk.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-trapped_ball",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "ball.location"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "trapped_ball_0",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        },
+        {
+          "event_id": "trapped_ball_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-slack_belt",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "belt.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [
+        {
+          "event_id": "slack_belt_3",
+          "source": "A turns the first pulley and both rotate",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-folding_table_latch",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "brace.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-desk_cable",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "cable.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-windblown_sheet",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "paper.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bucket_leak",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "bucket.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "bucket_leak_3",
+          "source": "A lifts the bucket and no water escapes below",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-curtain_hook",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "curtain.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-drawer_divider",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "drawer.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-toy_bridge",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "bridge.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-shoe_lace",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "lace.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "shoe_lace_2",
+          "source": "A makes and crosses two loops",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-gate_pin",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "gate.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-lamp_shade",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "shade.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rolling_mat",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "mat.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "rolling_mat_3",
+          "source": "A lays the mat down and steps away",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stuck_wheel_model",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "wheel.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "stuck_wheel_model_3",
+          "source": "A rights the cart and rolls it",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-jar_seal",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "jar.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-crooked_signpost",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "sign.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-spool_tangle",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "thread.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-window_screen",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "screen.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-loose_handle",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "handle.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fallen_domino_support",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "ramp.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sliding_bookshelf",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "tray.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-plant_tie",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "plant.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [
+        {
+          "event_id": "plant_tie_1",
+          "source": "A loops a soft tie around stem and stake",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-poster_crease",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "poster.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-toy_sail",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "sail.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bin_liner",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "liner.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cabinet_catch",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "latch.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-umbrella_rib",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "rib.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-easel_lock",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "easel.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-watering_hose_kink",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "hose.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "watering_hose_kink_0",
+          "source": "A stops walking and locates the kink",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-snagged_blind",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "blind.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stuck_lazy_susan",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "turntable.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sloping_tray",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "tray.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-loose_drum_skin",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "skin.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-drawer_runner",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "drawer.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-birdfeeder_lid",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "lid.state"
+      ],
+      "events": 4,
+      "obligations": 4,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-folding_chair",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "chair.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-pulley_rope",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "rope.state"
+      ],
+      "events": 4,
+      "obligations": 5,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-water_runnel",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "channel.state"
+      ],
+      "events": 6,
+      "obligations": 6,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-marionette_strings",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "strings.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-model_lock_gate",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "gate.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-spinning_wheel_band",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "band.state"
+      ],
+      "events": 6,
+      "obligations": 6,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clock_pendulum_model",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "pendulum.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rolling_shutter_model",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "shutter.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-music_box_handle",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "crank.state"
+      ],
+      "events": 6,
+      "obligations": 8,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-weaving_warp",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "thread.state"
+      ],
+      "events": 6,
+      "obligations": 6,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-greenhouse_vent",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "vent.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-model_elevator",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "platform.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-roller_stamp",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "roller.state"
+      ],
+      "events": 6,
+      "obligations": 6,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ratchet_model",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "pawl.state"
+      ],
+      "events": 6,
+      "obligations": 8,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-periscope_mirror",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "mirror.state"
+      ],
+      "events": 6,
+      "obligations": 6,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-windmill_vane",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "vane.state"
+      ],
+      "events": 6,
+      "obligations": 6,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-siphon_model",
+      "split": "validation",
+      "family": "causal_repair",
+      "fact_keys": [
+        "tube.state"
+      ],
+      "events": 6,
+      "obligations": 6,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "siphon_model_4",
+          "source": "A releases and squeezes again",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-folding_drying_rack",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "rack.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bench_vise_pad",
+      "split": "test",
+      "family": "causal_repair",
+      "fact_keys": [
+        "pad.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-model_cable_car",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "car.state"
+      ],
+      "events": 6,
+      "obligations": 6,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fountain_nozzle",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "fountain.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-puppet_stage_roof",
+      "split": "train",
+      "family": "causal_repair",
+      "fact_keys": [
+        "roof.state"
+      ],
+      "events": 6,
+      "obligations": 7,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cup_under_cloth",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "cup.visibility"
+      ],
+      "events": 3,
+      "obligations": 5,
+      "split_events": 2,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-book_behind_vase",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "book.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "book_behind_vase_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-actor_screen",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "actor_screen_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-toy_box_lid",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "car.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-mirror_reveal",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "mirror.view"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-curtain_shelf",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "shelf.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-drawer_reveal",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "compass.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-hat_surprise",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "bird.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fogged_glass",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-folded_map_reveal",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "map.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-ball_tunnel",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "ball.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "ball_tunnel_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-coat_rack_pass",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "coat_rack_pass_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_flap",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "sun.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stacked_plates",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "coaster.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-hedge_gap",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-box_window",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "window.state"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-curtain_entrance",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-leaf_occlusion",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "fruit.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-umbrella_reentry",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cabinet_glass",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "contents.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-folding_screen_view",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "chair.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-book_dust_jacket",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "cover.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-tablecloth_pullback",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "board.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-archway_crossing",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "archway_crossing_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        },
+        {
+          "event_id": "archway_crossing_2",
+          "source": "A emerges with the same box and overalls",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_sleeve",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "photo.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-snow_cover",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "truck.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rotating_display",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "vase.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-curled_scroll",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "painting.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-laundry_line_pass",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "laundry_line_pass_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-chest_tray",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "box.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-handkerchief_ring",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "ring.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-window_blind",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "tree.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-plant_pot_turn",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "star.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-bench_occlusion",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "ball.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-canvas_cover",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "painting.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sliding_panel",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "relief.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-tree_trunk_pass",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "tree_trunk_pass_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fabric_pocket",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "pencil.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-round_box",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "scarf.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "round_box_2",
+          "source": "A lifts the scarf and drapes it over the box rim",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stage_prop_reveal",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "tree.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-frost_window",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "lantern.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sliding_bookcase",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "mural.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-basket_lining",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "rabbit.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-revolving_door",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-clapper_board",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "cactus.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-museum_peek",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "ship.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rolling_map_case",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "map.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "rolling_map_case_0",
+          "source": "A removes the cap and draws out the roll",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-quilt_flap",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "patch.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-double_curtain",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "chair.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fence_slats",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-prism_cover",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "prism.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-perforated_screen",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "disk.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-model_mountain",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "train.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "model_mountain_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-specimen_drawer",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "shell.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-shutter_reveal",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "outside.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cloak_turn",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "lining.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-book_tunnel",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "toy.location"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "book_tunnel_1",
+          "source": "Maintain the declared occluder and views of its entry/exit boundaries. The subject does not prematurely reappear. This interval does not assert direct visual proof of hidden identity or location; check that at the next visible reappearance.",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-fountain_spray",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [
+        {
+          "event_id": "fountain_spray_2",
+          "source": "The jets resume and blur the same person",
+          "reason": "compound_kept_whole_no_safe_automatic_split"
+        }
+      ],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-paper_silhouette",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "cat.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-rolling_scenery",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-nested_bowls",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "red_bowl.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-slatted_bridge",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "bag.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-lid_reflection",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "lid.view"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-stained_glass_panel",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "bird.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-cliff_model_reveal",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "lighthouse.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-sliding_mirror",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "cup.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-umbrella_cluster",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "A.location"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-theater_trap_model",
+      "split": "test",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "figurine.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-opaque_sleeve_bottle",
+      "split": "train",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "beads.visibility"
+      ],
+      "events": 3,
+      "obligations": 4,
+      "split_events": 1,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    },
+    {
+      "task_id": "story350-hinged_exhibit",
+      "split": "validation",
+      "family": "reveal_occlusion",
+      "fact_keys": [
+        "butterfly.visibility"
+      ],
+      "events": 3,
+      "obligations": 3,
+      "split_events": 0,
+      "review_items": [],
+      "state_model_review_required": true,
+      "semantic_human_validation": false
+    }
+  ]
+}

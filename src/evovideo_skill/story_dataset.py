@@ -12,10 +12,11 @@ import re
 from evovideo_skill.h3_mini50 import write_json
 from evovideo_skill.models import VideoTask
 from evovideo_skill.story_contracts import prepare_story_task
+from evovideo_skill.story_semantics import attach_semantics, semantic_audit
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ROOT = ROOT / "benchmarks/story350"
-VERSION = "story350-draft-v1"
+VERSION = "story350-draft-v2"
 FAMILIES = ("object_custody", "state_transformation", "spatial_continuity", "causal_repair", "reveal_occlusion")
 SPLITS = {"train": 40, "validation": 10, "test": 20}
 CAMERAS = ("Establishing medium-wide view", "Clear medium view of the action", "Close enough to show the resulting state")
@@ -105,6 +106,8 @@ def apply_contract_override(task: dict, override: dict) -> None:
     contract = deepcopy(override["contract"])
     # Validate the entire replacement before rendering any generation prompt.
     check = VideoTask.from_dict(deepcopy(task))
+    check.metadata["evaluation"] = {k: v for k, v in check.metadata["evaluation"].items()
+                                  if not k.startswith("story.")}
     check.metadata["story_contract"] = contract
     prepare_story_task(check)
     meta["story_contract"] = contract
@@ -187,7 +190,9 @@ def build_task(row: dict) -> tuple[dict, dict]:
             "prompt": prompt, "metadata": metadata}
     if row.get("contract_override") is not None:
         apply_contract_override(task, row["contract_override"])
-    prepare_story_task(VideoTask.from_dict(deepcopy(task)))
+    attach_semantics(task, row["setup"])
+    compiled = prepare_story_task(VideoTask.from_dict(deepcopy(task)))
+    task["metadata"]["h3_shots"] = compiled.metadata["h3_shots"]
     asset = {"asset_id": asset_id, "task_id": task["task_id"], "split": row["split"], "kind": "image",
         "path": None, "status": "missing", "purpose": "fixed appearance and layout; not temporal ground truth",
         "prompt": ("Create a single clear continuity reference photograph for this fictional scene. " + row["setup"] + " " + cast +
@@ -287,6 +292,7 @@ def build(root: Path = DEFAULT_ROOT) -> dict:
     # not understand these image specifications. story_assets materializes them.
     write_json(root / "asset_specs.json", {"version": VERSION, "assets": assets})
     write_json(root / "audit_report.json", report)
+    write_json(root / "semantic_audit_report.json", semantic_audit(tasks))
     write_json(root / "splits.json", {"version": VERSION, "assignment": "family and shot-length stratified, fixed SHA256 ordering story350-split-v1",
                                       "splits": {s: [t["task_id"] for t in tasks if t["metadata"]["split"] == s] for s in SPLITS}})
     smoke = []

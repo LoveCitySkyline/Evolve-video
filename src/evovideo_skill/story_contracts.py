@@ -5,6 +5,8 @@ before generation. Observations remain separate, with unknown distinct from fals
 """
 from copy import deepcopy
 import math
+from evovideo_skill.story_semantics import (validate_semantics, event_checks, render_shots,
+                                          state_flow_requirement)
 
 
 def _facts(value, label):
@@ -32,6 +34,10 @@ def prepare_story_task(task):
         raise ValueError("story shot durations must cover the complete task")
     desired = dict(_facts(contract.get("initial_state", {}), "initial_state"))
     rubric = task.metadata.setdefault("evaluation", {})
+    # Validate ordinary contract structure before reading optional source spans.
+    semantic_enabled = contract.get("semantics") is not None
+    if semantic_enabled and not isinstance(contract["semantics"], dict):
+        raise ValueError("invalid story semantics contract")
     generated, event_ids, offset = {}, set(), 0
     for index, (shot, rule) in enumerate(zip(shots, rules)):
         if not isinstance(rule, dict) or rule.get("shot_index") != index:
@@ -54,7 +60,7 @@ def prepare_story_task(task):
                     or len(selected) != len(set(selected)) or not set(selected) <= set(facts)):
                 raise ValueError(f"observable_{kind} must select unique declared fact keys")
             observable[kind] = selected
-        checks = [(f"{kind}.{key}", f"{kind}: {key} must equal {value!r}")
+        checks = [(f"{kind}.{key}", f"{kind}: {key} must equal {value!r}", 1.)
                   for kind, facts in (("pre", pre), ("post", post), ("invariant", invariants))
                   for key, value in facts.items() if key in observable[kind]]
         events = rule.get("events", [])
@@ -66,29 +72,43 @@ def prepare_story_task(task):
                     or not event["description"].strip()):
                 raise ValueError("story events need unique IDs and nonempty descriptions")
             event_ids.add(event["id"])
-            checks.append(("event." + event["id"], event["description"]))
+            checks.extend(event_checks(event, semantic_enabled))
+        if index == 0 and semantic_enabled:
+            setup = contract["semantics"].get("initial_setup", "")
+            checks.append(("pre.initial_setup", f"Original initial scene: {setup!r}. "
+                "At the beginning check the explicitly visible initial objects, contents and "
+                "arrangement. Do not replace an empty container with a filled one or an "
+                "unrepaired object with its later result. Explicitly hidden contents are "
+                "context, not a requirement for direct visual proof. Do not invent additional "
+                "objects or exact geometry.", 1.))
+        if semantic_enabled:
+            checks.append(("state_flow", state_flow_requirement(contract, index), 1.))
         threshold = rule.get("threshold", .9)
         if type(threshold) not in (int, float) or not math.isfinite(threshold) or not 0 < threshold <= 1:
             raise ValueError("story threshold must be in (0,1]")
         end = offset + shot["duration_seconds"]
-        for suffix, description in checks:
+        for suffix, description, weight in checks:
             key = f"story.s{index}.{suffix}"
             generated[key] = {"description": f"Shot {index}, {offset}..{end}s: {description}. "
                 "Judge visible evidence in this shot only. Pre is its beginning, post its end; "
                 "an invariant must hold throughout. Occlusion is unknown, not proof.",
-                "threshold": threshold, "mandatory": True, "weight": 1.,
+                "threshold": threshold, "mandatory": True, "weight": weight,
                 "story_shot_index": index, "aggregation": "mean"}
+            if suffix == "state_flow" and index > 0:
+                generated[key]["requires_previous_boundary"] = True
         desired.update(post)
         offset = end
     final = _facts(contract.get("final_state", {}), "final_state")
     if any(desired.get(k) != v for k, v in final.items()):
         raise ValueError("declared final state is not established by story transitions")
+    validate_semantics(contract)
     for key, value in generated.items():
         if key in rubric and rubric[key] != value:
             raise ValueError(f"story criterion collision: {key}")
     if any(k.startswith("story.") and k not in generated for k in rubric):
         raise ValueError("undeclared criterion in reserved story namespace")
     rubric.update(generated)
+    render_shots(task)
     return task
 
 
