@@ -27,7 +27,7 @@ from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 
 
-VERIFIER_PROTOCOL_VERSION = "boundary-grounded-video-evidence-v9"
+VERIFIER_PROTOCOL_VERSION = "state-transition-video-evidence-v10"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -134,6 +134,22 @@ support), use observed with a justified failure score. A target not visible due
 to genuine occlusion/ambiguity remains unobserved. Boundary images establish
 instantaneous visible state only, not an action's completion or persistence
 outside the supplied evidence. Keep the clip for motion and invariant checks.
+Treat object position, container contents, transfer direction and state retention
+as separate requirements when declared in the task. Correct placement alone
+does not establish correct contents. For a transfer, identify the visible source,
+destination and direction in your evidence. Reversing source and destination is
+a visible mismatch, even if the people and props look consistent. Endpoint
+agreement alone does not prove the required transfer happened. Do not credit a
+loading event merely because an empty container later contains an object.
+If visible evidence establishes spontaneous appearance, duplication, disappearance
+or unloading when loading was required, score the relevant defect as observed.
+If the action might have occurred between sparse samples or behind an occluder,
+do not invent a transfer or a continuity defect: use insufficient evidence for
+that event while judging independently observable endpoint states separately.
+An invariant of retained contents needs adequate evidence across its declared
+window, not just one good final image. Never infer invisible contents from the
+desired story. Do not invent exact distances, grip requirements or restrictions
+on camera angle that are absent from the original task.
 """
 
 

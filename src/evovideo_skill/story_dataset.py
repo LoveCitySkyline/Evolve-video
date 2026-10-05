@@ -76,7 +76,58 @@ def read_catalog(root: Path = DEFAULT_ROOT) -> list[dict]:
                     row["split"] = split
                 offset += n
                 remaining[split] -= n
+    override_path = root / "catalog" / "contract_overrides.json"
+    if override_path.exists():
+        payload = json.loads(override_path.read_text(encoding="utf-8"))
+        if (not isinstance(payload, dict) or set(payload) != {"version", "scenarios"}
+                or payload["version"] != 1 or not isinstance(payload["scenarios"], dict)):
+            raise ValueError("contract overrides require version=1 and a scenarios map")
+        overrides = payload["scenarios"]
+        if set(overrides) - seen:
+            raise ValueError("contract override refers to an unknown scenario")
+        for row in rows:
+            if row["id"] in overrides:
+                row["contract_override"] = deepcopy(overrides[row["id"]])
     return rows
+
+
+def apply_contract_override(task: dict, override: dict) -> None:
+    """Explicit reviewed requirements, never infer extra facts from model scores."""
+    fields = {"revision", "reason", "development_feedback_used", "fact_definitions", "contract"}
+    if (not isinstance(override, dict) or set(override) != fields
+            or any(not isinstance(override[k], str) or not override[k].strip()
+                   for k in ("revision", "reason", "fact_definitions"))
+            or type(override["development_feedback_used"]) is not bool):
+        raise ValueError("invalid explicit story contract override")
+    meta = task["metadata"]
+    if override["development_feedback_used"] and meta["split"] != "train":
+        raise ValueError("development feedback must not revise a held-out scenario in place")
+    contract = deepcopy(override["contract"])
+    # Validate the entire replacement before rendering any generation prompt.
+    check = VideoTask.from_dict(deepcopy(task))
+    check.metadata["story_contract"] = contract
+    prepare_story_task(check)
+    meta["story_contract"] = contract
+    meta["data_provenance"].update(contract_revision=override["revision"],
+        contract_revision_reason=override["reason"],
+        development_feedback_used=override["development_feedback_used"])
+    meta["story_fact_definitions"] = override["fact_definitions"]
+    meta["h3_global_constraints"] += " " + override["fact_definitions"]
+    events = []
+    for shot, rule in zip(meta["h3_shots"], contract["shots"]):
+        index = rule["shot_index"]
+        descriptions = [event["description"] for event in rule["events"]]
+        facts = lambda values: "; ".join(f"{key}: {value}" for key, value in values.items())
+        shot["prompt"] = (f"{CAMERAS[index % 3]}. " + " ".join(descriptions) +
+            " Begin with " + facts(rule["preconditions"]) + ". End with " + facts(rule["postconditions"]) + ".")
+        if rule.get("invariants"):
+            shot["prompt"] += " Throughout this shot preserve " + facts(rule["invariants"]) + "."
+        shot["prompt"] += (" Show the required state changes and transfer direction clearly. "
+            "Keep the relevant objects and container contents legible at declared visible boundaries. "
+            "Do not reverse, skip or replay actions, or reset to the reference image state.")
+        events.extend(descriptions)
+    meta["authored_events"] = events
+    task["prompt"] = meta["h3_global_constraints"] + " Required events: " + " ".join(events)
 
 
 def cast_description(row: dict) -> str:
@@ -134,6 +185,8 @@ def build_task(row: dict) -> tuple[dict, dict]:
     prompt = global_text + " Required shots: " + " Then ".join(b[0] + "." for b in row["beats"])
     task = {"task_id": f"story350-{ident}", "mode": "generation", "duration_seconds": len(shots)*6,
             "prompt": prompt, "metadata": metadata}
+    if row.get("contract_override") is not None:
+        apply_contract_override(task, row["contract_override"])
     prepare_story_task(VideoTask.from_dict(deepcopy(task)))
     asset = {"asset_id": asset_id, "task_id": task["task_id"], "split": row["split"], "kind": "image",
         "path": None, "status": "missing", "purpose": "fixed appearance and layout; not temporal ground truth",

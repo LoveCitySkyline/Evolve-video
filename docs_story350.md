@@ -79,6 +79,37 @@ v7 升级 v8 改变了评估输入协议，须新建运行目录、仅复用生�
 
 策略会纳入实验协议哈希，切换策略或升级执行代码须使用新目录，不得直接改旧 checkpoint 来继续。只复用视频缓存；旧实验目录保留作为审计依据。
 
+### 物体转移与内容保持回归（v10）
+
+`state-transition-video-evidence-v10` 明确区分物体位置、容器内容、转移方向和后续保持。终点内容正确不能代替动作证据；把物体放回源头不能算装载成功；只有可见证据确实显示凭空出现、复制、消失或反向动作时才计为可观察失败。被遮挡或可能发生在稀疏采样间隔内的动作仍可为未知，不能强制补零。评估协议更新，不复用 v9 评分。
+
+目录 `benchmarks/story350/catalog/contract_overrides.json` 提供显式、多事实的任务约束补充。当前仅修订 `bakery_counter`，其余 349 条任务保持原样，不假装已完成全量语义审查。该任务新增 `tray.contents`、`selected_bread.location`、装载方向事件和前后镜头的内容保持约束，生成提示与 rubric 由同一份声明编译。它在完整 Story350 中属于训练池，在 smoke15 中是开发用 validation；修订来源记为开发反馈，不能算独立测试证据。编译器禁止将这种反馈原地用于全量 held-out 场景。参考图规格和素材 ID 不变。
+
+升级后先重建 prepared **清单**，复用旧参考图，不调用 H3、不覆盖旧目录、不自动声明已完成人工审查：
+
+```bash
+bash scripts/prepare_story350_h3.sh \
+  --source benchmarks/story350/story350_smoke15.json \
+  --asset-manifest outputs/story350_smoke15_prepared/assets.json \
+  --prepared-dir outputs/story350_smoke15_transfer_v2_prepared
+```
+
+先对已有问题视频进行开发回归，`--video` 可以重复。只调用 runtime VLM，绝不启动 H3、Codex planner 或更新策略记忆；新输出目录保存协议、原视频哈希、完整判断、验收和摘要。`failed` 与 `unknown` 都会被如实保留。模型识别方向的正确性仍需和人工核查对照：
+
+```bash
+old_run=outputs/h3_story350_debug_unknownfix_PTN2GD
+review_dir="$(mktemp -d outputs/bakery_transfer_recheck_XXXXXX)"
+PYTHONPATH=src python scripts/recheck_story_video.py \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_transfer_v2_prepared/story350_h3.json \
+  --task-id story350-bakery_counter \
+  --video "$old_run/videos/h3_artifacts/h3_av_concat-2fa0db9ae5cf46f794d318260ca9d3e1.mp4" \
+  --video "$old_run/videos/h3_artifacts/h3_av_concat-ce4eacaddece4547bda80e44a3bca2cd.mp4" \
+  --output-dir "$review_dir"
+```
+
+要测试新生成行为，再在新运行目录运行搜索并显式传入新 `--task-file`。不能拿新增判据后的分数与旧 rubric 的总分直接比较，也不能继续使用旧冻结策略充当新协议下的已验证策略。
+
 旧版可能把 Qwen 仅返回目标镜头的合理响应误报为 `all fixed temporal windows need explicit judgments`。升级这一评估协议后，同样使用新实验目录，只复用 `videos/` 原生生成缓存；不复用旧评估或搜索 checkpoint。示例（在仓库根目录运行，替换 `old_run` 为实际旧目录）：
 
 ```bash

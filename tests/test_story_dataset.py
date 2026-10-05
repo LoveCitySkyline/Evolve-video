@@ -8,7 +8,8 @@ import zlib
 
 from evovideo_skill.models import VideoTask, VideoArtifact
 from evovideo_skill.story_contracts import prepare_story_task, acceptance_report
-from evovideo_skill.story_dataset import DEFAULT_ROOT, FAMILIES, audit_suite, budget_report, build_task, read_catalog
+from evovideo_skill.story_dataset import (DEFAULT_ROOT, FAMILIES, audit_suite, budget_report,
+                                         build_task, read_catalog, apply_contract_override)
 from evovideo_skill.story_assets import TASK_FILE, prepare, verify_prepared, verify_story_task
 from evovideo_skill.conditioning_curriculum import prepare as prepare_curriculum
 
@@ -24,6 +25,76 @@ def write_png(path, color):
 
 
 class StoryDatasetTests(unittest.TestCase):
+    def test_bakery_tracks_loading_direction_contents_and_retention(self):
+        row = next(r for r in read_catalog() if r['id'] == 'bakery_counter')
+        raw, asset = build_task(row)
+        legacy = deepcopy(row)
+        legacy.pop('contract_override')
+        self.assertEqual(asset, build_task(legacy)[1])
+        task = prepare_story_task(VideoTask.from_dict(raw))
+        rules = task.metadata['story_contract']['shots']
+        self.assertEqual(task.metadata['story_contract']['initial_state']['tray.contents'], 'empty')
+        self.assertEqual(task.metadata['story_contract']['final_state']['tray.contents'], 'selected bread')
+        self.assertEqual(rules[0]['invariants']['tray.contents'], 'empty')
+        self.assertEqual(rules[1]['preconditions']['selected_bread.location'], 'bread rack')
+        self.assertEqual(rules[1]['postconditions']['selected_bread.location'], 'tray')
+        self.assertEqual(rules[2]['invariants']['tray.contents'], 'selected bread')
+        rubric = task.metadata['evaluation']
+        for name in ('story.s0.invariant.tray.contents', 'story.s1.pre.tray.contents',
+                     'story.s1.post.tray.contents', 'story.s1.event.bakery_counter_load_direction',
+                     'story.s2.invariant.tray.contents', 'story.s2.post.selected_bread.location'):
+            self.assertTrue(rubric[name]['mandatory'])
+        self.assertIn('FROM the bread rack INTO the tray', task.metadata['h3_shots'][1]['prompt'])
+        self.assertIn('tray.contents: selected bread', task.metadata['h3_shots'][2]['prompt'])
+        self.assertTrue(task.metadata['data_provenance']['development_feedback_used'])
+
+    def test_correct_endpoints_cannot_hide_failed_or_unknown_loading(self):
+        from evovideo_skill.conditioning_verifier import windows
+        row = next(r for r in read_catalog() if r['id'] == 'bakery_counter')
+        task = prepare_story_task(VideoTask.from_dict(build_task(row)[0]))
+        rubric = task.metadata['evaluation']
+        scores = {name: 1. for name in rubric}
+        observations = {name: [{'status': 'observed', 'segments': [{
+            'segment_id': rule['story_shot_index'], 'status': 'observed', 'score': 1.,
+            'evidence': 'Synthetic fixture, not a video observation.'}]}]
+            for name, rule in rubric.items() if 'story_shot_index' in rule}
+        base = VideoArtifact('fixture', task.task_id, '', task.mode, [], [], {'vlm_evaluation': {
+            'criterion_scores': scores, 'criterion_observations': observations,
+            'verification_metadata': {'windows': windows(task)}}})
+        self.assertEqual(acceptance_report(task, base)['status'], 'passed')
+        for criterion, status, score, expected in (
+            ('story.s1.event.bakery_counter_load_direction', 'observed', 0., 'failed'),
+            ('story.s1.event.bakery_counter_load_direction', 'unobserved', None, 'unknown'),
+            ('story.s0.invariant.tray.contents', 'observed', 0., 'failed'),
+            ('story.s2.invariant.tray.contents', 'observed', 0., 'failed'),
+            ('story.s2.post.tray.contents', 'observed', 0., 'failed')):
+            with self.subTest(criterion=criterion, status=status):
+                artifact = deepcopy(base)
+                vlm = artifact.metadata['vlm_evaluation']
+                vlm['criterion_scores'][criterion] = score
+                judgment = vlm['criterion_observations'][criterion][0]
+                judgment['status'] = status
+                judgment['segments'][0].update(status=status, score=score)
+                report = acceptance_report(task, artifact)
+                self.assertEqual(report['status'], expected)
+                self.assertEqual(report['checks'][criterion]['status'], expected)
+                self.assertEqual(report['checks']['story.s2.post.tray.location']['status'], 'passed')
+
+    def test_contract_override_rejects_contradiction_and_heldout_feedback(self):
+        row = next(r for r in read_catalog() if r['id'] == 'bakery_counter')
+        override = row.pop('contract_override')
+        raw = build_task(row)[0]
+        bad = deepcopy(override)
+        bad['contract']['shots'][1]['preconditions']['tray.contents'] = 'already full'
+        with self.assertRaisesRegex(ValueError, 'contradictory'):
+            apply_contract_override(deepcopy(raw), bad)
+        heldout = deepcopy(raw)
+        heldout['metadata']['split'] = 'test'
+        with self.assertRaisesRegex(ValueError, 'held-out'):
+            apply_contract_override(heldout, override)
+        with self.assertRaisesRegex(ValueError, 'invalid explicit'):
+            apply_contract_override(deepcopy(raw), {**override, 'typo': True})
+
     def test_all_350_acceptance_reports_keep_latent_state_unknown_without_new_criteria(self):
         from evovideo_skill.conditioning_verifier import windows
         tasks = json.loads((DEFAULT_ROOT / 'story350.json').read_text())['tasks']
@@ -186,6 +257,30 @@ class StoryAssetsTests(unittest.TestCase):
 
     def run_prepare(self,**kwargs):
         return prepare(self.source,self.specs,self.out,**kwargs)
+
+    def test_contract_revision_reuses_images_only_in_new_prepared_directory(self):
+        row = next(r for r in read_catalog() if r['id'] == 'bakery_counter')
+        revised, spec = build_task(row)
+        row.pop('contract_override')
+        original, old_spec = build_task(row)
+        self.assertEqual(spec, old_spec)
+        self.specs.write_text(json.dumps({'assets': [spec]}))
+        self.source.write_text(json.dumps({'name': 'old fixture', 'tasks': [original]}))
+        self.run_prepare(generate_missing=True, generator=self.generate)
+        old_bytes = (self.out / TASK_FILE).read_bytes()
+        self.source.write_text(json.dumps({'name': 'revised fixture', 'tasks': [revised]}))
+        with self.assertRaisesRegex(ValueError, 'new prepare directory'):
+            self.run_prepare()
+        new_root = self.root / 'revised'
+        report = prepare(self.source, self.specs, new_root, asset_manifest=self.out / 'assets.json')
+        self.assertEqual(report['generated_this_invocation'], 0)
+        self.assertEqual(report['status'], 'ready_unreviewed_pilot')
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual((self.out / TASK_FILE).read_bytes(), old_bytes)
+        task = json.loads((new_root / TASK_FILE).read_text())['tasks'][0]
+        self.assertEqual(task['metadata']['story_contract'], revised['metadata']['story_contract'])
+        self.assertFalse(task['metadata']['story_dataset_review']['user_review_declared'])
+        verify_prepared(new_root)
 
     def test_partial_work_is_resumed_and_six_shots_survive(self):
         report=self.run_prepare()

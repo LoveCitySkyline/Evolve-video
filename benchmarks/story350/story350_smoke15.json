@@ -1151,7 +1151,7 @@
       "task_id": "story350-bakery_counter",
       "mode": "generation",
       "duration_seconds": 18,
-      "prompt": "A carries an empty tray in a bakery; a bread rack is left of the counter. Unless clothing is specified in the setup, A is an adult with short gray hair and a rust vest. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks to the rack on the left. Then A loads bread and carries the tray behind the counter. Then A sets the tray beside the register.",
+      "prompt": "A carries an empty tray in a bakery; a bread rack is left of the counter. Unless clothing is specified in the setup, A is an adult with short gray hair and a rust vest. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. selected_bread denotes the bread A selects for this tray, not every loaf on the rack. Tray contents describe what is visibly inside the same tray. A begins already carrying the empty tray; do not pick the tray up from the bread rack. Loading means taking bread FROM the rack and placing it INTO the tray. Keep that bread in the tray while carrying and setting it down. Changing camera angle does not change the scene's physical layout; no exact distance or two-handed grip is required. Required events: A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot. A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport. Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure. A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray.",
       "metadata": {
         "benchmark": "story350-draft-v1",
         "benchmark_status": "authored_draft_assets_missing",
@@ -1164,12 +1164,16 @@
           "origin": "assistant_authored",
           "human_validated": false,
           "source_catalog": "catalog/spatial_continuity.txt",
-          "public_benchmark": false
+          "public_benchmark": false,
+          "contract_revision": "bakery-object-transfer-v2",
+          "contract_revision_reason": "Development video review found bread appearing without loading and reverse tray-to-rack transfer; track contents, directed loading and subsequent retention separately from tray position.",
+          "development_feedback_used": true
         },
         "authored_events": [
-          "A walks to the rack on the left",
-          "A loads bread and carries the tray behind the counter",
-          "A sets the tray beside the register"
+          "A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot.",
+          "A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport.",
+          "Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure.",
+          "A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray."
         ],
         "story_dataset_requires_assets": true,
         "story_asset_ids": [
@@ -1180,28 +1184,28 @@
         ],
         "h3_shots": [
           {
-            "prompt": "Establishing medium-wide view. A walks to the rack on the left. Begin with tray.location: A hands at entrance. End with tray.location: A hands at rack. Show the transition clearly without replaying previous events.",
+            "prompt": "Establishing medium-wide view. A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot. Begin with tray.location: A hands at entrance; tray.contents: empty; selected_bread.location: bread rack. End with tray.location: A hands at rack; tray.contents: empty; selected_bread.location: bread rack. Throughout this shot preserve tray.contents: empty; selected_bread.location: bread rack. Show the required state changes and transfer direction clearly. Keep the relevant objects and container contents legible at declared visible boundaries. Do not reverse, skip or replay actions, or reset to the reference image state.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-bakery_counter-continuity"
             ]
           },
           {
-            "prompt": "Clear medium view of the action. A loads bread and carries the tray behind the counter. Begin with tray.location: A hands at rack. End with tray.location: A hands behind counter. Show the transition clearly without replaying previous events.",
+            "prompt": "Clear medium view of the action. A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport. Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure. Begin with tray.location: A hands at rack; tray.contents: empty; selected_bread.location: bread rack. End with tray.location: A hands behind counter; tray.contents: selected bread; selected_bread.location: tray. Show the required state changes and transfer direction clearly. Keep the relevant objects and container contents legible at declared visible boundaries. Do not reverse, skip or replay actions, or reset to the reference image state.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-bakery_counter-continuity"
             ]
           },
           {
-            "prompt": "Close enough to show the resulting state. A sets the tray beside the register. Begin with tray.location: A hands behind counter. End with tray.location: counter beside register. Show the transition clearly without replaying previous events.",
+            "prompt": "Close enough to show the resulting state. A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray. Begin with tray.location: A hands behind counter; tray.contents: selected bread; selected_bread.location: tray. End with tray.location: counter beside register; tray.contents: selected bread; selected_bread.location: tray. Throughout this shot preserve tray.contents: selected bread; selected_bread.location: tray. Show the required state changes and transfer direction clearly. Keep the relevant objects and container contents legible at declared visible boundaries. Do not reverse, skip or replay actions, or reset to the reference image state.",
             "duration_seconds": 6,
             "reference_ids": [
               "story350-bakery_counter-continuity"
             ]
           }
         ],
-        "h3_global_constraints": "A carries an empty tray in a bakery; a bread rack is left of the counter. Unless clothing is specified in the setup, A is an adult with short gray hair and a rust vest. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+        "h3_global_constraints": "A carries an empty tray in a bakery; a bread rack is left of the counter. Unless clothing is specified in the setup, A is an adult with short gray hair and a rust vest. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. selected_bread denotes the bread A selects for this tray, not every loaf on the rack. Tray contents describe what is visibly inside the same tray. A begins already carrying the empty tray; do not pick the tray up from the bread rack. Loading means taking bread FROM the rack and placing it INTO the tray. Keep that bread in the tray while carrying and setting it down. Changing camera angle does not change the scene's physical layout; no exact distance or two-handed grip is required.",
         "evaluation": {
           "identity_continuity": {
             "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
@@ -1233,30 +1237,36 @@
         "story_contract": {
           "version": 1,
           "initial_state": {
-            "tray.location": "A hands at entrance"
+            "tray.location": "A hands at entrance",
+            "tray.contents": "empty",
+            "selected_bread.location": "bread rack"
           },
           "final_state": {
-            "tray.location": "counter beside register"
+            "tray.location": "counter beside register",
+            "tray.contents": "selected bread",
+            "selected_bread.location": "tray"
           },
           "shots": [
             {
               "shot_index": 0,
               "preconditions": {
-                "tray.location": "A hands at entrance"
+                "tray.location": "A hands at entrance",
+                "tray.contents": "empty",
+                "selected_bread.location": "bread rack"
               },
               "postconditions": {
-                "tray.location": "A hands at rack"
+                "tray.location": "A hands at rack",
+                "tray.contents": "empty",
+                "selected_bread.location": "bread rack"
               },
-              "observable_pre": [
-                "tray.location"
-              ],
-              "observable_post": [
-                "tray.location"
-              ],
+              "invariants": {
+                "tray.contents": "empty",
+                "selected_bread.location": "bread rack"
+              },
               "events": [
                 {
                   "id": "bakery_counter_0",
-                  "description": "A walks to the rack on the left"
+                  "description": "A starts already holding the empty tray and walks from the entrance to the bread rack on the left. The tray remains empty; A does not take a tray from the rack or load bread in this shot."
                 }
               ],
               "threshold": 0.9
@@ -1264,19 +1274,27 @@
             {
               "shot_index": 1,
               "preconditions": {
-                "tray.location": "A hands at rack"
+                "tray.location": "A hands at rack",
+                "tray.contents": "empty",
+                "selected_bread.location": "bread rack"
               },
               "postconditions": {
-                "tray.location": "A hands behind counter"
+                "tray.location": "A hands behind counter",
+                "tray.contents": "selected bread",
+                "selected_bread.location": "tray"
               },
-              "observable_pre": [
-                "tray.location"
+              "observable_post": [
+                "tray.contents",
+                "selected_bread.location"
               ],
-              "observable_post": [],
               "events": [
                 {
                   "id": "bakery_counter_1",
-                  "description": "A loads bread and carries the tray behind the counter"
+                  "description": "A loads bread from the rack into the empty tray, then carries the loaded tray behind the counter. Preserve this order and retain the bread in the tray during transport."
+                },
+                {
+                  "id": "bakery_counter_load_direction",
+                  "description": "Show the directed transfer of selected bread FROM the bread rack INTO the tray by A. Putting bread back onto the rack is the reverse action and does not satisfy this event. A filled tray at the end alone does not prove loading occurred: require visible transfer evidence; visible spontaneous appearance, duplication or disappearance violates continuity. If the transfer is genuinely hidden or falls between sparse samples and direction cannot be established, report insufficient evidence rather than assuming success or failure."
                 }
               ],
               "threshold": 0.9
@@ -1284,25 +1302,34 @@
             {
               "shot_index": 2,
               "preconditions": {
-                "tray.location": "A hands behind counter"
+                "tray.location": "A hands behind counter",
+                "tray.contents": "selected bread",
+                "selected_bread.location": "tray"
               },
-              "postconditions": {
-                "tray.location": "counter beside register"
-              },
-              "observable_pre": [],
-              "observable_post": [
-                "tray.location"
+              "observable_pre": [
+                "tray.contents",
+                "selected_bread.location"
               ],
+              "postconditions": {
+                "tray.location": "counter beside register",
+                "tray.contents": "selected bread",
+                "selected_bread.location": "tray"
+              },
+              "invariants": {
+                "tray.contents": "selected bread",
+                "selected_bread.location": "tray"
+              },
               "events": [
                 {
                   "id": "bakery_counter_2",
-                  "description": "A sets the tray beside the register"
+                  "description": "A sets the loaded tray on the counter beside the register. The selected bread stays in the same tray before, during and after setting it down; do not return it to the rack, make it disappear, or leave an empty tray."
                 }
               ],
               "threshold": 0.9
             }
           ]
         },
+        "story_fact_definitions": "selected_bread denotes the bread A selects for this tray, not every loaf on the rack. Tray contents describe what is visibly inside the same tray. A begins already carrying the empty tray; do not pick the tray up from the bread rack. Loading means taking bread FROM the rack and placing it INTO the tray. Keep that bread in the tray while carrying and setting it down. Changing camera angle does not change the scene's physical layout; no exact distance or two-handed grip is required.",
         "original_split": "train",
         "development_only": true
       }
