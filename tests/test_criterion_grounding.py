@@ -33,6 +33,84 @@ def parse(row, kind=None):
 
 
 class GroundingTests(unittest.TestCase):
+    @staticmethod
+    def cross_boundary_fixture():
+        rule = {'story_shot_index': 1, 'requires_previous_boundary': True,
+                'temporal_grounding': 'original-timestamps-v1'}
+        manifest = {'evaluation_view': {'kind': 'fixed_window_clip', 'segment_id': 1,
+            'previous_boundary_context': {'boundary': 'last', 'segment_id': 0,
+                'source_timestamp_seconds': 143 / 24, 'media_label': 'actual-previous-last-image'}}}
+        row = judgment(.5, index=1)
+        row['segments'][0]['evidence_times_seconds'] = [5.958333, 6.0, 11.958333]
+        return rule, manifest, row
+
+    def test_state_flow_accepts_actual_prior_boundary_without_changing_timestamps_or_score(self):
+        rule, manifest, row = self.cross_boundary_fixture()
+        raw = {'criteria': {'story.s1.state_flow': row}}
+        original = deepcopy(raw)
+        result = parse_judgment(raw, {'story.s1.state_flow': rule}, SPANS, manifest)['story.s1.state_flow']
+        target = result['segments'][1]
+        self.assertEqual(target['evidence_times_seconds'], [5.958333, 6.0, 11.958333])
+        self.assertEqual(target['context_evidence_citations'][0]['source_segment_id'], 0)
+        self.assertEqual(target['context_evidence_citations'][0]['source_timestamp_seconds'], 143 / 24)
+        self.assertEqual(result['score'], .5)
+        self.assertEqual(raw, original)
+        contract = grounding_output_contract({'flow': rule}, SPANS, manifest)['flow']
+        self.assertEqual(contract['evidence_times_seconds']['allowed_context_evidence'][0]['display_timestamp_seconds'], 5.958333)
+        # Exact source precision also works, without arbitrary near-frame tolerance.
+        row['segments'][0]['evidence_times_seconds'][0] = 143 / 24
+        parse_judgment(raw, {'story.s1.state_flow': rule}, SPANS, manifest)
+
+    def test_prior_context_is_not_a_general_time_scope_exemption(self):
+        rule, manifest, row = self.cross_boundary_fixture()
+        def check(candidate_rule=rule, candidate_manifest=manifest, candidate_row=row):
+            return parse_judgment({'criteria': {'flow': candidate_row}}, {'flow': candidate_rule}, SPANS, candidate_manifest)
+        for changed_rule, changed_manifest in [({**rule, 'requires_previous_boundary': False}, manifest),
+                (rule, {}), (rule, {'evaluation_view': {'kind': 'full_video'}})]:
+            with self.assertRaisesRegex(ValueError, 'timestamp_out_of_window'):
+                check(changed_rule, changed_manifest)
+        for value in (5.5, 5.958334, 12.0, 18.0):
+            altered = deepcopy(row)
+            altered['segments'][0]['evidence_times_seconds'][0] = value
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'timestamp_out_of_window'):
+                check(candidate_row=altered)
+        altered = deepcopy(row)
+        altered['segments'][0]['evidence_times_seconds'] = [5.958333]
+        with self.assertRaisesRegex(ValueError, 'context_alone'):
+            check(candidate_row=altered)
+        manifest['evaluation_view']['previous_boundary_context']['segment_id'] = 2
+        with self.assertRaisesRegex(ValueError, 'timestamp_out_of_window'):
+            check()
+
+    def test_cross_boundary_context_reaches_request_parser_and_cached_replay(self):
+        rule, manifest, row = self.cross_boundary_fixture()
+        with TemporaryDirectory() as tmp:
+            profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
+            verifier = ConditioningVideoVerifier(profile, tmp)
+            path = Path(tmp) / 'flow.json'
+            payload = {'evidence_manifest': manifest}
+            with patch.object(verifier, 'request', return_value={'criteria': {'flow': row}}) as request:
+                first = verifier._observe_group(path, payload, [], 'unit', {'flow': rule}, SPANS)
+                sent = json.loads(request.call_args.args[0])
+                self.assertIn('allowed_context_evidence', sent['output_contract']['grounding_fields']['flow']['evidence_times_seconds'])
+                again = verifier._observe_group(path, payload, [], 'unit', {'flow': rule}, SPANS)
+                self.assertEqual(request.call_count, 1)
+                self.assertEqual(again, first)
+
+    def test_single_correction_lists_errors_for_all_criteria(self):
+        with TemporaryDirectory() as tmp:
+            profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
+            verifier = ConditioningVideoVerifier(profile, tmp)
+            rule = {'story_shot_index': 2, 'temporal_grounding': 'original-timestamps-v1'}
+            bad = judgment(1)
+            del bad['segments'][0]['evidence_times_seconds']
+            with patch.object(verifier, 'request', side_effect=[{'criteria': {'a': bad, 'b': bad}},
+                    {'criteria': {'a': judgment(1), 'b': judgment(1)}}]) as request:
+                verifier._observe_group(Path(tmp) / 'multi.json', {}, [], 'unit', {'a': rule, 'b': rule}, SPANS)
+                feedback = json.loads(request.call_args.args[0])['format_feedback']
+                self.assertEqual({e['criterion'] for e in feedback['validation_errors']}, {'a', 'b'})
+                self.assertEqual(request.call_count, 2)
+
     def test_request_declares_conditional_fields_and_preserves_scope(self):
         rules = {'global': {'temporal_grounding': 'original-timestamps-v1'},
                  'state': {'temporal_grounding': 'original-timestamps-v1', 'story_shot_index': 2,

@@ -29,7 +29,7 @@ from evovideo_skill.criterion_grounding import (grounded_criteria, validate_grou
                                                 GROUNDING_INSTRUCTIONS)
 
 
-VERIFIER_PROTOCOL_VERSION = "scope-and-time-grounded-video-v12.1"
+VERIFIER_PROTOCOL_VERSION = "scope-and-time-grounded-video-v12.2"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -200,7 +200,7 @@ def required_segment_ids(name, definition, spans):
     return ids
 
 
-def parse_judgment(raw, rubric, spans):
+def parse_judgment(raw, rubric, spans, evidence_manifest=None):
     rows = raw.get("criteria") if isinstance(raw, dict) else None
     if not isinstance(rows, dict):
         raise ValueError("verifier must return a criteria object with exactly the requested criterion keys")
@@ -282,7 +282,7 @@ def parse_judgment(raw, rubric, spans):
             if issues:
                 # Contradictions request review; never choose a more flattering score.
                 item.update(status="unobserved", score=None, scope_issues=issues)
-        validate_grounding(name, definition, item, spans)
+        validate_grounding(name, definition, item, spans, evidence_manifest)
         aggregation = definition.get("aggregation") if isinstance(definition, dict) else None
         if aggregation == "minimum_over_segments" and item["status"] == "observed":
             applicable = [r for r in segments if r["status"] != "not_applicable"]
@@ -339,6 +339,21 @@ def combine_window_judgments(full, components, spans, aggregation="minimum_over_
             value = min(full["score"], *full_lows, *(row["score"] for row in applicable))
         result.update(status="observed", score=value)
     return result
+
+
+def judgment_format_errors(raw, criteria, spans, evidence_manifest=None):
+    """Report all malformed criteria in one correction, without changing evidence."""
+    rows = raw.get('criteria') if isinstance(raw, dict) else None
+    if not isinstance(rows, dict) or set(rows) != set(criteria):
+        # The caller already has the complete key/shape error from parse_judgment.
+        return []
+    errors = []
+    for name, definition in criteria.items():
+        try:
+            parse_judgment({'criteria': {name: rows[name]}}, {name: definition}, spans, evidence_manifest)
+        except (ValueError, KeyError, TypeError) as exc:
+            errors.append({'criterion': name, 'error': str(exc)})
+    return errors
 
 
 def resolve_profiles(config, settings, require_keys=True, apply_env=True):
@@ -728,8 +743,9 @@ class ConditioningVideoVerifier:
 
     def _observe_group(self, path, payload, evidence, operation, subset, spans):
         """Correct malformed contracts once; never retry a valid low/unknown score."""
+        evidence_manifest = payload.get('evidence_manifest', {})
         if self.cache_enabled and path.exists():
-            return parse_judgment(json.loads(path.read_text()), subset, spans)
+            return parse_judgment(json.loads(path.read_text()), subset, spans, evidence_manifest)
         feedback = None
         for correction in range(2):
             raw_path = path.with_suffix(".raw.json" if correction == 0 else ".correction-1.raw.json")
@@ -747,7 +763,7 @@ class ConditioningVideoVerifier:
                                "Missing evidence uses unobserved with null score; never omit a required segment."}
             scoped = [name for name, rule in subset.items() if isinstance(rule, dict)
                       and rule.get("evidence_status_contract") == "visible-outcome-v1"]
-            grounding_fields = grounding_output_contract(subset, spans)
+            grounding_fields = grounding_output_contract(subset, spans, evidence_manifest)
             if grounding_fields:
                 prompt_data["output_contract"]["grounding_fields"] = grounding_fields
             if scoped:
@@ -773,17 +789,19 @@ class ConditioningVideoVerifier:
                                    operation + ("/format-correction-1" if correction else ""))
                 write_json(raw_path, raw)
             try:
-                parsed = parse_judgment(raw, subset, spans)
+                parsed = parse_judgment(raw, subset, spans, evidence_manifest)
             except (ValueError, KeyError, TypeError) as exc:
                 detail = str(exc)
+                errors = judgment_format_errors(raw, subset, spans, evidence_manifest)
                 write_json(audit_path, {"status": "invalid_response_format", "error": detail,
+                    "validation_errors": errors,
                     "expected_keys": list(subset), "raw_response_path": str(raw_path),
                     "correction_attempt": correction})
                 if correction == 1:
                     raise ValueError(f"verifier response format invalid after one correction: {detail}; "
                                      f"see {audit_path}") from exc
-                feedback = {"error": detail, "previous_response": raw,
-                    "instruction": "Correct only the response contract using the SAME task, rubric and media. "
+                feedback = {"error": detail, "validation_errors": errors, "previous_response": raw,
+                    "instruction": "Correct ALL listed contract errors using the SAME task, rubric and media. "
                                    "Do not improve scores to pass validation; unknown evidence remains unobserved."}
                 print(f"[conditioning verifier] format correction=1/1 job={operation}: {detail}", flush=True)
                 continue
