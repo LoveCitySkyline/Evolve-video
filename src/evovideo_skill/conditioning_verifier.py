@@ -25,11 +25,11 @@ from evovideo_skill.h3_evidence import H3MultimodalEvaluator
 from evovideo_skill.research_protocol import append_json, write_json
 from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
-from evovideo_skill.criterion_grounding import (grounded_criteria, validate_grounding,
+from evovideo_skill.criterion_grounding import (grounded_criteria, validate_grounding, grounding_output_contract,
                                                 GROUNDING_INSTRUCTIONS)
 
 
-VERIFIER_PROTOCOL_VERSION = "scope-and-time-grounded-video-v12"
+VERIFIER_PROTOCOL_VERSION = "scope-and-time-grounded-video-v12.1"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -101,6 +101,9 @@ Return JSON {criteria:{exact_key:{status:'observed'|'unobserved'|'not_applicable
 score:number|null, confidence:number, evidence:string,
 segments:[{segment_id:integer,status:'observed'|'unobserved'|'not_applicable',
 score:number|null,evidence:string}]}}}.
+This is the base shape only. output_contract.grounding_fields specifies additional
+REQUIRED evidence_times_seconds and assessment fields for individual criteria.
+Include them at their specified locations, not only in free-text evidence.
 Follow output_contract.required_segment_ids for each criterion. These are fixed
 temporal windows, NOT detected cuts or proof of causal localization. A criterion
 with story_shot_index judges ONLY that shot, including its top-level score; return
@@ -744,6 +747,9 @@ class ConditioningVideoVerifier:
                                "Missing evidence uses unobserved with null score; never omit a required segment."}
             scoped = [name for name, rule in subset.items() if isinstance(rule, dict)
                       and rule.get("evidence_status_contract") == "visible-outcome-v1"]
+            grounding_fields = grounding_output_contract(subset, spans)
+            if grounding_fields:
+                prompt_data["output_contract"]["grounding_fields"] = grounding_fields
             if scoped:
                 prompt_data["output_contract"]["observation_basis"] = {
                     "required_for": scoped, "location": "top-level of each criterion judgment",
@@ -757,6 +763,9 @@ class ConditioningVideoVerifier:
                                    "ambiguous, state why; do not invent a mapping."}
             if feedback is not None:
                 prompt_data["format_feedback"] = feedback
+            # Persist the exact text contract (no credentials or media bytes) so
+            # server diagnostics can distinguish request omissions from bad output.
+            write_json(path.with_suffix(f".request-{correction}.json"), prompt_data)
             if self.cache_enabled and raw_path.exists():
                 raw = json.loads(raw_path.read_text())
             else:

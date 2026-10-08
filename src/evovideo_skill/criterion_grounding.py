@@ -4,6 +4,60 @@ import math
 import re
 
 
+def grounding_output_contract(criteria, spans):
+    """Put every conditional field in the actual request contract, not only prose."""
+    result = {}
+    assessments = {
+        'physical-motion-v1': {
+            'required_fields': ['basis', 'outcome', 'defects'],
+            'basis': 'physical_motion', 'defects': 'array of specific visible physical defects',
+            'outcomes': {'coherent': 'observed, score=1, defects=[]',
+                         'defective': 'observed, score<1, nonempty defects',
+                         'unknown': 'unobserved, score=null'}},
+        'state-equality-v1': {
+            'required_fields': ['outcome'],
+            'outcomes': {'satisfied': 'observed, score=1', 'violated': 'observed, score=0',
+                         'unknown': 'unobserved, score=null'}},
+        'required-action-v1': {
+            'required_fields': ['outcome', 'matched', 'unmet'],
+            'matched': 'array of correctly performed SOURCE requirements, not intent or available props',
+            'unmet': 'array of unmet SOURCE requirements',
+            'outcomes': {'complete': 'observed, score=1, matched nonempty, unmet empty',
+                         'absent': 'observed, score=0, matched empty, unmet nonempty',
+                         'partial': 'observed, 0<score<1, matched and unmet both nonempty',
+                         'unknown': 'unobserved, score=null'}}}
+    for name, rule in criteria.items():
+        if not isinstance(rule, dict):
+            continue
+        contract = {}
+        index = rule.get('story_shot_index')
+        target_spans = [span for span in spans if index is None or span['segment_id'] == index]
+        if rule.get('temporal_grounding'):
+            contract['evidence_times_seconds'] = {
+                'location': f'criteria[{name!r}].segments[*].evidence_times_seconds',
+                'type': 'array of finite JSON numbers, NOT strings, ranges or objects',
+                'required_for': 'Every applicable segment object, including unobserved segments',
+                'observed': 'Nonempty array of original-video timestamps actually supporting that segment judgment',
+                'unobserved': 'Empty array; explain the actual evidence limitation. A missing JSON field alone is NOT missing video evidence.',
+                'windows': [{**span, 'interval': '[start_seconds, end_seconds)',
+                             'end_is_exclusive': True} for span in target_spans],
+                'instruction': 'Do not substitute interval endpoints for evidence. Cite actual supplied evidence. '
+                    'Convert clip-local seconds using evaluation_view.source_time_offset_seconds. '
+                    'Keep source boundary timestamps at supplied precision; do not round a last frame to the excluded endpoint. '
+                    'Never clamp, invent, or move an out-of-window event to make it fit. '
+                    'Include this field even when the same timestamp appears in evidence prose.'}
+        kind = rule.get('judgment_contract')
+        if kind:
+            contract['assessment'] = {'contract': kind,
+                'location': 'Top-level criterion AND each applicable target segment',
+                **deepcopy(assessments[kind])}
+            if index is not None:
+                contract['same_window_consistency'] = 'Top-level and target segment status/score must match'
+        if contract:
+            result[name] = contract
+    return result
+
+
 def grounded_criteria(task, criteria):
     result = deepcopy(criteria)
     if not task.metadata.get("story_contract"):
@@ -77,16 +131,30 @@ def validate_grounding(name, definition, item, spans):
     targets = [s for s in item["segments"] if index is None or s["segment_id"] == index]
     if definition.get("temporal_grounding"):
         by_id = {s["segment_id"]: s for s in spans}
+        problems = []
         for row in targets:
             if row["status"] == "not_applicable":
                 continue
             times = row.get("evidence_times_seconds")
             span = by_id[row["segment_id"]]
-            if (not isinstance(times, list) or row["status"] == "observed" and not times
-                    or any(type(t) not in (int, float) or not math.isfinite(t)
-                           or not span["start_seconds"] <= t < span["end_seconds"] for t in times)):
-                raise ValueError(f"{name}: evidence_times_seconds must cite original timestamps INSIDE "
-                                 f"segment {row['segment_id']}; missing evidence stays unknown")
+            if 'evidence_times_seconds' not in row:
+                reason = 'missing_field'
+            elif not isinstance(times, list):
+                reason = 'expected_array'
+            elif row['status'] == 'observed' and not times:
+                reason = 'observed_requires_nonempty_array'
+            elif any(type(t) not in (int, float) or not math.isfinite(t) for t in times):
+                reason = 'expected_finite_numeric_timestamps'
+            elif any(not span['start_seconds'] <= t < span['end_seconds'] for t in times):
+                reason = 'timestamp_out_of_window'
+            else:
+                continue
+            problems.append(f"INSIDE segment {row['segment_id']} "
+                f"[{span['start_seconds']}, {span['end_seconds']}): {reason}; "
+                f"received={repr(times)[:240]}; status={row['status']}")
+        if problems:
+            raise ValueError(f"{name}: evidence_times_seconds at each applicable segment: " + '; '.join(problems) +
+                '. Add missing fields from the SAME actual evidence; never invent/clamp timestamps or treat missing JSON as missing video.')
     if not kind:
         return
     if index is not None and any((row['status'], row['score']) != (item['status'], item['score'])

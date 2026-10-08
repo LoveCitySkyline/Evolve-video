@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from evovideo_skill.conditioning_verifier import (
     ConditioningVideoVerifier, parse_judgment, resolve_profiles, combine_window_judgments)
-from evovideo_skill.criterion_grounding import grounded_criteria
+from evovideo_skill.criterion_grounding import grounded_criteria, grounding_output_contract
 from evovideo_skill.models import VideoTask
 from evovideo_skill.runtime import RuntimeSettings
 
@@ -33,6 +33,58 @@ def parse(row, kind=None):
 
 
 class GroundingTests(unittest.TestCase):
+    def test_request_declares_conditional_fields_and_preserves_scope(self):
+        rules = {'global': {'temporal_grounding': 'original-timestamps-v1'},
+                 'state': {'temporal_grounding': 'original-timestamps-v1', 'story_shot_index': 2,
+                           'judgment_contract': 'state-equality-v1'},
+                 'legacy': {}}
+        before = deepcopy(rules)
+        contract = grounding_output_contract(rules, SPANS)
+        self.assertEqual(rules, before)
+        self.assertNotIn('legacy', contract)
+        self.assertEqual(len(contract['global']['evidence_times_seconds']['windows']), 3)
+        state = contract['state']
+        self.assertEqual([w['segment_id'] for w in state['evidence_times_seconds']['windows']], [2])
+        self.assertEqual(state['assessment']['outcomes']['violated'], 'observed, score=0')
+        self.assertIn('segments[*].evidence_times_seconds', state['evidence_times_seconds']['location'])
+
+    def test_temporal_diagnostic_distinguishes_missing_type_empty_and_range(self):
+        for present, value, reason in [(False, None, 'missing_field'),
+                                      (True, None, 'expected_array'),
+                                      (True, '17.5', 'expected_array'),
+                                      (True, [], 'observed_requires_nonempty_array'),
+                                      (True, ['17.5'], 'expected_finite_numeric_timestamps'),
+                                      (True, [18], 'timestamp_out_of_window')]:
+            row = judgment(1)
+            if present:
+                row['segments'][0]['evidence_times_seconds'] = value
+            else:
+                del row['segments'][0]['evidence_times_seconds']
+            before = deepcopy(row)
+            with self.subTest(reason=reason), self.assertRaisesRegex(ValueError, reason) as raised:
+                parse(row)
+            self.assertIn('[12, 18)', str(raised.exception))
+            self.assertIn('received=', str(raised.exception))
+            self.assertEqual(row, before)
+
+    def test_actual_request_and_correction_include_grounding_contract(self):
+        with TemporaryDirectory() as tmp:
+            profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
+            verifier = ConditioningVideoVerifier(profile, tmp)
+            rules = {'criterion': {'story_shot_index': 2, 'temporal_grounding': 'original-timestamps-v1'}}
+            invalid = judgment(1)
+            del invalid['segments'][0]['evidence_times_seconds']
+            path = Path(tmp) / 'request-test.json'
+            with patch.object(verifier, 'request', side_effect=[{'criteria': {'criterion': invalid}},
+                                                               {'criteria': {'criterion': judgment(1)}}]) as request:
+                verifier._observe_group(path, {'criteria': rules}, [], 'unit', rules, SPANS)
+                for i, call in enumerate(request.call_args_list):
+                    payload = json.loads(call.args[0])
+                    self.assertIn('grounding_fields', payload['output_contract'])
+                    self.assertEqual(payload, json.loads(path.with_suffix(f'.request-{i}.json').read_text()))
+                self.assertIn('missing_field', payload['format_feedback']['error'])
+                self.assertEqual(payload['format_feedback']['previous_response']['criteria']['criterion'], invalid)
+
     def test_one_contract_correction_keeps_raw_failure_and_does_not_retry_unknown(self):
         with TemporaryDirectory() as tmp:
             profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
