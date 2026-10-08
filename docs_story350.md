@@ -42,6 +42,14 @@ bash scripts/run_h3_conditioning_graph_search.sh \
 
 先诊断已有视频时，可用 `scripts/recheck_story_video.py --task-file <新清单> --task-id <任务ID> --video <基线路径> --video <候选路径> --output-dir <新空目录> --config configs/h3_story350_debug.json`。它只重新评估，不调用 H3；这些视频由旧提示生成，结果只能用于开发诊断，不能冒充 v2 方法的新生成实验。
 
+### HTTP 400 等接口错误的原目录诊断
+
+旧版 `calls.jsonl` 仅记录错误类型、HTTP 状态码、请求大小和耗时，无法据此确定 400 的原因。`scripts/run_conditioning_with_http_diagnostics.py` 在正常 runner 外包装终止请求的错误诊断：记录服务端 JSON 的 code/message/type/param/status 和 request_id，脱敏环境密钥、URL 和媒体数据。不改变请求、重试、评分或缓存规则，也不会另外提交探测请求。
+
+只同步这个脚本到服务器即可，无需更新 `src/`、清单或配置。它不参与现有源码协议哈希，因此可保持原协议继续已有实验。将原运行命令里的 `bash scripts/run_h3_conditioning_graph_search.sh` 换成 `python scripts/run_conditioning_with_http_diagnostics.py`，显式保留原 `--config` 和其他参数，指定原 `--output-dir` 并加 `--continue`。不要更换模型、删除失败记录或重建目录。
+
+失败时终端会输出 `[verifier HTTP diagnostic]`，同时追加到原目录 `http_diagnostics.jsonl`。正常请求不额外写入；原错误退出码保留。若出现 `body_status=empty_unreadable_or_non_json` 或 `too_large_to_parse_safely`，说明没有可安全解析的错误正文，并不证明接口正常。诊断脚本本身不修复服务端拒绝的根因，须根据具体错误代码处理。
+
 ## 数据组成
 
 | 任务族 | 训练 | 验证 | 测试 | 主要检验内容 |
