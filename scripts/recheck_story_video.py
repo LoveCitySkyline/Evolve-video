@@ -22,6 +22,7 @@ def main(argv=None):
     parser.add_argument('--task-id', required=True)
     parser.add_argument('--video', type=Path, action='append', required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
+    parser.add_argument('--verifier-phase', choices=('runtime', 'final'), default='runtime')
     args = parser.parse_args(argv)
     matches = [t for t in BenchmarkSuite.from_file(args.task_file).tasks if t.task_id == args.task_id]
     if len(matches) != 1:
@@ -36,8 +37,9 @@ def main(argv=None):
     profiles = resolve_profiles(config, settings, require_keys=False)
     if profiles is None:
         parser.error('a native video verifier profile is required')
-    if not os.environ.get(profiles['runtime']['api_key_env']):
-        parser.error('set the runtime verifier API key named in the profile')
+    selected_profile = profiles[args.verifier_phase]
+    if not os.environ.get(selected_profile['api_key_env']):
+        parser.error('set the selected verifier API key named in the profile')
     root = args.output_dir.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     # Atomic claim prevents overwriting an earlier recheck or concurrent writer.
@@ -45,11 +47,12 @@ def main(argv=None):
         parser.error('use a new empty output directory; earlier observations remain immutable')
     protocol = {'purpose': 'development_regression_only_not_heldout_gain',
         'verifier_protocol': VERIFIER_PROTOCOL_VERSION,
+        'verifier_phase': args.verifier_phase, 'profile': selected_profile,
         'task': asdict(task), 'videos': [{'path': str(p), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
                                       for p in videos]}
     with (root / 'recheck_protocol.json').open('x', encoding='utf-8') as handle:
         json.dump(protocol, handle, ensure_ascii=False, indent=2)
-    verifier = ConditioningVideoVerifier(profiles['runtime'], root / 'verifier' / 'runtime')
+    verifier = ConditioningVideoVerifier(selected_profile, root / 'verifier' / args.verifier_phase)
     summaries = []
     for index, video in enumerate(videos):
         artifact = VideoArtifact(f'recheck-{index}', task.task_id, task.prompt, task.mode, [], [],

@@ -123,6 +123,11 @@ def combine_obligations(task, observations):
                         "visible_match" if score == 1 else "visible_mismatch"),
                     scope_issues=sorted({s for c in components for s in c.get("scope_issues", [])}))
                 target.update(status=status, score=score, evidence=evidence)
+                # Raw component assessments remain in the audit; the conjunction
+                # must not retain an incompatible model assessment from its parent.
+                for row in (combined, target):
+                    row.pop("assessment", None)
+                    row["aggregation_source"] = "host_source_obligation_conjunction"
                 observations[parent][repeat] = combined
     return audit
 

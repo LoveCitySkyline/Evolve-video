@@ -4,7 +4,53 @@
 
 **完成的是任务规格和准备工具；仓库不包含已生成的参考图片、真实 H3 实验结果或人工标注。** `benchmark_status`、审计报告和素材报告会分别显示这些状态。350 个不同场景 ID 不等于已经验证了 350 个统计独立样本，也不能据此宣布预沉淀规模足够。
 
-## 当前通用修复：Story350 draft v2 / verifier v11
+## 当前评估协议 v12：判分范围、时间证据与旧视频复评
+
+`scope-and-time-grounded-video-v12` 保留以下 v11 的任务语义修复，并统一修正所有带 story contract 的任务，不针对某个任务 ID 特判：
+
+- `motion_coherence` 只检查可见的物理运动与接触连续性。模型须提交物理缺陷清单；无可见缺陷为 1，有缺陷才允许低分。错误角色、动作顺序或未完成剧情不直接扣运动分。稀疏帧仍不能证明全帧率无闪烁。
+- 显式 `pre/post` 状态等式采用满足 1、违反 0、无法判断 null。目标物体明确在别处时，“目标容器已打开”不获得部分分。初始场景综合检查仍单独评估，不套状态等式。
+- 事件和原文子要求须列明已执行和未满足的要求。完整动作得 1、明确未执行的核心动作得 0；部分分必须同时列出实际正确执行部分和未满足部分。遮挡、身份或采样不确定仍是未知。
+- 运动和动作全局指标也采用完整视频＋逐窗口裁片评估。全局输入附每个窗口的真实首尾帧及原视频时间索引；观察到的窗口判断必须引用其区间内的原视频时间，不能把 6–8 秒归到 0–6 秒。状态边界仍使用实际末帧而非猜测采样尾部。
+- 全局与逐窗汇总保留全局低分和未知；均值类型先保留同窗两视图的低分再平均，最小值类型继续取最小。原始判断与派生汇总分别留档。不同视图不是独立模型证据。
+
+这些是评估协议变更，**不是给旧分数自动纠错**。结构或字段矛盾只允许一次同证据格式纠正；有效的低分、未知和两次评估的真实分歧不会被过滤。重复次数及 0.2 分歧门槛未放宽。结构校验不能保证模型的文字证据真实，仍需对照视频。新增逐窗评估和图像会增加 VLM 调用/token，但不增加 H3 生成。
+
+本次无需重新准备已有 `semantics_v2` 素材。先用新代码对保存的视频复评，保留原运行目录。**不要用更新后的源码对旧目录执行 `--continue`**：源码和评估协议哈希已经改变。复评不会修改策略准入，也不能把旧训练/验证与新测试分数拼成同一实验。
+
+在服务器仓库根目录执行，沿用 verifier API key；无需 H3 服务或 Codex planner：
+
+```bash
+old_run=outputs/h3_story350_semantics_v2_RowaH0
+review_dir="$(mktemp -d outputs/h3_verifier_v12_recheck_XXXXXX)"
+
+# 先核对本次 market_change / seed 42 的已有基线和已提交候选。
+# dry-run 只校验文件哈希并列出覆盖，不调用 API、不写输出目录。
+PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
+  --run-dir "$old_run" \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --task-id story350-market_change --seed 42 \
+  --output-dir "$review_dir" --dry-run
+
+# 默认使用 final profile（本配置 fps=4、repeats=2）。仅支付复评 VLM 开销。
+set -o pipefail
+PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
+  --run-dir "$old_run" \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --task-id story350-market_change --seed 42 \
+  --output-dir "$review_dir" \
+  2>&1 | tee "${review_dir}.log"
+```
+
+日志写在目录旁边；不要先向新目录写 `run.log`，否则会触发“目录必须为空”保护。结果在 `summary.json`、`observations/<evaluation_id>.json` 和 `verifier/final/judgments/`；`recheck_protocol.json` 记录输入哈希、实际任务定义、评估配置及候选/基线角色映射，角色和旧分数不会传给评估模型。`complete=true` 只说明计划中的保存视频全部复评完成，不代表全部通过或形成完整测试结果。
+
+后续全量复评用另一个新空目录，去掉 `--task-id` 和 `--seed` 即可；先 dry-run 查看保存视频数和缺失基线数。脚本读取所有 `committed_selections.json`，复评已保存的候选及对应 baseline draws，不按旧分数挑样本。未生成的基线不会补造，匹配预算的多次 baseline draws 不重新挑优，也不计算 heldout gain。未知/分歧照常保存后继续收集其他视频；接口或格式失败则停止并写 `stopped.json`，保留已完成项。
+
+单视频入口 `scripts/recheck_story_video.py` 也支持 `--verifier-phase final`（默认仍 runtime）。这些复评都是开发诊断；如果旧运行验证准入为 0，不能宣称测试变化证明经验迁移有效。要得到统一 v12 方法结果，需用新输出目录重新完成训练、验证与测试，重新冻结策略。
+
+## 任务语义修复：Story350 draft v2 / verifier v11
 
 `source-backed-obligations-video-v11` 应用于全部 350 条任务，不按任务 ID 选择评估规则。原有面包任务的多状态标注保留为开发回归案例。通用编译器增加以下行为：
 

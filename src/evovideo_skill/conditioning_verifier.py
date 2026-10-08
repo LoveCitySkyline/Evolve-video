@@ -25,9 +25,11 @@ from evovideo_skill.h3_evidence import H3MultimodalEvaluator
 from evovideo_skill.research_protocol import append_json, write_json
 from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
+from evovideo_skill.criterion_grounding import (grounded_criteria, validate_grounding,
+                                                GROUNDING_INSTRUCTIONS)
 
 
-VERIFIER_PROTOCOL_VERSION = "source-backed-obligations-video-v11"
+VERIFIER_PROTOCOL_VERSION = "scope-and-time-grounded-video-v12"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -91,7 +93,8 @@ Describe relevant actors by label AND distinguishing visible attributes in the
 evidence. Do not swap A/B to fit the action. If identity cannot be resolved,
 state that limitation rather than inventing an assignment. Evidence must be
 internally consistent about who holds an object at a given time.
-Score anchors: 0 absent/contradicted, .25 mostly wrong, .5 partial, .75 mostly met
+Unless a criterion has a more specific judgment_contract, use score anchors:
+0 absent/contradicted, .25 mostly wrong, .5 partial, .75 mostly met
 with visible defects, 1 fully met in the supplied evidence. Intermediate scores
 are allowed. Confidence is your self-report, NOT a calibrated probability.
 Return JSON {criteria:{exact_key:{status:'observed'|'unobserved'|'not_applicable',
@@ -162,6 +165,7 @@ window, not just one good final image. Never infer invisible contents from the
 desired story. Do not invent exact distances, grip requirements or restrictions
 on camera angle that are absent from the original task.
 """
+JUDGE_SYSTEM += GROUNDING_INSTRUCTIONS
 
 
 def unit(value):
@@ -275,6 +279,7 @@ def parse_judgment(raw, rubric, spans):
             if issues:
                 # Contradictions request review; never choose a more flattering score.
                 item.update(status="unobserved", score=None, scope_issues=issues)
+        validate_grounding(name, definition, item, spans)
         aggregation = definition.get("aggregation") if isinstance(definition, dict) else None
         if aggregation == "minimum_over_segments" and item["status"] == "observed":
             applicable = [r for r in segments if r["status"] != "not_applicable"]
@@ -286,11 +291,14 @@ def parse_judgment(raw, rubric, spans):
     return result
 
 
-def combine_window_judgments(full, components, spans):
+def combine_window_judgments(full, components, spans, aggregation="minimum_over_segments"):
     """Combine preplanned views, preserving global unknowns and observed lows."""
     result = deepcopy(full)
     result["full_video_judgment"] = deepcopy(full)
     result["fixed_window_judgments"] = deepcopy(components)
+    # This is a host-derived score, not the full-view model's assessment.
+    result.pop("assessment", None)
+    result["aggregation_source"] = "host_full_and_fixed_windows"
     segments, confidence = [], [full["confidence"]]
     for span, component in zip(spans, components):
         matches = [row for row in component["segments"] if row["segment_id"] == span["segment_id"]]
@@ -316,8 +324,17 @@ def combine_window_judgments(full, components, spans):
     else:
         # A local clip must not erase a visible low score from the complete video.
         full_lows = [row["score"] for row in full["segments"] if row["status"] == "observed"]
-        result.update(status="observed", score=min(full["score"], *full_lows,
-                                                  *(row["score"] for row in applicable)))
+        if aggregation == "mean":
+            # Fixed windows are authoritative for local coverage. Preserve each
+            # observed full-view local low, then average; retain global low/unknown.
+            full_by_id = {r['segment_id']: r for r in full['segments']}
+            values = [min(row['score'], full_by_id[row['segment_id']]['score'])
+                      if full_by_id.get(row['segment_id'], {}).get('status') == 'observed'
+                      else row['score'] for row in applicable]
+            value = min(full['score'], statistics.mean(values))
+        else:
+            value = min(full["score"], *full_lows, *(row["score"] for row in applicable))
+        result.update(status="observed", score=value)
     return result
 
 
@@ -501,7 +518,7 @@ class ConditioningVideoVerifier:
         scoped = sorted({required_segment_ids(name, rule, spans)[0]
                          for name, rule in task.metadata.get("evaluation", {}).items()
                          if isinstance(rule, dict) and "story_shot_index" in rule})
-        if any(isinstance(rule, dict) and rule.get("aggregation") == "minimum_over_segments"
+        if task.metadata.get("story_contract") or any(isinstance(rule, dict) and rule.get("aggregation") == "minimum_over_segments"
                and "story_shot_index" not in rule for rule in task.metadata.get("evaluation", {}).values()):
             scoped = [span["segment_id"] for span in spans]
         prior_context = {required_segment_ids(name, rule, spans)[0] - 1
@@ -540,7 +557,8 @@ class ConditioningVideoVerifier:
         for name in names:
             rule = criteria[name]
             index = rule.get("story_shot_index") if isinstance(rule, dict) else None
-            if spans is not None and index is None and isinstance(rule, dict) and rule.get("aggregation") == "minimum_over_segments":
+            if spans is not None and index is None and isinstance(rule, dict) and (
+                    rule.get("aggregation") == "minimum_over_segments" or rule.get("fixed_window_coverage")):
                 scopes.setdefault(None, {})[name] = {**rule, "aggregation": "full_video_assessment"}
                 for span in spans:
                     scopes.setdefault(span["segment_id"], {})[name] = {**rule,
@@ -565,7 +583,21 @@ class ConditioningVideoVerifier:
         if index is None:
             group_manifest["window_clips"] = []
             group_manifest["evaluation_view"] = {"kind": "full_video", "source_time_offset_seconds": 0}
-            return [(label, medium) for label, medium in evidence if label not in clip_labels | boundary_labels], group_manifest
+            keep = set()
+            if any(rule.get('temporal_grounding') for rule in subset.values()):
+                timeline = []
+                for span in manifest['windows']:
+                    clip = next((c for c in clips if c['segment_id'] == span['segment_id']), {})
+                    frames = clip.get('boundary_frames', [])
+                    if {f.get('boundary') for f in frames} != {'first', 'last'}:
+                        raise ValueError('grounded global view requires first/last evidence for every window')
+                    keep.update(f['media_label'] for f in frames)
+                    timeline.append({**span, 'boundary_frames': frames})
+                if not keep <= {label for label, _ in evidence}:
+                    raise ValueError('grounded global boundary media are missing')
+                group_manifest['evaluation_view']['temporal_index'] = timeline
+            return [(label, medium) for label, medium in evidence
+                    if label not in clip_labels | boundary_labels or label in keep], group_manifest
         selected = next((clip for clip in clips if clip["segment_id"] == index), None)
         if selected is None or not any(label == selected["media_label"] for label, _ in evidence):
             raise ValueError(f"missing physically extracted evidence for fixed window {index}")
@@ -678,6 +710,7 @@ class ConditioningVideoVerifier:
             criteria["target_edit_success_score"]["host_not_applicable"] = (
                 "Original task mode is generation with no edit_operations; generic edit success "
                 "does not apply. Declared task criteria are evaluated separately.")
+        criteria = grounded_criteria(task, criteria)
         public = task_payload(task)
         # Reference URIs, strategy/graph names and earlier judgments never reach the judge.
         public.pop("reference_video", None)
@@ -782,7 +815,9 @@ class ConditioningVideoVerifier:
         for name, by_window in window_observations.items():
             for repeat, full in enumerate(observations[name]):
                 components = [by_window[span["segment_id"]][repeat] for span in manifest["windows"]]
-                observations[name][repeat] = combine_window_judgments(full, components, manifest["windows"])
+                observations[name][repeat] = combine_window_judgments(full, components, manifest["windows"],
+                    aggregation=criteria[name].get('aggregation', 'mean') if criteria[name].get('fixed_window_coverage')
+                    else 'minimum_over_segments')
         from evovideo_skill.story_semantics import combine_obligations
         conjunction_audit = combine_obligations(task, observations)
         scores, texts, unobserved, disagreements, failed = {}, {}, [], {}, []
@@ -831,6 +866,7 @@ class ConditioningVideoVerifier:
                 "global_fixed_window_criteria": sorted(window_observations),
                 "event_conjunctions": conjunction_audit,
                 "criterion_contracts": rubric, "host_not_applicable_criteria": host_na,
+                "effective_criterion_contracts": criteria,
                 "repeat_disagreement": disagreements, "judgment_path": str(folder), "profile": self.profile,
                 "limitations": ["Video-language scores are semantic proxies, not official VBench metrics.",
                     "FPS-limited input cannot establish full-rate flicker or exact synchronization.",
