@@ -26,10 +26,11 @@ from evovideo_skill.research_protocol import append_json, write_json
 from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 from evovideo_skill.criterion_grounding import (grounded_criteria, validate_grounding, grounding_output_contract,
-    assessment_patch_fields, apply_assessment_patch, GROUNDING_INSTRUCTIONS)
+    assessment_patch_fields, apply_assessment_patch, GROUNDING_INSTRUCTIONS,
+    physical_motion_only, physical_judgment_payload, PHYSICAL_JUDGE_SYSTEM)
 
 
-VERIFIER_PROTOCOL_VERSION = "scope-and-time-grounded-video-v12.3"
+VERIFIER_PROTOCOL_VERSION = "domain-isolated-motion-video-v13"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -572,18 +573,21 @@ class ConditioningVideoVerifier:
     def criterion_groups(self, names, criteria, spans=None):
         # Keep global metrics on the full video, and each shot on one fixed clip.
         scopes = {}
+        def bucket(index, rule):
+            domain = 'physical_motion' if physical_motion_only({'criterion': rule}) else 'task_alignment'
+            return scopes.setdefault((index, domain), {})
         for name in names:
             rule = criteria[name]
             index = rule.get("story_shot_index") if isinstance(rule, dict) else None
             if spans is not None and index is None and isinstance(rule, dict) and (
                     rule.get("aggregation") == "minimum_over_segments" or rule.get("fixed_window_coverage")):
-                scopes.setdefault(None, {})[name] = {**rule, "aggregation": "full_video_assessment"}
+                bucket(None, rule)[name] = {**rule, "aggregation": "full_video_assessment"}
                 for span in spans:
-                    scopes.setdefault(span["segment_id"], {})[name] = {**rule,
+                    bucket(span['segment_id'], rule)[name] = {**rule,
                         "story_shot_index": span["segment_id"], "aggregation": "mean",
                         "window_component_of_global": True}
             else:
-                scopes.setdefault(index, {})[name] = rule
+                bucket(index, rule)[name] = rule
         for group in scopes.values():
             keys = list(group)
             for start in range(0, len(keys), self.profile["criteria_per_call"]):
@@ -598,6 +602,13 @@ class ConditioningVideoVerifier:
         clip_labels = {clip["media_label"] for clip in clips}
         boundary_labels = {frame["media_label"] for clip in clips for frame in clip.get("boundary_frames", [])}
         group_manifest = deepcopy(manifest)
+        def finish(media):
+            if physical_motion_only(subset):
+                allowed = clip_labels | boundary_labels | {manifest['full_candidate_label']}
+                media = [(label, medium) for label, medium in media if label in allowed]
+                group_manifest['references'] = []
+                group_manifest['judgment_domain'] = 'physical_motion'
+            return media, group_manifest
         if index is None:
             group_manifest["window_clips"] = []
             group_manifest["evaluation_view"] = {"kind": "full_video", "source_time_offset_seconds": 0}
@@ -614,8 +625,8 @@ class ConditioningVideoVerifier:
                 if not keep <= {label for label, _ in evidence}:
                     raise ValueError('grounded global boundary media are missing')
                 group_manifest['evaluation_view']['temporal_index'] = timeline
-            return [(label, medium) for label, medium in evidence
-                    if label not in clip_labels | boundary_labels or label in keep], group_manifest
+            return finish([(label, medium) for label, medium in evidence
+                    if label not in clip_labels | boundary_labels or label in keep])
         selected = next((clip for clip in clips if clip["segment_id"] == index), None)
         if selected is None or not any(label == selected["media_label"] for label, _ in evidence):
             raise ValueError(f"missing physically extracted evidence for fixed window {index}")
@@ -633,11 +644,17 @@ class ConditioningVideoVerifier:
             selected_labels.add(frames[0]["media_label"])
             group_manifest["evaluation_view"]["previous_boundary_context"] = frames[0]
         excluded = clip_labels | boundary_labels | {manifest["full_candidate_label"]}
-        return [(label, medium) for label, medium in evidence
-                if label not in excluded or label in selected_labels], group_manifest
+        return finish([(label, medium) for label, medium in evidence
+                if label not in excluded or label in selected_labels])
 
     def request(self, prompt, evidence, operation):
         p = self.profile
+        try:
+            text_payload = json.loads(prompt)
+        except (ValueError, TypeError):
+            text_payload = {}
+        system = (PHYSICAL_JUDGE_SYSTEM if isinstance(text_payload, dict)
+                  and text_payload.get('judgment_domain') == 'physical_motion' else JUDGE_SYSTEM)
         key = os.environ.get(p["api_key_env"])
         if not key:
             raise VideoApiError(f"missing {p['api_key_env']}")
@@ -649,7 +666,7 @@ class ConditioningVideoVerifier:
                 if medium["mime"].startswith("video/"):
                     part["video_metadata"] = {"fps": p["fps"]}
                 parts.extend([{"text": label}, part])
-            payload = {"system_instruction": {"parts": [{"text": JUDGE_SYSTEM}]},
+            payload = {"system_instruction": {"parts": [{"text": system}]},
                        "contents": [{"role": "user", "parts": parts}],
                        "generationConfig": {"temperature": 0, "responseMimeType": "application/json"}}
             headers["x-goog-api-key"] = key
@@ -663,7 +680,7 @@ class ConditioningVideoVerifier:
                     content.append({"type": "video_url", "video_url": {"url": media_url}, "fps": p["fps"]})
                 else:
                     content.append({"type": "image_url", "image_url": {"url": media_url}})
-            payload = {"model": p["model"], "messages": [{"role": "system", "content": JUDGE_SYSTEM},
+            payload = {"model": p["model"], "messages": [{"role": "system", "content": system},
                 {"role": "user", "content": content}], "temperature": 0, "response_format": {"type": "json_object"}}
             if p["model"].startswith("qwen3.8-max"):
                 # Synchronous structured judging uses the non-thinking mode explicitly.
@@ -735,7 +752,8 @@ class ConditioningVideoVerifier:
         public["metadata"].pop("h3_references", None)
         public["metadata"].pop("h3_audio_criteria", None)
         public["metadata"].pop("evaluation", None)
-        digest = stable_hash([public, criteria, manifest, self.profile, JUDGE_SYSTEM, VERIFIER_PROTOCOL_VERSION])
+        digest = stable_hash([public, criteria, manifest, self.profile, JUDGE_SYSTEM,
+                             PHYSICAL_JUDGE_SYSTEM, VERIFIER_PROTOCOL_VERSION])
         from evovideo_skill.h3_api import portable_interprocess_lock
 
         with portable_interprocess_lock(self.root / "locks" / f"{digest}.lock", 3600):
@@ -743,6 +761,9 @@ class ConditioningVideoVerifier:
 
     def _observe_group(self, path, payload, evidence, operation, subset, spans):
         """Correct malformed contracts once; never retry a valid low/unknown score."""
+        physical_only = physical_motion_only(subset)
+        if physical_only:
+            payload = physical_judgment_payload(payload, subset)
         evidence_manifest = payload.get('evidence_manifest', {})
         if self.cache_enabled and path.exists():
             return parse_judgment(json.loads(path.read_text()), subset, spans, evidence_manifest)
@@ -829,7 +850,16 @@ class ConditioningVideoVerifier:
                 feedback = {"error": detail, "validation_errors": errors, "previous_response": raw,
                     "instruction": "Correct ALL listed contract errors using the SAME task, rubric and media. "
                                    "Do not improve scores to pass validation; unknown evidence remains unobserved."}
-                if errors and all(e['issues'] and all(i['code'] == 'missing_assessment_object'
+                if physical_only:
+                    # Reassess the full physical judgment, not a label constrained
+                    # by a potentially contaminated old score/evidence narrative.
+                    feedback.pop('previous_response')
+                    feedback['instruction'] = ('Reassess the complete physical-motion criterion from the SAME media. '
+                        'Return all required top-level and segment fields with mutually consistent statuses, '
+                        'scores, evidence and assessments. Do not infer a desired story or preserve a prior '
+                        'score. Occlusion and missing sampled frames alone do not establish a physical defect. '
+                        'Genuine visibility uncertainty must remain unobserved, not be scored as success.')
+                if not physical_only and errors and all(e['issues'] and all(i['code'] == 'missing_assessment_object'
                                                      for i in e['issues']) for e in errors):
                     patch_fields = assessment_patch_fields(raw, subset)
                 print(f"[conditioning verifier] format correction=1/1 job={operation}: {detail}", flush=True)
@@ -925,6 +955,8 @@ class ConditioningVideoVerifier:
                 "event_conjunctions": conjunction_audit,
                 "criterion_contracts": rubric, "host_not_applicable_criteria": host_na,
                 "effective_criterion_contracts": criteria,
+                'criterion_input_domains': {name: 'physical_motion' if physical_motion_only({name: rule})
+                                           else 'task_alignment' for name, rule in criteria.items()},
                 "repeat_disagreement": disagreements, "judgment_path": str(folder), "profile": self.profile,
                 "limitations": ["Video-language scores are semantic proxies, not official VBench metrics.",
                     "FPS-limited input cannot establish full-rate flicker or exact synchronization.",

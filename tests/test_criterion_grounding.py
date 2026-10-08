@@ -35,6 +35,15 @@ def parse(row, kind=None):
 
 class GroundingTests(unittest.TestCase):
     @staticmethod
+    def missing_top_state_fixture():
+        assessment = {'outcome': 'violated'}
+        row = judgment(0, assessment, index=2)
+        del row['assessment']
+        rules = {'state': {'story_shot_index': 2, 'judgment_contract': 'state-equality-v1',
+                           'temporal_grounding': 'original-timestamps-v1'}}
+        return {'criteria': {'state': row}}, rules, assessment
+
+    @staticmethod
     def missing_top_motion_fixture():
         defect = {'basis': 'physical_motion', 'outcome': 'defective',
                   'defects': ['Synthetic fixture: visible hand penetration at a supplied timestamp.']}
@@ -59,9 +68,9 @@ class GroundingTests(unittest.TestCase):
             parse_judgment(raw, rules, SPANS)
 
     def test_targeted_assessment_completion_keeps_all_existing_evidence_and_scores(self):
-        raw, rules, defect = self.missing_top_motion_fixture()
+        raw, rules, defect = self.missing_top_state_fixture()
         original = deepcopy(raw)
-        pointer = '/criteria/motion_coherence/assessment'
+        pointer = '/criteria/state/assessment'
         patch_response = {'assessment_patches': {pointer: defect}}
         with TemporaryDirectory() as tmp:
             profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
@@ -78,7 +87,7 @@ class GroundingTests(unittest.TestCase):
                 self.assertEqual(request.call_count, 2)
             self.assertEqual(raw, original)
             saved = json.loads(path.read_text())
-            self.assertEqual(saved['criteria']['motion_coherence'].pop('assessment'), defect)
+            self.assertEqual(saved['criteria']['state'].pop('assessment'), defect)
             self.assertEqual(saved, original)
             self.assertEqual(json.loads(path.with_suffix('.raw.json').read_text()), original)
             self.assertEqual(json.loads(path.with_suffix('.correction-1.raw.json').read_text()), patch_response)
@@ -100,7 +109,7 @@ class GroundingTests(unittest.TestCase):
             self.assertEqual(raw, before)
 
     def test_declined_completion_stays_failed_without_inventing_assessment(self):
-        raw, rules, _ = self.missing_top_motion_fixture()
+        raw, rules, _ = self.missing_top_state_fixture()
         with TemporaryDirectory() as tmp:
             profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
             verifier = ConditioningVideoVerifier(profile, tmp)
@@ -110,7 +119,7 @@ class GroundingTests(unittest.TestCase):
                     verifier._observe_group(path, {}, [], 'unit', rules, SPANS)
                 self.assertEqual(request.call_count, 2)
             self.assertFalse(path.exists())
-            self.assertNotIn('assessment', json.loads(path.with_suffix('.raw.json').read_text())['criteria']['motion_coherence'])
+            self.assertNotIn('assessment', json.loads(path.with_suffix('.raw.json').read_text())['criteria']['state'])
 
     def test_patch_uses_original_array_index_for_scoped_segment(self):
         row = judgment(0, {'outcome': 'violated'}, index=2)
