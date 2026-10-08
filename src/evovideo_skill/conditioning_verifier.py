@@ -26,10 +26,10 @@ from evovideo_skill.research_protocol import append_json, write_json
 from evovideo_skill.research_subgraphs import stable_hash
 from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 from evovideo_skill.criterion_grounding import (grounded_criteria, validate_grounding, grounding_output_contract,
-                                                GROUNDING_INSTRUCTIONS)
+    assessment_patch_fields, apply_assessment_patch, GROUNDING_INSTRUCTIONS)
 
 
-VERIFIER_PROTOCOL_VERSION = "scope-and-time-grounded-video-v12.2"
+VERIFIER_PROTOCOL_VERSION = "scope-and-time-grounded-video-v12.3"
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -352,7 +352,7 @@ def judgment_format_errors(raw, criteria, spans, evidence_manifest=None):
         try:
             parse_judgment({'criteria': {name: rows[name]}}, {name: definition}, spans, evidence_manifest)
         except (ValueError, KeyError, TypeError) as exc:
-            errors.append({'criterion': name, 'error': str(exc)})
+            errors.append({'criterion': name, 'error': str(exc), 'issues': getattr(exc, 'issues', [])})
     return errors
 
 
@@ -747,6 +747,7 @@ class ConditioningVideoVerifier:
         if self.cache_enabled and path.exists():
             return parse_judgment(json.loads(path.read_text()), subset, spans, evidence_manifest)
         feedback = None
+        patch_fields = None
         for correction in range(2):
             raw_path = path.with_suffix(".raw.json" if correction == 0 else ".correction-1.raw.json")
             audit_path = path.with_suffix(f".format-{correction}.json")
@@ -779,6 +780,26 @@ class ConditioningVideoVerifier:
                                    "ambiguous, state why; do not invent a mapping."}
             if feedback is not None:
                 prompt_data["format_feedback"] = feedback
+            if patch_fields:
+                # A small, explicit correction replaces the whole-response rewrite.
+                # Keep the same task, rubric and media, but only authorize missing objects.
+                prompt_data['output_contract'] = {
+                    'response_mode': 'assessment_patch_only',
+                    'assessment_patches': {pointer: {
+                        'criterion': spec['criterion'], 'segment_id': spec['segment_id'],
+                        'location': 'ONLY this JSON-pointer field',
+                        'assessment_contract': {key: value for key, value in
+                            grounding_fields[spec['criterion']]['assessment'].items() if key != 'location'}}
+                        for pointer, spec in patch_fields.items()},
+                    'response_shape': 'JSON object with ONLY assessment_patches, mapping each exact '
+                        'requested JSON-pointer key to its assessment object. Alternatively return '
+                        'ONLY cannot_complete with a truthful explanation.',
+                    'instruction': 'Fill the listed missing objects using the SAME media and evidence. '
+                        'All existing statuses, scores, timestamps, text and assessments are frozen. '
+                        'Do not return criteria, copy a segment assessment to the global judgment, '
+                        'infer a label from a score, or invent evidence to justify a score. '
+                        'If the original evidence is ambiguous or conflicts with its score and no '
+                        'truthful assessment fits, return cannot_complete.'}
             # Persist the exact text contract (no credentials or media bytes) so
             # server diagnostics can distinguish request omissions from bad output.
             write_json(path.with_suffix(f".request-{correction}.json"), prompt_data)
@@ -789,12 +810,17 @@ class ConditioningVideoVerifier:
                                    operation + ("/format-correction-1" if correction else ""))
                 write_json(raw_path, raw)
             try:
-                parsed = parse_judgment(raw, subset, spans, evidence_manifest)
+                parsed_raw = raw
+                if patch_fields:
+                    parsed_raw = apply_assessment_patch(feedback['previous_response'], raw, patch_fields, grounding_fields)
+                    write_json(path.with_suffix('.correction-1.merged.json'), parsed_raw)
+                parsed = parse_judgment(parsed_raw, subset, spans, evidence_manifest)
             except (ValueError, KeyError, TypeError) as exc:
                 detail = str(exc)
-                errors = judgment_format_errors(raw, subset, spans, evidence_manifest)
+                errors = judgment_format_errors(parsed_raw, subset, spans, evidence_manifest)
                 write_json(audit_path, {"status": "invalid_response_format", "error": detail,
                     "validation_errors": errors,
+                    'correction_mode': 'assessment_patch_only' if patch_fields else 'full_response',
                     "expected_keys": list(subset), "raw_response_path": str(raw_path),
                     "correction_attempt": correction})
                 if correction == 1:
@@ -803,10 +829,15 @@ class ConditioningVideoVerifier:
                 feedback = {"error": detail, "validation_errors": errors, "previous_response": raw,
                     "instruction": "Correct ALL listed contract errors using the SAME task, rubric and media. "
                                    "Do not improve scores to pass validation; unknown evidence remains unobserved."}
+                if errors and all(e['issues'] and all(i['code'] == 'missing_assessment_object'
+                                                     for i in e['issues']) for e in errors):
+                    patch_fields = assessment_patch_fields(raw, subset)
                 print(f"[conditioning verifier] format correction=1/1 job={operation}: {detail}", flush=True)
                 continue
-            write_json(audit_path, {"status": "valid_response_format", "correction_attempt": correction})
-            write_json(path, raw)
+            write_json(audit_path, {"status": "valid_response_format", "correction_attempt": correction,
+                'correction_mode': 'assessment_patch_only' if patch_fields else 'full_response',
+                'completed_assessment_paths': list(patch_fields or {})})
+            write_json(path, parsed_raw)
             return parsed
 
     def _judge(self, task, evidence, manifest, rubric, criteria, public, digest):

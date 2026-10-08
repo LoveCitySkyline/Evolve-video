@@ -4,6 +4,59 @@ import math
 import re
 
 
+class AssessmentContractError(ValueError):
+    def __init__(self, name, kind, issues):
+        self.issues = issues
+        super().__init__(f"{name}: {kind}: " + '; '.join(
+            f"{issue['location']}: {issue['message']}" for issue in issues))
+
+
+def assessment_patch_fields(raw, criteria):
+    """Locate missing assessment objects in the ORIGINAL response array order."""
+    fields = {}
+    for name, rule in criteria.items():
+        if not isinstance(rule, dict) or not rule.get('judgment_contract'):
+            continue
+        item = raw['criteria'][name]
+        index = rule.get('story_shot_index')
+        rows = [(['criteria', name], item)] + [
+            (['criteria', name, 'segments', i], row) for i, row in enumerate(item['segments'])
+            if index is None or row['segment_id'] == index]
+        for path, row in rows:
+            if row['status'] == 'not_applicable' or isinstance(row.get('assessment'), dict):
+                continue
+            path = path + ['assessment']
+            pointer = '/' + '/'.join(str(p).replace('~', '~0').replace('/', '~1') for p in path)
+            fields[pointer] = {'path': path, 'criterion': name, 'contract': rule['judgment_contract'],
+                               'segment_id': row.get('segment_id')}
+    return fields
+
+
+def apply_assessment_patch(original, response, fields, contracts):
+    """Apply only model-provided assessment objects; never infer or revise scores."""
+    if isinstance(response, dict) and set(response) == {'cannot_complete'}:
+        raise ValueError('verifier declined assessment completion; inspect correction raw response; '
+                         'original scores/evidence were not changed')
+    if (not isinstance(response, dict) or set(response) != {'assessment_patches'}
+            or not isinstance(response['assessment_patches'], dict)
+            or set(response['assessment_patches']) != set(fields)):
+        raise ValueError('return assessment_patches with exactly the requested JSON-pointer keys, '
+                         'or cannot_complete; do not return/rewrite the complete criteria object')
+    result = deepcopy(original)
+    for pointer, spec in fields.items():
+        value = response['assessment_patches'][pointer]
+        required = contracts[spec['criterion']]['assessment']['required_fields']
+        if not isinstance(value, dict) or set(value) != set(required):
+            raise ValueError(f'{pointer}: assessment patch requires exactly {required}')
+        parent = result
+        for part in spec['path'][:-1]:
+            parent = parent[part]
+        if isinstance(parent.get('assessment'), dict):
+            raise ValueError('assessment completion cannot replace an existing assessment object')
+        parent['assessment'] = deepcopy(value)
+    return result
+
+
 def previous_boundary_evidence(definition, spans, manifest=None):
     """Only host-supplied preceding last-frame media may extend a citation scope.
 
@@ -160,6 +213,14 @@ All assessment fields describe the SAME visible evidence as status, score and te
 For a single scoped window, top-level and target-segment status and score must
 match: they assess the same requirement on the same evidence.
 If they conflict, reconcile honestly; never change evidence to pass the contract.
+When output_contract.response_mode is assessment_patch_only, return ONLY the
+requested assessment_patches object (JSON-pointer keys), or cannot_complete with
+an explanation. This replaces the usual criteria response shape for that call.
+Assess the SAME supplied media and evidence. Do not rewrite or repeat all scores.
+Do not infer an assessment from a numeric score or copy a segment assessment to
+the global judgment. Occlusion or a sampling gap alone is not a physical defect.
+If a truthful assessment would require changing the original status, score or
+evidence, use cannot_complete; do not invent a defect to justify the old score.
 """
 
 
@@ -213,12 +274,18 @@ def validate_grounding(name, definition, item, spans, manifest=None):
         raise ValueError(f"{name}: scoped assessment requires matching top-level and target-segment status/score")
     def strings(values):
         return isinstance(values, list) and all(isinstance(v, str) and v.strip() for v in values)
+    issues = []
     for row in [item, *targets]:
         if row["status"] == "not_applicable":
             continue
+        location = (f"criteria[{name!r}].assessment" if row is item else
+                    f"criteria[{name!r}].segments[segment_id={row['segment_id']}].assessment")
         assessment = row.get("assessment")
         if not isinstance(assessment, dict):
-            raise ValueError(f"{name}: {kind} requires structured assessment")
+            issues.append({'code': 'missing_assessment_object', 'location': location,
+                           'message': 'requires structured assessment; received ' +
+                           ('missing field' if 'assessment' not in row else type(assessment).__name__)})
+            continue
         outcome, score = assessment.get("outcome"), row["score"]
         expected_status = "unobserved" if outcome == "unknown" else "observed"
         valid = row["status"] == expected_status
@@ -241,5 +308,8 @@ def validate_grounding(name, definition, item, spans, manifest=None):
         else:
             raise ValueError(f"unknown judgment contract: {kind}")
         if not valid:
-            raise ValueError(f"{name}: {kind} assessment conflicts with status/score or uses an "
-                             "invalid basis; reassess the SAME evidence, do not invent observations")
+            issues.append({'code': 'assessment_conflict', 'location': location,
+                'message': 'assessment conflicts with status/score or uses an invalid basis; '
+                           'reassess the SAME evidence, do not invent observations'})
+    if issues:
+        raise AssessmentContractError(name, kind, issues)

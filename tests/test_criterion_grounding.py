@@ -7,7 +7,8 @@ from unittest.mock import patch
 
 from evovideo_skill.conditioning_verifier import (
     ConditioningVideoVerifier, parse_judgment, resolve_profiles, combine_window_judgments)
-from evovideo_skill.criterion_grounding import grounded_criteria, grounding_output_contract
+from evovideo_skill.criterion_grounding import (grounded_criteria, grounding_output_contract,
+    assessment_patch_fields, apply_assessment_patch)
 from evovideo_skill.models import VideoTask
 from evovideo_skill.runtime import RuntimeSettings
 
@@ -33,6 +34,110 @@ def parse(row, kind=None):
 
 
 class GroundingTests(unittest.TestCase):
+    @staticmethod
+    def missing_top_motion_fixture():
+        defect = {'basis': 'physical_motion', 'outcome': 'defective',
+                  'defects': ['Synthetic fixture: visible hand penetration at a supplied timestamp.']}
+        full = judgment(.75, defect, index=0)
+        full['segments'] = [judgment(score, defect if i == 0 else {
+            'basis': 'physical_motion', 'outcome': 'coherent', 'defects': []}, index=i)['segments'][0]
+            for i, score in enumerate((.75, 1, 1))]
+        del full['assessment']
+        rules = {'motion_coherence': {'temporal_grounding': 'original-timestamps-v1',
+                                      'judgment_contract': 'physical-motion-v1'}}
+        return {'criteria': {'motion_coherence': full}}, rules, defect
+
+    def test_missing_global_assessment_reports_exact_location(self):
+        raw, rules, _ = self.missing_top_motion_fixture()
+        with self.assertRaisesRegex(ValueError, r"criteria\['motion_coherence'\]\.assessment") as raised:
+            parse_judgment(raw, rules, SPANS)
+        self.assertEqual(len(raised.exception.issues), 1)
+        self.assertEqual(raised.exception.issues[0]['code'], 'missing_assessment_object')
+        raw['criteria']['motion_coherence']['assessment'] = {'basis': 'physical_motion', 'outcome': 'defective', 'defects': ['fixture']}
+        del raw['criteria']['motion_coherence']['segments'][2]['assessment']
+        with self.assertRaisesRegex(ValueError, r'segments\[segment_id=2\]\.assessment'):
+            parse_judgment(raw, rules, SPANS)
+
+    def test_targeted_assessment_completion_keeps_all_existing_evidence_and_scores(self):
+        raw, rules, defect = self.missing_top_motion_fixture()
+        original = deepcopy(raw)
+        pointer = '/criteria/motion_coherence/assessment'
+        patch_response = {'assessment_patches': {pointer: defect}}
+        with TemporaryDirectory() as tmp:
+            profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
+            verifier = ConditioningVideoVerifier(profile, tmp)
+            path = Path(tmp) / 'motion.json'
+            with patch.object(verifier, 'request', side_effect=[raw, patch_response]) as request:
+                parsed = verifier._observe_group(path, {'criteria': rules}, [], 'unit', rules, SPANS)
+                contract = json.loads(request.call_args.args[0])['output_contract']
+                self.assertEqual(contract['response_mode'], 'assessment_patch_only')
+                self.assertEqual(set(contract['assessment_patches']), {pointer})
+                self.assertEqual(request.call_count, 2)
+                # A cached replay parses the completed model response without another call.
+                self.assertEqual(verifier._observe_group(path, {}, [], 'unit', rules, SPANS), parsed)
+                self.assertEqual(request.call_count, 2)
+            self.assertEqual(raw, original)
+            saved = json.loads(path.read_text())
+            self.assertEqual(saved['criteria']['motion_coherence'].pop('assessment'), defect)
+            self.assertEqual(saved, original)
+            self.assertEqual(json.loads(path.with_suffix('.raw.json').read_text()), original)
+            self.assertEqual(json.loads(path.with_suffix('.correction-1.raw.json').read_text()), patch_response)
+            self.assertEqual(json.loads(path.with_suffix('.format-1.json').read_text())['completed_assessment_paths'], [pointer])
+
+    def test_assessment_patch_cannot_change_scores_paths_or_other_fields(self):
+        raw, rules, defect = self.missing_top_motion_fixture()
+        fields = assessment_patch_fields(raw, rules)
+        contracts = grounding_output_contract(rules, SPANS)
+        pointer = '/criteria/motion_coherence/assessment'
+        for response in [raw,
+                {'assessment_patches': {'/criteria/motion_coherence/score': 1}},
+                {'assessment_patches': {pointer: {**defect, 'score': 1}}},
+                {'assessment_patches': {}},
+                {'cannot_complete': 'The original defect claim relies only on occlusion.'}]:
+            before = deepcopy(raw)
+            with self.subTest(response=response), self.assertRaises(ValueError):
+                apply_assessment_patch(raw, response, fields, contracts)
+            self.assertEqual(raw, before)
+
+    def test_declined_completion_stays_failed_without_inventing_assessment(self):
+        raw, rules, _ = self.missing_top_motion_fixture()
+        with TemporaryDirectory() as tmp:
+            profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
+            verifier = ConditioningVideoVerifier(profile, tmp)
+            path = Path(tmp) / 'declined.json'
+            with patch.object(verifier, 'request', side_effect=[raw, {'cannot_complete': 'Occlusion is ambiguous.'}]) as request:
+                with self.assertRaisesRegex(ValueError, 'declined assessment completion'):
+                    verifier._observe_group(path, {}, [], 'unit', rules, SPANS)
+                self.assertEqual(request.call_count, 2)
+            self.assertFalse(path.exists())
+            self.assertNotIn('assessment', json.loads(path.with_suffix('.raw.json').read_text())['criteria']['motion_coherence'])
+
+    def test_patch_uses_original_array_index_for_scoped_segment(self):
+        row = judgment(0, {'outcome': 'violated'}, index=2)
+        del row['segments'][0]['assessment']
+        raw = {'criteria': {'story/x~y': row}}
+        rules = {'story/x~y': {'story_shot_index': 2, 'judgment_contract': 'state-equality-v1'}}
+        fields = assessment_patch_fields(raw, rules)
+        self.assertEqual(set(fields), {'/criteria/story~1x~0y/segments/0/assessment'})
+        completed = apply_assessment_patch(raw, {'assessment_patches': {
+            '/criteria/story~1x~0y/segments/0/assessment': {'outcome': 'violated'}}},
+            fields, grounding_output_contract(rules, SPANS))
+        self.assertEqual(parse_judgment(completed, rules, SPANS)['story/x~y']['score'], 0)
+
+    def test_other_contract_conflicts_do_not_use_assessment_only_completion(self):
+        raw, rules, _ = self.missing_top_motion_fixture()
+        raw['criteria']['motion_coherence']['segments'][1]['assessment']['outcome'] = 'defective'
+        with TemporaryDirectory() as tmp:
+            profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
+            verifier = ConditioningVideoVerifier(profile, tmp)
+            with patch.object(verifier, 'request', return_value=raw) as request:
+                with self.assertRaises(ValueError):
+                    verifier._observe_group(Path(tmp) / 'conflicts.json', {}, [], 'unit', rules, SPANS)
+                payload = json.loads(request.call_args.args[0])
+                self.assertNotIn('response_mode', payload['output_contract'])
+                issues = payload['format_feedback']['validation_errors'][0]['issues']
+                self.assertEqual({i['code'] for i in issues}, {'missing_assessment_object', 'assessment_conflict'})
+
     @staticmethod
     def cross_boundary_fixture():
         rule = {'story_shot_index': 1, 'requires_previous_boundary': True,
