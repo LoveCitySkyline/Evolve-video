@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 from dataclasses import asdict, replace
-import fcntl
 import json
 import math
 import os
@@ -1226,8 +1225,8 @@ def main():
         return
     root = Path(args.output_dir or config["output_dir"]).resolve()
     root.mkdir(parents=True, exist_ok=True)
-    with (root / ".lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    from evovideo_skill.h3_api import portable_interprocess_lock
+    with portable_interprocess_lock(root / ".lock", timeout_seconds=1):
         if (root / "checkpoint.json").exists() and not args.resume:
             raise ValueError("output exists; use --continue or a new directory")
         settings = replace(settings, video_output_dir=str(root / "videos"), agent_state_dir=str(root / "agent_state"))

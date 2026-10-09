@@ -151,7 +151,11 @@ def portable_interprocess_lock(path: Path, timeout_seconds: float) -> Any:
                     existing = json.loads(owner_path.read_text(encoding="utf-8"))
                 except (OSError, ValueError, TypeError):
                     pass
-                age = time.time() - lock_dir.stat().st_mtime
+                try:
+                    age = time.time() - lock_dir.stat().st_mtime
+                except FileNotFoundError:
+                    # The owner released the directory while we inspected it.
+                    continue
                 same_host_dead = (
                     age >= 5
                     and existing.get("host") == socket.gethostname()

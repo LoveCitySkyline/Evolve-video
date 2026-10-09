@@ -487,3 +487,28 @@ bash scripts/run_h3_conditioning_graph_search.sh \
 人工校准沿用 `scripts/validate_verifier_fixtures.py`，固定标注不进入模型提示。
 定期检查自动通过、自动失败和未决三类样本，尤其是错误放行率。
 不能仅因自动复核减少了分歧，就认定判断准确率提高；需同时报告覆盖率、误判率和额外成本。
+
+### NAS 锁兼容修复与同协议复评续跑
+
+如果 v17 自动复核在 `ledger.reserve()` 报 `flock: [Errno 38] Function not implemented`，
+更新 `verifier_review.py`、`h3_api.py`、`conditioning_runner.py` 和
+`scripts/recheck_conditioning_outputs.py`。预算和运行锁复用现有 NAS 原子目录锁回退，
+仍然串行保护预算，不忽略锁错误；权限错误等非兼容性问题继续报错。
+
+本修复不改变 v17 的评估协议。复评脚本新增 `--resume`，只有来源实验、视频哈希、
+任务、模型配置和评估协议完全一致时，才允许使用原复评目录继续。它保留预算账本、
+原始响应和已完成观察，不重新评估已完成样本。仅修改锁兼容代码后，可在原终端执行：
+
+```bash
+: "${review_dir:?请使用这次失败复评的原输出目录}"
+set -o pipefail
+PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
+  --run-dir outputs/h3_story350_semantics_v2_RowaH0 \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --task-id story350-market_change --seed 42 \
+  --output-dir "$review_dir" --resume \
+  2>&1 | tee -a "${review_dir}.log"
+```
+
+这里的 `--resume` 仅续跑同协议复评，不允许混用 v16/v17，也不同于主实验的 `--continue`。

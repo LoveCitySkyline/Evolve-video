@@ -2,6 +2,8 @@
 from copy import deepcopy
 from contextlib import redirect_stdout
 import io
+import errno
+import sys
 import json
 from pathlib import Path
 import shutil
@@ -64,6 +66,62 @@ class ReviewUnitTests(unittest.TestCase):
             with self.assertRaises(ReviewBudgetExhausted):
                 ReviewLedger(tmp, cfg, 'c', 'x').reserve()
             self.assertEqual(json.loads((Path(tmp) / 'auto_review_budget.json').read_text())['calls'], 4)
+
+    def test_nas_enosys_fallback_preserves_budget_and_cleans_up(self):
+        with TemporaryDirectory() as tmp, patch('evovideo_skill.h3_api.fcntl.flock',
+                side_effect=OSError(errno.ENOSYS, 'Function not implemented')):
+            cfg = options({'max_calls_per_run': 1})
+            self.assertEqual(ReviewLedger(tmp, cfg, 'video', 'criterion').reserve(), 180)
+            with self.assertRaises(ReviewBudgetExhausted):
+                ReviewLedger(tmp, cfg, 'video', 'criterion').reserve()
+            self.assertEqual(json.loads((Path(tmp) / 'auto_review_budget.json').read_text())['calls'], 1)
+            self.assertFalse(list(Path(tmp).glob('*.lock.d')))
+
+    def test_unrelated_lock_errors_propagate_without_reservation(self):
+        with TemporaryDirectory() as tmp, patch('evovideo_skill.h3_api.fcntl.flock',
+                side_effect=PermissionError(errno.EACCES, 'permission denied')):
+            with self.assertRaises(PermissionError):
+                ReviewLedger(tmp, options(), 'video', 'criterion').reserve()
+            self.assertFalse((Path(tmp) / 'auto_review_budget.json').exists())
+
+    def test_nas_processes_cannot_overspend_shared_budget(self):
+        worker = """
+import errno, sys, time
+from unittest.mock import patch
+import evovideo_skill.verifier_review as v
+original = v.write_json
+def slow_write(*args):
+    time.sleep(.02)
+    return original(*args)
+config = v.options({'max_calls_per_run': 7, 'max_calls_per_video': 30,
+                    'max_calls_per_criterion': 30, 'max_seconds_per_video': 10000})
+count = 0
+with patch('evovideo_skill.h3_api.fcntl.flock', side_effect=OSError(errno.ENOSYS, 'unsupported')), patch.object(v, 'write_json', slow_write):
+    for i in range(10):
+        try:
+            v.ReviewLedger(sys.argv[1], config, 'shared-video', 'shared-criterion').reserve()
+            count += 1
+        except v.ReviewBudgetExhausted:
+            pass
+print(count)
+"""
+        with TemporaryDirectory() as tmp:
+            jobs = [subprocess.Popen([sys.executable, '-c', worker, tmp], stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, text=True) for _ in range(4)]
+            try:
+                replies = [p.communicate(timeout=20) for p in jobs]
+                for p, (_, stderr) in zip(jobs, replies):
+                    self.assertEqual(p.returncode, 0, stderr)
+                self.assertEqual(sum(int(out.strip()) for out, _ in replies), 7)
+                ledger = json.loads((Path(tmp) / 'auto_review_budget.json').read_text())
+                self.assertEqual(ledger['calls'], 7)
+                self.assertEqual(ledger['videos']['shared-video']['calls'], 7)
+                self.assertFalse(list(Path(tmp).glob('*.lock.d')))
+            finally:
+                for p in jobs:
+                    if p.poll() is None:
+                        p.kill()
+                        p.wait()
 
     def test_timeout_budget_is_reserved_before_work(self):
         with TemporaryDirectory() as tmp:

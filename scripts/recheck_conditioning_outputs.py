@@ -94,6 +94,7 @@ def main(argv=None):
     parser.add_argument('--seed', type=int, action='append', help='Optional committed selection seed subset')
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--verifier-phase', choices=('runtime', 'final'), default='final')
+    parser.add_argument('--resume', action='store_true', help='Resume the same immutable protocol and preserve cached judgments/budgets')
     parser.add_argument('--dry-run', action='store_true', help='Validate saved media and show coverage; no API calls or writes')
     args = parser.parse_args(argv)
     run, root = args.run_dir.expanduser().resolve(), args.output_dir.expanduser().resolve()
@@ -127,41 +128,58 @@ def main(argv=None):
     if not os.environ.get(profile['api_key_env']):
         parser.error('set the selected verifier API key named in the profile')
     root.mkdir(parents=True, exist_ok=True)
-    if any(root.iterdir()):
-        parser.error('use a new empty output directory; prior results are immutable')
-    with (root / 'recheck_protocol.json').open('x', encoding='utf-8') as handle:
-        json.dump(protocol, handle, ensure_ascii=False, indent=2)
-    verifier = ConditioningVideoVerifier(profile, root / 'verifier' / args.verifier_phase)
-    summaries = []
-    for index, row in enumerate(videos):
-        task = tasks[row['task_id']]
-        artifact = VideoArtifact(f'recheck-{index}', task.task_id, task.prompt, task.mode, [], [],
-                                 {'local_video_path': row['video']})
-        try:
-            result = verifier.evaluate(task, artifact)
-        except Exception as exc:
-            # Keep completed observations, stop on transport/format failures. Do
-            # not burn the remaining API budget on a systemic account failure.
-            write_json(root / 'stopped.json', {'evaluation_id': row['evaluation_id'],
-                'completed_videos': len(summaries), 'error_type': type(exc).__name__,
-                'failure_category': failure_category(exc),
-                'reason': 'Verifier failed; inspect verifier call/format audits. No score assigned.'})
-            raise
-        artifact.metadata['vlm_evaluation'] = result
-        acceptance = acceptance_report(task, artifact)
-        write_json(root / 'observations' / (row['evaluation_id'] + '.json'),
-                   {'source': row, 'evaluation': result, 'acceptance': acceptance})
-        metadata = result.get('verification_metadata', {})
-        summary = {'evaluation_id': row['evaluation_id'], 'task_id': task.task_id,
-            'evaluation_status': result['evaluation_status'], 'acceptance_status': acceptance['status'],
-            'unobserved_criteria': metadata.get('unobserved_criteria', []),
-            'disagreement_criteria': metadata.get('disagreement_criteria', []),
-            'judgment_path': metadata.get('judgment_path')}
-        summaries.append(summary)
-        write_json(root / 'summary.json', {**overview, 'complete': len(summaries) == len(videos),
-            'completed_videos': len(summaries), 'videos': summaries})
-        print(json.dumps(summary, ensure_ascii=False), flush=True)
-    return summaries
+    from evovideo_skill.h3_api import portable_interprocess_lock
+    with portable_interprocess_lock(root / '.recheck.lock', timeout_seconds=1):
+        protocol_path = root / 'recheck_protocol.json'
+        if args.resume:
+            if not protocol_path.exists() or json.loads(protocol_path.read_text()) != json.loads(json.dumps(protocol)):
+                parser.error('resume protocol/tasks/media/profile differs or is missing; use a new output directory')
+        else:
+            if any(p.name not in {'.recheck.lock', '.recheck.lock.d'} for p in root.iterdir()):
+                parser.error('use a new empty output directory or --resume with the same protocol')
+            with protocol_path.open('x', encoding='utf-8') as handle:
+                json.dump(protocol, handle, ensure_ascii=False, indent=2)
+        verifier = ConditioningVideoVerifier(profile, root / 'verifier' / args.verifier_phase)
+        summaries = []
+        for index, row in enumerate(videos):
+            saved_path = root / 'observations' / (row['evaluation_id'] + '.json')
+            if args.resume and saved_path.exists():
+                saved = json.loads(saved_path.read_text())
+                if saved.get('source') != row:
+                    parser.error('saved observation source differs from immutable protocol')
+                result = saved['evaluation']
+            else:
+                result = None
+            task = tasks[row['task_id']]
+            artifact = VideoArtifact(f'recheck-{index}', task.task_id, task.prompt, task.mode, [], [],
+                                     {'local_video_path': row['video']})
+            try:
+                if result is None:
+                    result = verifier.evaluate(task, artifact)
+            except Exception as exc:
+                # Keep completed observations, stop on transport/format failures. Do
+                # not burn the remaining API budget on a systemic account failure.
+                write_json(root / 'stopped.json', {'evaluation_id': row['evaluation_id'],
+                    'completed_videos': len(summaries), 'error_type': type(exc).__name__,
+                    'failure_category': failure_category(exc),
+                    'reason': 'Verifier failed; inspect verifier call/format audits. No score assigned.'})
+                raise
+            artifact.metadata['vlm_evaluation'] = result
+            acceptance = acceptance_report(task, artifact)
+            write_json(root / 'observations' / (row['evaluation_id'] + '.json'),
+                       {'source': row, 'evaluation': result, 'acceptance': acceptance})
+            metadata = result.get('verification_metadata', {})
+            summary = {'evaluation_id': row['evaluation_id'], 'task_id': task.task_id,
+                'evaluation_status': result['evaluation_status'], 'acceptance_status': acceptance['status'],
+                'unobserved_criteria': metadata.get('unobserved_criteria', []),
+                'disagreement_criteria': metadata.get('disagreement_criteria', []),
+                'judgment_path': metadata.get('judgment_path')}
+            summaries.append(summary)
+            write_json(root / 'summary.json', {**overview, 'complete': len(summaries) == len(videos),
+                'completed_videos': len(summaries), 'videos': summaries})
+            print(json.dumps(summary, ensure_ascii=False), flush=True)
+        (root / 'stopped.json').unlink(missing_ok=True)
+        return summaries
 
 
 if __name__ == '__main__':

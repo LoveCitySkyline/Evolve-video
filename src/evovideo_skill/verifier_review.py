@@ -1,6 +1,5 @@
 """Bounded blind evidence acquisition. Unresolved judgments remain abstentions."""
 from copy import deepcopy
-import fcntl
 import json
 import math
 import os
@@ -8,6 +7,7 @@ import tempfile
 import subprocess
 from pathlib import Path
 import time
+from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
@@ -71,8 +71,7 @@ class ReviewLedger:
         self.config, self.candidate, self.criterion = config, candidate, criterion
 
     def reserve(self):
-        with self.path.with_suffix('.lock').open('a') as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
+        with portable_interprocess_lock(self.path.with_suffix('.lock'), timeout_seconds=30):
             data = json.loads(self.path.read_text()) if self.path.exists() else {'calls': 0, 'videos': {}}
             video = data['videos'].setdefault(self.candidate, {'calls': 0, 'reserved_seconds': 0, 'criteria': {}})
             count = video['criteria'].get(self.criterion, 0)

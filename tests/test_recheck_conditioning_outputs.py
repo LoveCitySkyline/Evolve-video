@@ -93,6 +93,46 @@ class BatchRecheckTests(unittest.TestCase):
             self.assertEqual(summary['purpose'], script.PURPOSE)
             self.assertNotIn('heldout_gain', summary)
 
+    def test_resume_preserves_completed_observations_and_budget(self):
+        import errno
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _, args = fixture(root)
+            observation = {'evaluation_status': 'needs_review', 'criterion_scores': {},
+                'criterion_evidence': {}, 'verification_metadata': {'unobserved_criteria': ['direction']}}
+            with patch.dict(os.environ, {'FINAL_KEY': 'fixture'}, clear=True), \
+                    patch.object(script, 'ConditioningVideoVerifier') as cls, redirect_stdout(io.StringIO()), \
+                    patch('evovideo_skill.h3_api.fcntl.flock', side_effect=OSError(errno.ENOSYS, 'unsupported')):
+                cls.return_value.evaluate.side_effect = [observation, RuntimeError('interrupted')]
+                with self.assertRaisesRegex(RuntimeError, 'interrupted'):
+                    script.main(args)
+                completed = list((root / 'audit/observations').glob('*.json'))
+                self.assertEqual(len(completed), 1)
+                original = completed[0].read_bytes()
+                budget = root / 'audit/verifier/auto_review_budget.json'
+                budget.parent.mkdir(parents=True, exist_ok=True)
+                budget.write_text('{"calls": 3, "videos": {}}')
+                cls.return_value.evaluate.reset_mock()
+                cls.return_value.evaluate.side_effect = None
+                cls.return_value.evaluate.return_value = observation
+                result = script.main(args + ['--resume'])
+                self.assertEqual(len(result), 3)
+                self.assertEqual(cls.return_value.evaluate.call_count, 2)
+                self.assertEqual(completed[0].read_bytes(), original)
+                self.assertEqual(json.loads(budget.read_text())['calls'], 3)
+                self.assertFalse((root / 'audit/stopped.json').exists())
+                cls.return_value.evaluate.reset_mock()
+                script.main(args + ['--resume'])
+                cls.return_value.evaluate.assert_not_called()
+                protocol = root / 'audit/recheck_protocol.json'
+                data = json.loads(protocol.read_text())
+                data['profile']['repeats'] += 1
+                protocol.write_text(json.dumps(data))
+                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    script.main(args + ['--resume'])
+                cls.return_value.evaluate.assert_not_called()
+                self.assertFalse(list((root / 'audit').glob('*.lock.d')))
+
     def test_api_failure_stops_batch_without_assigning_a_score(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
