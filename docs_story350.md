@@ -4,7 +4,29 @@
 
 **完成的是任务规格和准备工具；仓库不包含已生成的参考图片、真实 H3 实验结果或人工标注。** `benchmark_status`、审计报告和素材报告会分别显示这些状态。350 个不同场景 ID 不等于已经验证了 350 个统计独立样本，也不能据此宣布预沉淀规模足够。
 
-## 当前评估协议 v15：单窗口只输出一次判断
+## 当前评估协议 v16：显式证据编号与局部纠正
+
+`evidence-ref-scoped-v16` 处理两类实际失败：判定动作缺失却给空证据时间，以及纠正整组时破坏已合法的其他指标。固定窗口先物化完整图片序列，再构建与实际请求对应的证据目录。模型通过 `evidence_refs` 选择 `s1:f003`（采样帧）、`s1:first` / `s1:last`（真实边界帧）；宿主将选中的图片映射回其原视频时间，不要求模型手写浮点秒数。编号、图片标签、哈希、映射时间都保留在请求和规范化结果中。
+
+对于“在充分可见的采样序列中没有发生所要求动作”这种窗口级判断，可显式选择 `window:1:samples`，表示模型审阅了该窗口全部已提供样本及首尾帧。它不是虚构一个“动作没发生的时间点”，也不是对采样空隙的证明。仅当模型主动选择该引用才展开时间；空引用不会自动补齐。状态等式须引用具体帧，不提供窗口级引用。上一镜头末帧仅向原要求允许 `requires_previous_boundary` 的指标开放，且不能单靠它支持当前窗口判断。未知保持 null，缺失/越界/虚构编号继续报格式错误。
+
+一次纠正只请求非法指标，保留首次已合法的负分、未知或正分，不让模型重新输出这些指标。纠正如果试图覆写已接受指标，会被拒绝。`.accepted-0.json` 保存首次通过格式校验的原始判断；通过格式校验不代表内容正确。最终组结果仍必须全部合法才能汇总，不把部分结果伪装成完整质量观察。
+
+### 低成本单组复核
+
+新增 `scripts/recheck_verifier_group.py`，从旧复评目录定位原视频、原任务和某个评估组，检查视频哈希及任务快照一致性，在新目录仅调用一次该组（必要时再纠正一次，HTTP 重试关闭，最多两次请求）。`--dry-run` 不调用模型。它不修改旧结果、不重新生成、不形成完整视频评分，也不能与旧协议分数拼接。
+
+```bash
+PYTHONPATH=src python scripts/recheck_verifier_group.py \
+  --judgment-dir 旧复评目录/verifier/final/judgments/实际哈希目录 \
+  --group 2 --repeat 0 \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --output-dir 新空输出目录 --dry-run
+```
+
+通过单组诊断后，再用下文固定视频验收入口及完整复评确认其余窗口。`format_valid=true` 只代表结构可解析；unknown 仍是 unknown，低分仍是低分。v16 与 v15 输出目录必须分开；本地回归测试不替代真实接口验收。
+
+### v15：单窗口只输出一次判断（结构继续保留）
 
 `single-window-judgment-v15` 将固定窗口的模型输出与内部兼容数据结构分开。模型每个指标只给一个对象，不再同时输出顶层和 `segments` 两份判断。例如一个已明确违反的边界状态可返回：
 
@@ -94,7 +116,7 @@ v12.1 补齐实际请求 `output_contract.grounding_fields`：逐指标明确 `s
 
 ```bash
 old_run=outputs/h3_story350_semantics_v2_RowaH0
-review_dir="$(mktemp -d outputs/h3_verifier_v15_recheck_XXXXXX)"
+review_dir="$(mktemp -d outputs/h3_verifier_v16_recheck_XXXXXX)"
 
 # 先核对本次 market_change / seed 42 的已有基线和已提交候选。
 # dry-run 只校验文件哈希并列出覆盖，不调用 API、不写输出目录。

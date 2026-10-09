@@ -144,6 +144,32 @@ class TimestampedWindowTests(unittest.TestCase):
         evidence, _ = self.verifier.fixed_window_input([reference] + self.evidence, self.manifest)
         self.assertEqual(evidence[0], reference)
 
+    def test_scoped_http_catalog_resolves_boundary_id_from_exact_attached_image(self):
+        manifest = deepcopy(self.manifest)
+        manifest['evaluation_view']['boundary_frames'] = [m['boundary_metadata'] for _, m in self.boundaries]
+        rule = {'story_shot_index': 2, 'judgment_contract': 'state-equality-v1',
+                'temporal_grounding': 'original-timestamps-v1', 'evidence_status_contract': 'visible-outcome-v1'}
+        captured = []
+        def send(request, **kwargs):
+            body = json.loads(request.data)
+            captured.append(body)
+            prompt = json.loads(body['messages'][1]['content'][0]['text'])
+            self.assertIn('s2:last', prompt['output_contract']['fields']['state']['allowed_evidence_refs'])
+            self.assertEqual(prompt['output_contract']['evidence_catalog']['s2:last']['images'][0]['original_seconds'], 17.75)
+            raw = {'criteria': {'state': {'confidence': .9, 'evidence': 'Fixture visible wrong state.',
+                'assessment': {'outcome': 'violated'}, 'evidence_refs': ['s2:last']}}}
+            return io.BytesIO(json.dumps({'choices': [{'message': {'content': json.dumps(raw)}}]}).encode())
+        with patch.dict(os.environ, {'FRAME_TEST_KEY': 'fixture'}), patch('urllib.request.urlopen', side_effect=send):
+            result = self.verifier._observe_group(self.verifier.root / 'group.json',
+                {'criteria': {'state': rule}, 'evidence_manifest': manifest}, self.evidence, 'whole-path',
+                {'state': rule}, [{'segment_id': i, 'start_seconds': i * 6., 'end_seconds': (i + 1) * 6.} for i in range(3)])
+        self.assertEqual(len(captured), 1)
+        content = captured[0]['messages'][1]['content']
+        self.assertEqual(sum(c['type'] == 'image_url' for c in content), 26)
+        self.assertFalse(any(c['type'] == 'video_url' for c in content))
+        self.assertEqual(result['state']['score'], 0)
+        self.assertEqual(result['state']['segments'][2]['evidence_times_seconds'], [17.75])
+
 
 if __name__ == '__main__':
     unittest.main()

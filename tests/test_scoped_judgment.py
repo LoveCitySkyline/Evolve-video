@@ -13,7 +13,7 @@ from evovideo_skill.conditioning_verifier import (ConditioningVideoVerifier, Ver
 from evovideo_skill.api_tools import VideoApiError
 from evovideo_skill.runtime import RuntimeSettings
 from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUDGE_SYSTEM,
-    is_scoped, output_contract, project)
+    is_scoped, output_contract, project, evidence_catalog)
 
 SPANS = [{'segment_id': i, 'start_seconds': 6 * i, 'end_seconds': 6 * (i + 1)} for i in range(3)]
 STATE = {'story_shot_index': 2, 'temporal_grounding': 'original-timestamps-v1',
@@ -144,6 +144,99 @@ class ScopedJudgmentTests(unittest.TestCase):
                 system = bodies[0]['messages'][0]['content'] if transport == 'dashscope_video' else bodies[0]['system_instruction']['parts'][0]['text']
                 self.assertTrue(system.startswith(SCOPED_JUDGE_SYSTEM))
                 self.assertNotIn('EACH required segment', system)
+
+
+def citation_manifest():
+    def frame(t, label, **fields):
+        return {'source_timestamp_seconds': t, 'media_label': label, 'image_hash': label, **fields}
+    return {'evaluation_view': {'kind': 'fixed_window_clip', 'input_representation': 'timestamped_images',
+        'segment_id': 2, 'sampled_frames': [frame(12., 'sample0', sample_index=0),
+                                          frame(12.25, 'sample1', sample_index=1)],
+        'boundary_frames': [frame(12., 'first', boundary='first', segment_id=2),
+                            frame(17.958333, 'last', boundary='last', segment_id=2)],
+        'previous_boundary_context': frame(11.958333, 'previous', boundary='last', segment_id=1)}}
+
+
+class EvidenceReferenceTests(unittest.TestCase):
+    def parse(self, row, rule):
+        rules = {'c': rule}
+        manifest = citation_manifest()
+        normalized = project({'criteria': {'c': row}}, rules, manifest)
+        return parse_judgment(normalized, rules, SPANS, manifest)['c']
+
+    def test_explicit_window_review_cites_actual_samples_without_inventing_event_time(self):
+        rule = {**STATE, 'judgment_contract': 'required-action-v1'}
+        row = decision(assessment={'outcome': 'absent', 'matched': [], 'unmet': ['required action']})
+        del row['evidence_times_seconds']
+        row['evidence_refs'] = ['window:2:samples']
+        before = deepcopy(row)
+        result = self.parse(row, rule)
+        self.assertEqual(result['score'], 0)
+        self.assertEqual(result['segments'][2]['evidence_times_seconds'], [12., 12.25, 17.958333])
+        self.assertEqual(result['evidence_reference_resolution']['window:2:samples']['kind'], 'sampled_window_coverage')
+        self.assertEqual(row, before)
+        contract = output_contract({'c': rule}, SPANS, citation_manifest())
+        self.assertIn('window:2:samples', contract['evidence_catalog'])
+        self.assertNotIn('evidence_times_seconds', contract['fields']['c']['required'])
+
+    def test_empty_unknown_and_wrong_scope_are_not_promoted_or_repaired(self):
+        for refs in ([], ['invented'], ['s1:last'], ['s2:last', 's2:last'], ['window:2:samples']):
+            row = decision(evidence_refs=refs)
+            del row['evidence_times_seconds']
+            with self.subTest(refs=refs), self.assertRaises(ValueError):
+                self.parse(row, STATE)
+        row = decision('unknown', evidence_refs=[])
+        del row['evidence_times_seconds']
+        self.assertIsNone(self.parse(row, STATE)['score'])
+        row['evidence_refs'] = ['s2:last']
+        with self.assertRaises(ValueError):
+            self.parse(row, STATE)
+
+    def test_actual_boundary_ids_resolve_but_conflicting_redundant_times_fail(self):
+        row = decision(evidence_refs=['s2:last'])
+        self.assertEqual(self.parse(row, STATE)['score'], 0)
+        row['evidence_times_seconds'] = [18.]
+        with self.assertRaisesRegex(ValueError, 'redundant timestamps'):
+            self.parse(row, STATE)
+        rule = {**STATE, 'requires_previous_boundary': True}
+        row.pop('evidence_times_seconds')
+        row['evidence_refs'] = ['s1:last', 's2:first']
+        result = self.parse(row, rule)
+        self.assertEqual(result['segments'][2]['evidence_times_seconds'], [11.958333, 12.])
+        row['evidence_refs'] = ['s1:last']
+        with self.assertRaisesRegex(ValueError, 'previous_context_alone'):
+            self.parse(row, rule)
+
+    def test_correction_requests_only_invalid_criteria_and_preserves_valid_negative(self):
+        rule = {**STATE, 'judgment_contract': 'required-action-v1'}
+        def action(refs):
+            row = decision(assessment={'outcome': 'absent', 'matched': [], 'unmet': ['required action']}, evidence_refs=refs)
+            row.pop('evidence_times_seconds')
+            return row
+        initial = {'criteria': {'valid': action(['window:2:samples']), 'invalid': action([])}}
+        for rewrite in (False, True):
+            with self.subTest(rewrite=rewrite), TemporaryDirectory() as tmp:
+                profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
+                verifier = ConditioningVideoVerifier(profile, tmp)
+                correction = {'criteria': {'invalid': action(['window:2:samples'])}}
+                if rewrite:
+                    correction['criteria']['valid'] = decision('satisfied')
+                path = Path(tmp) / 'group.json'
+                with patch.object(verifier, 'request', side_effect=[initial, correction]) as request:
+                    args = (path, {'evidence_manifest': citation_manifest()}, [], 'unit', {'valid': rule, 'invalid': rule}, SPANS)
+                    if rewrite:
+                        with self.assertRaises(VerifierFormatError):
+                            verifier._observe_group(*args)
+                    else:
+                        result = verifier._observe_group(*args)
+                        self.assertEqual(result['valid']['score'], 0)
+                        self.assertEqual(result['invalid']['score'], 0)
+                    sent = json.loads(request.call_args.args[0])
+                    self.assertEqual(set(sent['criteria']), {'invalid'})
+                    self.assertEqual(sent['output_contract']['criterion_keys'], ['invalid'])
+                    self.assertEqual(request.call_count, 2)
+                kept = json.loads(path.with_suffix('.accepted-0.json').read_text())
+                self.assertEqual(kept['criteria'], {'valid': initial['criteria']['valid']})
 
 
 spec = importlib.util.spec_from_file_location('fixture_validation',

@@ -333,9 +333,9 @@ class VerifierTests(unittest.TestCase):
             payload = json.loads(prompt)
             view = payload["evidence_manifest"]["evaluation_view"]
             calls.append(view)
-            self.assertEqual(len(media), 1 if view["kind"] == "full_video" else 3)
+            self.assertEqual(len(media), 1 if view["kind"] == "full_video" else 14)
             if view["kind"] == "fixed_window_clip":
-                self.assertEqual([m["mime"] for _, m in media], ["video/mp4", "image/png", "image/png"])
+                self.assertEqual([m["mime"] for _, m in media], ["image/png"] * 14)
                 self.assertEqual([b["boundary"] for b in view["boundary_frames"]], ["first", "last"])
                 self.assertLess(view["boundary_frames"][-1]["source_timestamp_seconds"], view["end_seconds"])
             rows = {}

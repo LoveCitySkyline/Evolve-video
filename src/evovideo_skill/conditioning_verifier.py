@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "single-window-judgment-v15"
+VERIFIER_PROTOCOL_VERSION = "evidence-ref-scoped-v16"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -749,7 +749,7 @@ class ConditioningVideoVerifier:
             text_payload = {}
         fixed = isinstance(text_payload, dict) and text_payload.get("evidence_manifest", {}).get(
             "evaluation_view", {}).get("kind") == "fixed_window_clip"
-        if fixed:
+        if fixed and text_payload['evidence_manifest']['evaluation_view'].get('input_representation') != 'timestamped_images':
             evidence, manifest = self.fixed_window_input(evidence, text_payload["evidence_manifest"])
             text_payload["evidence_manifest"] = manifest
             prompt = json.dumps(text_payload, ensure_ascii=False)
@@ -1001,6 +1001,10 @@ class ConditioningVideoVerifier:
             return parsed
 
     def _observe_scoped(self, path, payload, evidence, operation, subset, spans):
+        payload = deepcopy(payload)
+        initial_manifest = payload.get('evidence_manifest', {})
+        if initial_manifest.get('evaluation_view', {}).get('sampled_media_file'):
+            evidence, payload['evidence_manifest'] = self.fixed_window_input(evidence, initial_manifest)
         if physical_motion_only(subset):
             payload = physical_judgment_payload(payload, subset)
         else:
@@ -1012,9 +1016,13 @@ class ConditioningVideoVerifier:
         if self.cache_enabled and path.exists():
             return parse_judgment(json.loads(path.read_text()), subset, spans, manifest)
         feedback = None
+        pending = deepcopy(payload['criteria']) if physical_motion_only(subset) else dict(subset)
+        accepted = {}
+        accepted_raw = {}
         for attempt in range(2):
             prompt = deepcopy(payload)
-            prompt['output_contract'] = scoped_output_contract(subset, spans, manifest)
+            prompt['criteria'] = pending
+            prompt['output_contract'] = scoped_output_contract(pending, spans, manifest)
             if feedback:
                 prompt['format_feedback'] = feedback
             write_json(path.with_suffix(f'.request-{attempt}.json'), prompt)
@@ -1025,38 +1033,44 @@ class ConditioningVideoVerifier:
                 raw = self.request(json.dumps(prompt, ensure_ascii=False), evidence,
                     operation + ('/format-correction-1' if attempt else ''))
                 write_json(raw_path, raw)
-            errors = []
-            normalized = None
-            try:
-                normalized = project_scoped(raw, subset)
-                parsed = parse_judgment(normalized, subset, spans, manifest)
-            except (ValueError, KeyError, TypeError) as exc:
-                # Collect each criterion's error so one correction can fix all
-                # malformed fields. Never turn missing JSON into unknown evidence.
-                rows = raw.get('criteria') if isinstance(raw, dict) else None
-                if isinstance(rows, dict) and set(rows) == set(subset):
-                    for name, rule in subset.items():
-                        try:
-                            item = project_scoped({'criteria': {name: rows[name]}}, {name: rule})
-                            parse_judgment(item, {name: rule}, spans, manifest)
-                        except (ValueError, KeyError, TypeError) as issue:
-                            errors.append({'criterion': name, 'error': str(issue)})
-                if not errors:
-                    errors = [{'error': str(exc)}]
+            errors, failed = [], {}
+            rows = raw.get('criteria') if isinstance(raw, dict) else None
+            if not isinstance(rows, dict) or set(rows) != set(pending) or set(raw) != {'criteria'}:
+                errors = [{'error': 'Return exactly the currently requested criterion keys; do not rewrite accepted criteria.'}]
+                failed = dict(pending)
+            else:
+                for name, rule in pending.items():
+                    try:
+                        canonical = {name: subset[name]}
+                        item = project_scoped({'criteria': {name: rows[name]}}, canonical, manifest)
+                        parse_judgment(item, canonical, spans, manifest)
+                        accepted[name] = item['criteria'][name]
+                        accepted_raw[name] = deepcopy(rows[name])
+                    except (ValueError, KeyError, TypeError) as issue:
+                        errors.append({'criterion': name, 'error': str(issue)})
+                        failed[name] = rule
+            write_json(path.with_suffix(f'.accepted-{attempt}.json'), {
+                'criteria': accepted_raw, 'qualification': 'Valid responses retained; no scores inferred for failed criteria.'})
+            if errors:
                 audit = path.with_suffix(f'.format-{attempt}.json')
                 write_json(audit, {'status': 'invalid_response_format', 'failure_category': 'response_format',
                     'response_protocol': SCOPED_RESPONSE_PROTOCOL, 'validation_errors': errors,
+                    'accepted_criteria': list(accepted), 'pending_criteria': list(failed),
                     'raw_response_path': str(raw_path), 'correction_attempt': attempt})
                 if attempt:
-                    raise VerifierFormatError(f'single-window response invalid after one correction: {errors}; see {audit}') from exc
+                    raise VerifierFormatError(f'single-window response invalid after one correction: {errors}; see {audit}')
                 feedback = {'validation_errors': errors,
-                    'instruction': 'Return the complete ONE-object-per-criterion response. Correct all listed fields '
+                    'instruction': 'Return ONLY the requested invalid criteria, one judgment each. Correct all listed fields '
                                    'from the same evidence. Do not invent facts or upgrade scores to pass.'}
+                pending = failed
                 print(f'[conditioning verifier] format correction=1/1 job={operation}: {errors}', flush=True)
                 continue
             write_json(path.with_suffix(f'.format-{attempt}.json'), {'status': 'valid_response_format',
                 'response_protocol': SCOPED_RESPONSE_PROTOCOL, 'correction_attempt': attempt,
-                'normalization': 'categorical outcome mapping and same-window structural projection only'})
+                'accepted_criteria': list(accepted),
+                'normalization': 'explicit evidence ID resolution, categorical mapping and same-window projection'})
+            normalized = {'criteria': accepted}
+            parsed = parse_judgment(normalized, subset, spans, manifest)
             write_json(path, normalized)
             return parsed
 

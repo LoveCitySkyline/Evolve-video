@@ -1,0 +1,116 @@
+"""Recheck one saved criterion group with unchanged media/task; development only."""
+import argparse
+from dataclasses import asdict
+import hashlib
+import json
+import os
+from pathlib import Path
+
+from evovideo_skill.benchmarks import BenchmarkSuite
+from evovideo_skill.conditioning_verifier import (ConditioningVideoVerifier, VERIFIER_PROTOCOL_VERSION,
+    resolve_profiles, failure_category)
+from evovideo_skill.models import VideoArtifact
+from evovideo_skill.research_protocol import write_json
+from evovideo_skill.research_subgraphs import stable_hash
+from evovideo_skill.runtime import RuntimeSettings, with_env_overrides
+from evovideo_skill.story_contracts import prepare_story_task
+from evovideo_skill.story_assets import verify_story_task
+
+
+def plan_group(judgment_dir, group, repeat, task_file):
+    source = Path(judgment_dir).resolve()
+    if group < 0 or repeat < 0:
+        raise ValueError('group/repeat must be nonnegative')
+    protocol = json.loads((source.parents[3] / 'recheck_protocol.json').read_text())
+    request_path = source / f'group-{group:03d}-repeat-{repeat}.request-0.json'
+    request = json.loads(request_path.read_text())
+    source_manifest = json.loads((source / 'evidence.json').read_text())
+    task_id = request.get('original_task', {}).get('task_id')
+    videos = []
+    for row in protocol['videos']:
+        if task_id and row['task_id'] != task_id:
+            continue
+        video = Path(row['video'])
+        if not video.is_file():
+            continue
+        data = video.read_bytes()
+        if stable_hash(data.hex()) == source_manifest['candidate_hash']:
+            if hashlib.sha256(data).hexdigest() != row['sha256']:
+                raise ValueError('saved source video changed')
+            videos.append(row)
+    if not videos or len({(r['task_id'], r['sha256']) for r in videos}) != 1:
+        raise ValueError('cannot uniquely identify the original group video; no substituted media')
+    row = videos[0]
+    tasks = {t.task_id: prepare_story_task(t) for t in BenchmarkSuite.from_file(task_file).tasks}
+    task = tasks[row['task_id']]
+    original = next(t for t in protocol['tasks'] if t['task_id'] == task.task_id)
+    if stable_hash(asdict(task)) != stable_hash(original):
+        raise ValueError('task definition changed since the source recheck; do not compare different rubrics')
+    verify_story_task(task)
+    return task, row, request['criteria'], {
+        'purpose': 'development_single_group_only_not_full_evaluation_or_method_gain',
+        'source_judgment': str(source), 'source_request_sha256': hashlib.sha256(request_path.read_bytes()).hexdigest(),
+        'group': group, 'source_repeat': repeat, 'video': row, 'criteria': request['criteria'],
+        'equivalent_source_evaluations': [r['evaluation_id'] for r in videos],
+        'new_protocol': VERIFIER_PROTOCOL_VERSION, 'maximum_model_calls': 2}
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--judgment-dir', type=Path, required=True)
+    parser.add_argument('--group', type=int, required=True)
+    parser.add_argument('--repeat', type=int, default=0)
+    parser.add_argument('--config', type=Path, default=Path('configs/h3_story350_debug.json'))
+    parser.add_argument('--task-file', type=Path, required=True)
+    parser.add_argument('--output-dir', type=Path, required=True)
+    parser.add_argument('--dry-run', action='store_true')
+    args = parser.parse_args(argv)
+    task, row, subset, plan = plan_group(args.judgment_dir, args.group, args.repeat, args.task_file)
+    config = json.loads(args.config.read_text())
+    settings = with_env_overrides(RuntimeSettings(**config['runtime']))
+    profile = resolve_profiles(config, settings, require_keys=False)['final']
+    # Explicitly bound this diagnostic: no HTTP retries or repeated rubric runs.
+    profile.update(max_attempts=1, repeats=1)
+    plan['profile'] = profile
+    print(json.dumps(plan, ensure_ascii=False, indent=2))
+    if args.dry_run:
+        return plan
+    if not os.environ.get(profile['api_key_env']):
+        parser.error('missing selected final verifier credential')
+    root = args.output_dir.resolve()
+    source_root = args.judgment_dir.resolve().parents[3]
+    if root == source_root or source_root in root.parents:
+        parser.error('use a separate output directory outside the source recheck')
+    root.mkdir(parents=True, exist_ok=True)
+    if any(root.iterdir()):
+        parser.error('use a new empty output directory')
+    write_json(root / 'group_protocol.json', plan)
+    verifier = ConditioningVideoVerifier(profile, root / 'verifier' / 'final')
+    artifact = VideoArtifact('single-group-recheck', task.task_id, task.prompt, task.mode, [], [],
+                             {'local_video_path': row['video']})
+    try:
+        evidence, manifest = verifier.evidence(task, artifact)
+        media, group_manifest = verifier.group_evidence(evidence, manifest, subset)
+        # Construct the same blinded public task as the main verifier.
+        from evovideo_skill.conditioning_memory import task_payload
+        public = task_payload(task)
+        public.pop('reference_video', None)
+        for key in ('h3_references', 'h3_audio_criteria', 'evaluation'):
+            public['metadata'].pop(key, None)
+        result = verifier._observe_group(root / 'group.json',
+            {'original_task': public, 'criteria': subset, 'evidence_manifest': group_manifest},
+            media, 'single-group', subset, manifest['windows'])
+    except Exception as exc:
+        write_json(root / 'stopped.json', {'failure_category': failure_category(exc),
+            'error_type': type(exc).__name__, 'reason': str(exc), 'no_score_assigned': True})
+        raise
+    summary = {'purpose': plan['purpose'], 'format_valid': True,
+        'criteria': {k: {'status': v['status'], 'score': v['score']} for k, v in result.items()},
+        'qualification': 'One diagnostic repeat only; no admission, full-video aggregation or independent verification.'}
+    write_json(root / 'summary.json', summary)
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    return summary
+
+
+if __name__ == '__main__':
+    main()
