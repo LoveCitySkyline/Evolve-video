@@ -565,3 +565,28 @@ PYTHONPATH=src python scripts/recheck_verifier_group.py \
 `summary.json` 的 `auto_review_status` 为 resolved 表示两次合法判断一致，
 不代表视频通过指标或评估正确率已经得到验证；abstained 时检查 errors 和保存的证据判断。
 该单指标诊断不能代替完整复评，不能用于策略准入或报告方法收益。
+
+### v20：复核图片传输与请求体积预算
+
+`bounded-evidence-review-v20` / `bounded-evidence-review-v4` 处理增强复核的
+48 MB 请求体超限：6 秒、8 FPS 的 PNG 序列共有 48 张图，另有首末边界图、
+裁片和参考图，Base64 编码后的体积可能远大于原 MP4。
+
+复核的普通时间采样帧使用高质量 JPEG（FFmpeg q=2、4:4:4）传输，
+全部采样点和原视频时间戳保留，原始 PNG 留在磁盘。首末边界、局部裁片、
+前一窗口边界和原始参考图不变。图片编码是有损的，不代表增加了视觉信息；
+细节无法确认时仍应输出未知。
+
+按完整媒体集合的 Base64 体积选择采样图宽度上限，先使用增强复核宽度，
+必要时依次降至 1152、768（均不超过原配置上限），预留 15% 请求空间给提示和 JSON。
+最终仍检查完整序列化请求，48 MB 上限不提高，不删帧或截断提示。极大的参考图等
+仍可能导致弃权，此时错误会报告实际字节数、上限和媒体字节数；请求不会发出。
+
+`evaluation_view.sample_transport` 记录编码、宽度上限、帧数及体积。
+各采样记录同时保存 `original_image_hash` / `original_media_file` 与实际传输
+图片的 `image_hash` / `media_file`，证据目录与请求使用同一组编码后图片。
+日志新增 `review transport samples=... width_cap=... base64_media_bytes=...`。
+
+已经同步 v19 单指标脚本的服务器，只需更新 `conditioning_verifier.py` 和
+`verifier_review.py`，新建 `outputs/h3_verifier_v20_autoreview_XXXXXX` 输出目录，
+沿用上节的单指标命令。`--judgment-dir` 仍指原始 v17 来源，不能覆盖旧输出。

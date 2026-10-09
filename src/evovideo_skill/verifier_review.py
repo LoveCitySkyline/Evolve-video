@@ -12,7 +12,7 @@ from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'bounded-evidence-review-v3'
+VERSION = 'bounded-evidence-review-v4'
 DEFAULTS = dict(enabled=False, max_calls_per_criterion=4, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
                 secondary_model=None)
@@ -201,6 +201,77 @@ def validate_checks(raw, criteria):
     return clean
 
 
+def compress_review_samples(reviewer, evidence, manifest, width_cap):
+    """Keep every timestamped sample; JPEG transport leaves PNG anchors intact."""
+    view = manifest.get('evaluation_view', {})
+    frames = view.get('sampled_frames', [])
+    if not frames:
+        return evidence, manifest
+    source_paths = [reviewer.root / 'media' / frame['media_file'] for frame in frames]
+    source_dir = source_paths[0].parent
+    expected = [f'{i + 1:06d}.png' for i in range(len(frames))]
+    if [p.name for p in source_paths] != expected or any(p.parent != source_dir for p in source_paths):
+        raise ValueError('review sample source is not the complete ordered PNG sequence')
+    for path, frame in zip(source_paths, frames):
+        if stable_hash(path.read_bytes().hex()) != frame['image_hash']:
+            raise ValueError('review sample changed before transport encoding')
+    encoding = f'jpeg-q2-yuvj444p-v1-w{width_cap}'
+    folder = reviewer.root / 'media' / ('review-samples-' + stable_hash([
+        [f['image_hash'] for f in frames], encoding]))
+    names = [f'{i + 1:06d}.jpg' for i in range(len(frames))]
+    if not folder.exists():
+        with tempfile.TemporaryDirectory(dir=folder.parent) as tmp:
+            target = Path(tmp) / 'frames'
+            target.mkdir()
+            subprocess.run(['ffmpeg', '-nostdin', '-v', 'error', '-start_number', '1',
+                '-i', str(source_dir / '%06d.png'), '-frames:v', str(len(frames)),
+                '-vf', f"scale='min({width_cap},iw)':-2",
+                '-fps_mode', 'passthrough', '-c:v', 'mjpeg', '-q:v', '2',
+                '-pix_fmt', 'yuvj444p', str(target / '%06d.jpg')],
+                check=True, capture_output=True, timeout=120)
+            if sorted(p.name for p in target.iterdir()) != names:
+                raise ValueError('review JPEG encoding lost sample frames')
+            target.replace(folder)
+    if sorted(p.name for p in folder.iterdir()) != names:
+        raise ValueError('review JPEG cache is incomplete')
+    evidence, manifest = list(evidence), deepcopy(manifest)
+    replacements = {}
+    for frame, name in zip(manifest['evaluation_view']['sampled_frames'], names):
+        target = folder / name
+        if not target.read_bytes().startswith(b'\xff\xd8\xff'):
+            raise ValueError('review sample transport is not JPEG')
+        medium = reviewer.media(target, 'image')
+        replacements[frame['media_label']] = medium
+        frame.update(original_image_hash=frame['image_hash'], original_media_file=frame['media_file'],
+            image_hash=medium['source_hash'], media_file=str(target.relative_to(reviewer.root / 'media')),
+            transport_encoding=encoding)
+    view = manifest['evaluation_view']
+    view['sample_transport'] = {'encoding': encoding, 'frame_count': len(frames), 'width_cap': width_cap,
+        'qualification': 'Lossy image encoding with an explicit width cap; unchanged timestamps, no dropped samples. '
+                         'Original PNG samples retained. Boundary frames, crops and references unchanged.'}
+    return [(label, replacements.get(label, medium)) for label, medium in evidence], manifest
+
+
+def fit_review_samples(reviewer, evidence, manifest):
+    """Budget for all media plus JSON overhead; final serialized body is checked too."""
+    limit = reviewer.profile['max_request_bytes']
+    widths = list(dict.fromkeys(min(reviewer.profile['max_width'], cap)
+                               for cap in (reviewer.profile['max_width'], 1152, 768)))
+    for width in widths:
+        packed, packed_manifest = compress_review_samples(reviewer, evidence, manifest, width)
+        total = sum(len(m['data']) for _, m in packed)
+        if total <= int(limit * .85):
+            break
+    view = packed_manifest['evaluation_view']
+    view['sample_transport'].update(base64_media_bytes=total, max_request_bytes=limit,
+        json_headroom_fraction=.15, final_serialized_size_check=True)
+    print(f"[conditioning verifier] review transport samples={len(view['sampled_frames'])} "
+          f"width_cap={width} base64_media_bytes={total} request_limit={limit}", flush=True)
+    # Even the minimum representation may be too large (e.g. huge references).
+    # Preserve the evidence and let the exact request guard abstain, never truncate it.
+    return packed, packed_manifest
+
+
 def add_boundary_crops(reviewer, evidence, manifest):
     """Deterministic overlapping tiles retain the full frame and exact provenance."""
     from evovideo_skill.h3_api import probe_media
@@ -239,7 +310,7 @@ def add_boundary_crops(reviewer, evidence, manifest):
                 'evidence_id': f"s{frame['segment_id']}:{frame['boundary']}:crop{index}"}
             view['evidence_crops'].append(record)
             evidence.append((label, medium))
-    return evidence, manifest
+    return fit_review_samples(reviewer, evidence, manifest)
 
 
 def review_group(owner, task, artifact, public, subset, rows, folder, group, digest, expected_source_hash=None):

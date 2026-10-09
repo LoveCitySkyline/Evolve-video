@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 
 from evovideo_skill.verifier_review import (options, ReviewLedger, ReviewBudgetExhausted,
-    validate_checks, uncertain, review_group, add_boundary_crops, REVIEW_SYSTEM)
+    validate_checks, uncertain, review_group, add_boundary_crops, fit_review_samples, REVIEW_SYSTEM)
 from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, resolve_profiles
 from evovideo_skill.runtime import RuntimeSettings
 from evovideo_skill.models import VideoArtifact, VideoTask
@@ -31,6 +31,22 @@ def atomic(outcome='violated', prerequisite='supported'):
 
 
 class ReviewUnitTests(unittest.TestCase):
+    def test_media_fit_uses_bounded_widths_without_dropping_timestamps(self):
+        owner = type('Owner', (), {'profile': {'max_width': 1536, 'max_request_bytes': 1000}})()
+        source = [('sample', {'mime': 'image/png', 'data': 'original'})]
+        manifest = {'evaluation_view': {'sampled_frames': [{'source_timestamp_seconds': 1.25}]}}
+        def compress(reviewer, evidence, original, width):
+            self.assertEqual(evidence, source)
+            self.assertEqual(original, manifest)
+            new = deepcopy(original)
+            new['evaluation_view']['sample_transport'] = {'width_cap': width}
+            return [('sample', {'data': 'a' * {1536: 1100, 1152: 900, 768: 800}[width]})], new
+        with patch('evovideo_skill.verifier_review.compress_review_samples', side_effect=compress) as encode:
+            evidence, fitted = fit_review_samples(owner, source, manifest)
+        self.assertEqual([c.args[-1] for c in encode.call_args_list], [1536, 1152, 768])
+        self.assertEqual(fitted['evaluation_view']['sampled_frames'], manifest['evaluation_view']['sampled_frames'])
+        self.assertEqual(fitted['evaluation_view']['sample_transport']['base64_media_bytes'], 800)
+
     def test_identity_unknown_cannot_turn_into_pass_or_fail(self):
         rule = {'x': {'judgment_contract': 'state-equality-v1', 'description': 'object on tray'}}
         for value in ('satisfied', 'violated'):
@@ -319,6 +335,50 @@ class ReviewMediaTests(unittest.TestCase):
         with patch.object(ConditioningVideoVerifier, 'request', side_effect=AssertionError('replay')):
             review_group(self.owner, self.task, self.artifact, {}, self.subset,
                          {'x': [{'status': 'unobserved'}]}, self.folder, 1, 'digest')
+
+    def test_six_second_high_resolution_review_fits_real_serialized_request(self):
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'lavfi', '-i',
+            'testsrc2=size=1536x864:rate=8:duration=6,noise=alls=45:allf=u',
+            '-c:v', 'libx264', '-crf', '20', str(self.source)], check=True, capture_output=True)
+        before = self.source.read_bytes()
+        self.task.duration_seconds = 6
+        self.owner.profile.update(fps=8, max_width=1536)
+        evidence, manifest = self.owner.evidence(self.task, self.artifact)
+        evidence, manifest = self.owner.group_evidence(evidence, manifest, self.subset)
+        original, original_manifest = self.owner.fixed_window_input(evidence, manifest)
+        self.assertGreater(sum(len(m['data']) for _, m in original), 48_000_000)
+        packed, packed_manifest = add_boundary_crops(self.owner, evidence, manifest)
+        original_frames = original_manifest['evaluation_view']['sampled_frames']
+        frames = packed_manifest['evaluation_view']['sampled_frames']
+        self.assertEqual(len(frames), 48)
+        self.assertEqual([f['source_timestamp_seconds'] for f in frames],
+                         [f['source_timestamp_seconds'] for f in original_frames])
+        labels = {f['media_label'] for f in frames}
+        self.assertEqual(sum(m['mime'] == 'image/jpeg' for _, m in packed), 48)
+        original_anchors = [(label, medium) for label, medium in original if label not in labels]
+        self.assertTrue(all(item in packed for item in original_anchors))
+        for frame, original_frame in zip(frames, original_frames):
+            self.assertEqual(frame['original_image_hash'], original_frame['image_hash'])
+            path = self.owner.root / 'media' / frame['media_file']
+            from evovideo_skill.research_subgraphs import stable_hash
+            self.assertEqual(stable_hash(path.read_bytes().hex()), frame['image_hash'])
+        bodies = []
+        def urlopen(request, **kwargs):
+            bodies.append(request.data)
+            return io.BytesIO(b'{"choices":[{"message":{"content":"{\\"criteria\\":{}}"}}]}')
+        with patch.dict(os.environ, {self.owner.profile['api_key_env']: 'fixture'}), patch(
+                'urllib.request.urlopen', side_effect=urlopen):
+            self.owner.request(json.dumps({'evidence_manifest': packed_manifest}), packed, 'large-review')
+        self.assertEqual(len(bodies), 1)
+        self.assertLessEqual(len(bodies[0]), self.owner.profile['max_request_bytes'])
+        self.assertEqual(self.source.read_bytes(), before)
+        self.owner.profile['max_request_bytes'] = 1000
+        with patch.dict(os.environ, {self.owner.profile['api_key_env']: 'fixture'}), patch(
+                'urllib.request.urlopen') as http:
+            from evovideo_skill.api_tools import VideoApiError
+            with self.assertRaisesRegex(VideoApiError, 'request_bytes=.*limit=1000.*no request sent'):
+                self.owner.request(json.dumps({'evidence_manifest': packed_manifest}), packed, 'too-large')
+            http.assert_not_called()
 
     def test_missing_atomic_fields_are_corrected_in_both_response_routes(self):
         from test_conditioning_verifier import observed

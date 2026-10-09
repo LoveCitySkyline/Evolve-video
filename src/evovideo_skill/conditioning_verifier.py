@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "bounded-evidence-review-v19"
+VERIFIER_PROTOCOL_VERSION = "bounded-evidence-review-v20"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -805,7 +805,9 @@ class ConditioningVideoVerifier:
             url = p["base_url"].rstrip("/") + "/chat/completions"
         body = json.dumps(payload).encode()
         if len(body) > p["max_request_bytes"]:
-            raise VideoApiError("verifier request exceeds fixed byte budget")
+            media_bytes = sum(len(m['data']) for _, m in evidence)
+            raise VideoApiError(f"verifier request exceeds fixed byte budget: request_bytes={len(body)} "
+                f"limit={p['max_request_bytes']} base64_media_bytes={media_bytes}; no request sent")
         image_count = sum(m["mime"].startswith("image/") for _, m in evidence)
         if p["transport"] == "dashscope_video" and image_count > 250:
             raise VideoApiError("verifier image count exceeds the 250-image Base64 limit; no silent truncation")
