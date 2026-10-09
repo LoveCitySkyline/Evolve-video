@@ -667,6 +667,40 @@ class VerifierTests(unittest.TestCase):
         self.assertFalse(list(self.root.glob("judgments/*/group-000-repeat-0.json")))
         self.assertTrue(list(self.root.glob("judgments/*/*.format-1.json")))
 
+    def test_valid_sibling_scores_are_frozen_during_format_correction(self):
+        verifier = ConditioningVideoVerifier(profile(), self.root)
+        subset = {'valid_low': {}, 'valid_high': {}, 'broken': {}}
+        first = {'criteria': {'valid_low': observed(.1), 'valid_high': observed(.9), 'broken': {}}}
+        corrected = {'criteria': {name: observed(.5) for name in subset}}
+        with patch.object(verifier, 'request', side_effect=[first, corrected]):
+            parsed = verifier._observe_group(self.root / 'group.json', {'criteria': subset},
+                self.evidence, 'unit', subset, self.manifest['windows'])
+        self.assertEqual(parsed['valid_low']['score'], .1)
+        self.assertEqual(parsed['valid_high']['score'], .9)
+        self.assertEqual(parsed['broken']['score'], .5)
+
+    def test_failed_correction_only_marks_malformed_criterion_unknown(self):
+        verifier = ConditioningVideoVerifier(profile(auto_review={'enabled': True}), self.root)
+        calls = []
+        def request(prompt, media, operation):
+            criteria = json.loads(prompt)['criteria']
+            calls.append(operation)
+            rows = {name: observed(.2) for name in criteria}
+            rows['identity'] = {}
+            return {'criteria': rows}
+        def review(owner, task, artifact, public, subset, rows, *args):
+            self.assertEqual([name for name, rr in rows.items()
+                if any(r['status'] == 'unobserved' for r in rr)], ['identity'])
+            return {}
+        with patch.object(verifier, 'evidence', return_value=(self.evidence, self.manifest)), patch.object(
+                verifier, 'request', side_effect=request), patch(
+                'evovideo_skill.verifier_review.review_group', side_effect=review):
+            result = verifier.evaluate(self.task, self.artifact)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result['verification_metadata']['unobserved_criteria'], ['identity'])
+        self.assertEqual(result['identity_consistency_score'], .2)
+        self.assertEqual(result['clothing_color_score'], .2)
+
     def test_valid_unobserved_response_is_not_retried_for_better_scores(self):
         verifier = ConditioningVideoVerifier(profile(), self.root)
         def request(prompt, evidence, operation):

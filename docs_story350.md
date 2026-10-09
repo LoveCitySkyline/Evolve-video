@@ -512,3 +512,22 @@ PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
 ```
 
 这里的 `--resume` 仅续跑同协议复评，不允许混用 v16/v17，也不同于主实验的 `--continue`。
+
+### v18：保留有效判断并结算自动复核时间
+
+`bounded-evidence-review-v18` / `bounded-evidence-review-v2` 修复两处控制问题：
+
+- 同组单个指标格式错误时，独立通过校验的其他指标仍保留原始分数和证据。
+  格式纠正不能重写这些有效判断；纠正后仍不合法的指标才进入无分数复核。
+- 每次自动复核仍在请求前预留调用和超时时间。请求结束后按实际耗时结算，
+  释放未使用时间，但不退还调用次数。进程崩溃留下的未结算预约继续占用全额时间。
+  `reserved_seconds` 表示已结算实际耗时加上未结算预约，`spent_seconds` 仅为已结算耗时；
+  `reservations` 保存每次预约与结算。并发结算不会释放其他请求的预约。
+
+自动复核弃权时，终端同时打印 `errors` 和 `decision.json` 路径。
+这些改动不把未知变为低分或通过，也不保证模型能消除真实分歧。
+
+服务器运行代码需同时更新 `src/evovideo_skill/conditioning_verifier.py` 和
+`src/evovideo_skill/verifier_review.py`。协议发生变化，不能向 v17 复评目录添加
+`--resume` 混用结果；确认旧复核错误原因后再使用新的开发复评目录。
+既有生成视频可继续复用，不需要重新生成素材或视频。

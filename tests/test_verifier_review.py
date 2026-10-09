@@ -132,6 +132,51 @@ print(count)
             with self.assertRaises(ReviewBudgetExhausted):
                 ReviewLedger(tmp, cfg, 'a', 'y').reserve()
 
+    def test_settlement_releases_time_but_never_refunds_calls(self):
+        with TemporaryDirectory() as tmp:
+            cfg = options({'max_seconds_per_video': 200, 'max_calls_per_criterion': 2})
+            ledger = ReviewLedger(tmp, cfg, 'a', 'x')
+            self.assertEqual(ledger.reserve('first'), 180)
+            ledger.settle('first', 10)
+            self.assertEqual(ledger.reserve('second'), 180)
+            ledger.settle('second', 20)
+            ledger.settle('first', 0)  # duplicate settlement must not change the total
+            data = json.loads(ledger.path.read_text())
+            self.assertEqual(data['calls'], 2)
+            self.assertEqual(data['videos']['a']['reserved_seconds'], 30)
+            self.assertEqual(data['videos']['a']['spent_seconds'], 30)
+            with self.assertRaises(ReviewBudgetExhausted):
+                ledger.reserve('third')
+            self.assertEqual(ReviewLedger(tmp, cfg, 'a', 'y').reserve(), 170)
+
+    def test_settlement_keeps_other_workers_pending_time_and_rejects_wrong_owner(self):
+        with TemporaryDirectory() as tmp:
+            cfg = options({'max_seconds_per_video': 600})
+            a, b = (ReviewLedger(tmp, cfg, 'video', name) for name in ('a', 'b'))
+            a.reserve('first')
+            b.reserve('pending-crash')
+            with self.assertRaisesRegex(ValueError, 'duplicate'):
+                a.reserve('first')
+            with self.assertRaisesRegex(ValueError, 'unknown'):
+                b.settle('first', 0)
+            a.settle('first', 12)
+            data = json.loads(a.path.read_text())
+            self.assertEqual(data['calls'], 2)
+            self.assertEqual(data['videos']['video']['reserved_seconds'], 192)
+            self.assertEqual(data['videos']['video']['reservations']['pending-crash']['status'], 'pending')
+
+    def test_settlement_charges_overruns_and_checks_elapsed_time(self):
+        with TemporaryDirectory() as tmp:
+            cfg = options({'max_seconds_per_video': 200})
+            ledger = ReviewLedger(tmp, cfg, 'a', 'x')
+            ledger.reserve('first')
+            for value in (-1, float('nan'), float('inf')):
+                with self.assertRaises(ValueError):
+                    ledger.settle('first', value)
+            ledger.settle('first', 201)
+            with self.assertRaises(ReviewBudgetExhausted):
+                ReviewLedger(tmp, cfg, 'a', 'y').reserve()
+
     def test_segment_disagreement_not_hidden_by_equal_global_scores(self):
         rows = [{'status': 'observed', 'score': .5, 'segments': [
             {'segment_id': 0, 'status': 'observed', 'score': value}]} for value in (0, 1)]

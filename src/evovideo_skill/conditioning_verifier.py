@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "bounded-evidence-review-v17"
+VERIFIER_PROTOCOL_VERSION = "bounded-evidence-review-v18"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -901,6 +901,7 @@ class ConditioningVideoVerifier:
             return parse_judgment(json.loads(path.read_text()), subset, spans, evidence_manifest)
         feedback = None
         patch_fields = None
+        accepted_raw, accepted_parsed = {}, {}
         for correction in range(2):
             raw_path = path.with_suffix(".raw.json" if correction == 0 else ".correction-1.raw.json")
             audit_path = path.with_suffix(f".format-{correction}.json")
@@ -967,6 +968,22 @@ class ConditioningVideoVerifier:
                 if patch_fields:
                     parsed_raw = apply_assessment_patch(feedback['previous_response'], raw, patch_fields, grounding_fields)
                     write_json(path.with_suffix('.correction-1.merged.json'), parsed_raw)
+                # Preserve independently valid criteria even if a sibling is malformed.
+                candidates = parsed_raw.get('criteria') if isinstance(parsed_raw, dict) else None
+                if isinstance(candidates, dict):
+                    for name, rule in subset.items():
+                        if name in accepted_raw or name not in candidates:
+                            continue
+                        try:
+                            checked = parse_judgment({'criteria': {name: candidates[name]}},
+                                {name: rule}, spans, evidence_manifest)
+                        except (ValueError, KeyError, TypeError):
+                            continue
+                        accepted_raw[name] = deepcopy(candidates[name])
+                        accepted_parsed[name] = checked[name]
+                    parsed_raw = deepcopy(parsed_raw)
+                    parsed_raw['criteria'].update(deepcopy(accepted_raw))
+                    write_json(path.with_suffix(f'.accepted-{correction}.json'), {'criteria': accepted_raw})
                 parsed = parse_judgment(parsed_raw, subset, spans, evidence_manifest)
             except (ValueError, KeyError, TypeError) as exc:
                 detail = str(exc)
@@ -977,8 +994,10 @@ class ConditioningVideoVerifier:
                     "expected_keys": list(subset), "raw_response_path": str(raw_path),
                     "correction_attempt": correction})
                 if correction == 1:
-                    raise VerifierFormatError(f"verifier response format invalid after one correction: {detail}; "
-                                     f"see {audit_path}") from exc
+                    failure = VerifierFormatError(f"verifier response format invalid after one correction: {detail}; "
+                                     f"see {audit_path}")
+                    failure.valid_observations = deepcopy(accepted_parsed)
+                    raise failure from exc
                 feedback = {"error": detail, "validation_errors": errors, "previous_response": raw,
                     "instruction": "Correct ALL listed contract errors using the SAME task, rubric and media. "
                                    "Do not improve scores to pass validation; unknown evidence remains unobserved."}
@@ -1061,7 +1080,10 @@ class ConditioningVideoVerifier:
                     'accepted_criteria': list(accepted), 'pending_criteria': list(failed),
                     'raw_response_path': str(raw_path), 'correction_attempt': attempt})
                 if attempt:
-                    raise VerifierFormatError(f'single-window response invalid after one correction: {errors}; see {audit}')
+                    failure = VerifierFormatError(f'single-window response invalid after one correction: {errors}; see {audit}')
+                    failure.valid_observations = {name: parse_judgment({'criteria': {name: row}},
+                        {name: subset[name]}, spans, manifest)[name] for name, row in accepted.items()}
+                    raise failure
                 feedback = {'validation_errors': errors,
                     'instruction': 'Return ONLY the requested invalid criteria, one judgment each. Correct all listed fields '
                                    'from the same evidence. Do not invent facts or upgrade scores to pass.'}
@@ -1118,6 +1140,7 @@ class ConditioningVideoVerifier:
                             'evidence': 'No valid structured response.'}
                             for i in required_segment_ids(k, rule, manifest['windows'])]}
                         for k, rule in subset.items()}
+                    parsed.update(getattr(exc, 'valid_observations', {}))
                 for k, v in parsed.items():
                     group_rows[k].append(v)
             if auto_options['enabled'] and artifact is not None:

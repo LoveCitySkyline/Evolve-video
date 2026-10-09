@@ -7,11 +7,12 @@ import tempfile
 import subprocess
 from pathlib import Path
 import time
+import uuid
 from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'bounded-evidence-review-v1'
+VERSION = 'bounded-evidence-review-v2'
 DEFAULTS = dict(enabled=False, max_calls_per_criterion=2, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
                 secondary_model=None)
@@ -70,10 +71,13 @@ class ReviewLedger:
         self.path = Path(root) / 'auto_review_budget.json'
         self.config, self.candidate, self.criterion = config, candidate, criterion
 
-    def reserve(self):
+    def reserve(self, ticket=None):
+        ticket = ticket or uuid.uuid4().hex
         with portable_interprocess_lock(self.path.with_suffix('.lock'), timeout_seconds=30):
             data = json.loads(self.path.read_text()) if self.path.exists() else {'calls': 0, 'videos': {}}
             video = data['videos'].setdefault(self.candidate, {'calls': 0, 'reserved_seconds': 0, 'criteria': {}})
+            if ticket in video.get('reservations', {}):
+                raise ValueError('duplicate review reservation')
             count = video['criteria'].get(self.criterion, 0)
             remaining = self.config['max_seconds_per_video'] - video['reserved_seconds']
             if (data['calls'] >= self.config['max_calls_per_run'] or video['calls'] >= self.config['max_calls_per_video']
@@ -84,8 +88,33 @@ class ReviewLedger:
             video['calls'] += 1
             video['criteria'][self.criterion] = count + 1
             video['reserved_seconds'] += timeout
+            video.setdefault('reservations', {})[ticket] = {'seconds': timeout, 'status': 'pending',
+                'criterion': self.criterion}
             write_json(self.path, data)
             return timeout
+
+    def settle(self, ticket, elapsed_seconds):
+        """Return unused wall-time reservation, never refund a model-call credit.
+
+        A crashed process leaves its full pending reservation charged. Duplicate
+        settlement is idempotent and cannot refund other workers' time.
+        """
+        if not isinstance(elapsed_seconds, (int, float)) or not math.isfinite(elapsed_seconds) or elapsed_seconds < 0:
+            raise ValueError('invalid review elapsed time')
+        with portable_interprocess_lock(self.path.with_suffix('.lock'), timeout_seconds=30):
+            data = json.loads(self.path.read_text())
+            video = data['videos'][self.candidate]
+            reservation = video.get('reservations', {}).get(ticket)
+            if reservation is None or reservation['criterion'] != self.criterion:
+                raise ValueError('unknown review reservation')
+            if reservation['status'] == 'settled':
+                return
+            # reserved_seconds includes settled actual time plus pending reservations.
+            # Charge measured overruns too; subsequent requests then stop.
+            video['reserved_seconds'] += elapsed_seconds - reservation['seconds']
+            video['spent_seconds'] = video.get('spent_seconds', 0) + elapsed_seconds
+            reservation.update(status='settled', actual_seconds=elapsed_seconds)
+            write_json(self.path, data)
 
 
 def validate_checks(raw, criteria):
@@ -232,10 +261,21 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                     timeout -= time.monotonic() - self.acquisition_started
                     if timeout < 1:
                         raise ReviewBudgetExhausted('evidence acquisition exhausted reserved review time')
+                    ticket = self.prepaid_ticket
+                    request_started = self.acquisition_started
                 else:
-                    timeout = ledger.reserve()
+                    ticket = uuid.uuid4().hex
+                    timeout = ledger.reserve(ticket)
+                    request_started = time.monotonic()
+                self.prepaid_ticket = None
                 self.profile['timeout_seconds'] = min(self.profile['timeout_seconds'], max(1, int(timeout)))
-                raw = super().request(json.dumps(payload, ensure_ascii=False), evidence, operation)
+                try:
+                    raw = super().request(json.dumps(payload, ensure_ascii=False), evidence, operation)
+                except Exception:
+                    ledger.settle(ticket, time.monotonic() - request_started)
+                    raise
+                else:
+                    ledger.settle(ticket, time.monotonic() - request_started)
                 write_json(root / (stable_hash(operation) + '.atomic.raw.json'), raw)
                 try:
                     return validate_checks(raw, payload['criteria'])
@@ -254,7 +294,9 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                 results.append(json.loads(parsed_cache.read_text())[name])
                 continue
             try:
-                reviewer.prepaid_timeout = ledger.reserve()
+                ticket = uuid.uuid4().hex
+                reviewer.prepaid_timeout = ledger.reserve(ticket)
+                reviewer.prepaid_ticket = ticket
                 reviewer.acquisition_started = time.monotonic()
                 evidence, manifest = reviewer.evidence(task, artifact)
                 if manifest['candidate_hash'] != source_hash:
@@ -278,6 +320,10 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                     failures.append(str(exc))
                     break
                 raise
+            finally:
+                if getattr(reviewer, 'prepaid_ticket', None) is not None:
+                    ledger.settle(reviewer.prepaid_ticket, time.monotonic() - reviewer.acquisition_started)
+                    reviewer.prepaid_ticket = None
         resolved = len(results) == 2 and not uncertain(results, owner.profile['disagreement_threshold'])
         decision = {'protocol': VERSION, 'criterion': name, 'status': 'resolved' if resolved else 'abstained',
             'initial_observations': initial, 'observations': results, 'errors': failures,
@@ -286,7 +332,7 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
             'independent_model': bool(config['secondary_model'] and config['secondary_model'] != owner.model),
             'qualification': 'Two blind reviews of enhanced source evidence; agreement is not proof of correctness.'}
         write_json(saved, decision)
-        print(f"[conditioning verifier] auto-review criterion={name} status={decision['status']} audit={saved}", flush=True)
+        print(f"[conditioning verifier] auto-review criterion={name} status={decision['status']} errors={json.dumps(failures, ensure_ascii=False)} audit={saved}", flush=True)
         audit[name] = decision
         if resolved:
             rows[name] = results
