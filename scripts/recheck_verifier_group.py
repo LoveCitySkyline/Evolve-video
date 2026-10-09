@@ -51,6 +51,7 @@ def plan_group(judgment_dir, group, repeat, task_file):
         'purpose': 'development_single_group_only_not_full_evaluation_or_method_gain',
         'source_judgment': str(source), 'source_request_sha256': hashlib.sha256(request_path.read_bytes()).hexdigest(),
         'group': group, 'source_repeat': repeat, 'video': row, 'criteria': request['criteria'],
+        'source_candidate_hash': source_manifest['candidate_hash'],
         'equivalent_source_evaluations': [r['evaluation_id'] for r in videos],
         'new_protocol': VERIFIER_PROTOCOL_VERSION, 'maximum_model_calls': 2}
 
@@ -64,6 +65,7 @@ def main(argv=None):
     parser.add_argument('--task-file', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--auto-review-criterion', help='Exercise only the bounded automatic review for this saved criterion (at most 4 calls)')
     args = parser.parse_args(argv)
     task, row, subset, plan = plan_group(args.judgment_dir, args.group, args.repeat, args.task_file)
     config = json.loads(args.config.read_text())
@@ -71,6 +73,18 @@ def main(argv=None):
     profile = resolve_profiles(config, settings, require_keys=False)['final']
     # Explicitly bound this diagnostic: no HTTP retries or repeated rubric runs.
     profile.update(max_attempts=1, repeats=1)
+    if args.auto_review_criterion:
+        from evovideo_skill.verifier_review import options
+        name = args.auto_review_criterion
+        if name not in subset:
+            parser.error('selected criterion does not belong to the saved group')
+        subset = {name: subset[name]}
+        review = options(profile.get('auto_review'))
+        review.update(enabled=True, max_calls_per_criterion=min(4, review['max_calls_per_criterion']))
+        profile['auto_review'] = review
+        plan.update(criteria=subset, diagnostic_mode='automatic_review_only',
+            maximum_model_calls=min(review[k] for k in
+                ('max_calls_per_criterion', 'max_calls_per_video', 'max_calls_per_run')))
     plan['profile'] = profile
     print(json.dumps(plan, ensure_ascii=False, indent=2))
     if args.dry_run:
@@ -89,14 +103,28 @@ def main(argv=None):
     artifact = VideoArtifact('single-group-recheck', task.task_id, task.prompt, task.mode, [], [],
                              {'local_video_path': row['video']})
     try:
-        evidence, manifest = verifier.evidence(task, artifact)
-        media, group_manifest = verifier.group_evidence(evidence, manifest, subset)
         # Construct the same blinded public task as the main verifier.
         from evovideo_skill.conditioning_memory import task_payload
         public = task_payload(task)
         public.pop('reference_video', None)
         for key in ('h3_references', 'h3_audio_criteria', 'evaluation'):
             public['metadata'].pop(key, None)
+        if args.auto_review_criterion:
+            from evovideo_skill.verifier_review import review_group
+            name = args.auto_review_criterion
+            rows = {name: [{'status': 'unobserved', 'score': None,
+                'evidence': 'Development diagnostic trigger; no prior quality judgment supplied.'}]}
+            audit = review_group(verifier, task, artifact, public, subset, rows,
+                root / 'review', args.group, 'single-group-review', plan['source_candidate_hash'])
+            summary = {'purpose': plan['purpose'], 'criterion': name,
+                'auto_review_status': audit[name]['status'], 'errors': audit[name]['errors'],
+                'confirmation_count': len(audit[name]['observations']),
+                'qualification': 'Only the automatic review path was tested; this is not a complete evaluation.'}
+            write_json(root / 'summary.json', summary)
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+            return summary
+        evidence, manifest = verifier.evidence(task, artifact)
+        media, group_manifest = verifier.group_evidence(evidence, manifest, subset)
         result = verifier._observe_group(root / 'group.json',
             {'original_task': public, 'criteria': subset, 'evidence_manifest': group_manifest},
             media, 'single-group', subset, manifest['windows'])

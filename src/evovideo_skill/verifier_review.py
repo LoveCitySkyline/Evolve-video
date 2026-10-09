@@ -12,8 +12,8 @@ from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'bounded-evidence-review-v2'
-DEFAULTS = dict(enabled=False, max_calls_per_criterion=2, max_calls_per_video=8,
+VERSION = 'bounded-evidence-review-v3'
+DEFAULTS = dict(enabled=False, max_calls_per_criterion=4, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
                 secondary_model=None)
 CHECKS = {
@@ -22,6 +22,38 @@ CHECKS = {
     'predicate': 'Does the EXACT requirement hold? Decompose all explicit clauses into components; add no requirements.',
     'temporal_scope': 'Does evidence establish this predicate in the required window, using the true pre/post boundary?',
 }
+REVIEW_SYSTEM = '''
+This request is a bounded evidence review. In addition to the ordinary judgment
+fields, EACH requested criterion MUST contain atomic_checks, with exactly these
+four named objects: referents, visibility, predicate, temporal_scope. This is part
+of the output schema, not optional commentary. Each object requires status
+(supported|contradicted|unknown) and evidence. predicate additionally requires a
+nonempty components list; each component has source_quote (an exact substring of
+this criterion's description), status and evidence. Check all explicit clauses.
+The predicate status is their conjunction: any contradicted => contradicted;
+otherwise any unknown => unknown; otherwise supported. Unknown prerequisites
+(referents, visibility or temporal_scope) require an unknown judgment. Never
+invent observations or improve a score merely to fill missing JSON fields.
+For assessment_patch_only corrections, return ONLY the requested patches instead;
+the host retains and revalidates the previously supplied atomic_checks.
+'''
+
+
+def add_review_contract(payload):
+    """Put the extension in the same required fields the base judge follows."""
+    contract = payload['output_contract']
+    if contract.get('response_mode') == 'assessment_patch_only':
+        return
+    check_schema = {'status': 'supported|contradicted|unknown', 'evidence': 'visible support or limitation'}
+    schema = {key: deepcopy(check_schema) for key in CHECKS}
+    schema['predicate']['components'] = [{'source_quote': 'exact substring of this criterion description',
+        **deepcopy(check_schema)}]
+    for name in payload['criteria']:
+        fields = contract.setdefault('fields', {}).setdefault(name, {})
+        required = fields.setdefault('required', [])
+        if 'atomic_checks' not in required:
+            required.append('atomic_checks')
+        fields['atomic_checks'] = deepcopy(schema)
 
 class ReviewBudgetExhausted(RuntimeError):
     pass
@@ -241,8 +273,14 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                               stable_hash([owner.root.name, name, subset[name]]))
 
         class Reviewer(ConditioningVideoVerifier):
+            response_contract_instructions = REVIEW_SYSTEM
+
+            def validate_response_contract(self, raw, criteria):
+                return validate_checks(raw, criteria)
+
             def request(self, prompt, evidence, operation):
                 payload = json.loads(prompt)
+                add_review_contract(payload)
                 payload['atomic_review'] = {'checks': CHECKS, 'location': 'atomic_checks inside each criterion',
                     'schema': {'each_check': {'status': 'supported|contradicted|unknown', 'evidence': 'visible support or limitation'},
                         'predicate.components': [{'source_quote': 'exact substring of this criterion description',
@@ -277,10 +315,7 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                 else:
                     ledger.settle(ticket, time.monotonic() - request_started)
                 write_json(root / (stable_hash(operation) + '.atomic.raw.json'), raw)
-                try:
-                    return validate_checks(raw, payload['criteria'])
-                except ValueError as exc:
-                    raise VerifierFormatError(str(exc)) from exc
+                return raw
 
         for repeat in range(2):
             p = {**owner.profile, 'auto_review': {**config, 'enabled': False}, 'max_attempts': 1,

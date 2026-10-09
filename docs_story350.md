@@ -531,3 +531,37 @@ PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
 `src/evovideo_skill/verifier_review.py`。协议发生变化，不能向 v17 复评目录添加
 `--resume` 混用结果；确认旧复核错误原因后再使用新的开发复评目录。
 既有生成视频可继续复用，不需要重新生成素材或视频。
+
+### v19：自动复核字段缺失进入统一格式纠正
+
+`bounded-evidence-review-v19` / `bounded-evidence-review-v3` 将 `atomic_checks`
+同时写入系统提示和 `output_contract.fields` 的必填字段。校验在统一的纠错循环内进行，
+原始响应先保存，再校验，不再因缺字段在请求函数内直接退出。
+完整视频和固定窗口两条路径都允许针对相同证据纠正一次；物理运动评估仍使用去除剧情目标
+后的描述。合法低分和未知不会为了得到更好分数被重试。
+
+默认及四个 Story350 配置的每指标额外调用上限改为 4，允许两次独立复核各纠错一次；
+每视频 8 次、每 run 200 次以及每视频 600 秒额度不变。显式配置较小额度仍被遵守。
+两次纠正后仍无合法判断、真实分歧或预算不足时保持弃权，不补造字段或评分。
+
+可先只测试一个现有争议指标的自动复核，避免重新跑全部评估组。同步
+`scripts/recheck_verifier_group.py` 后，例如：
+
+```bash
+probe_dir="$(mktemp -d outputs/h3_verifier_v19_autoreview_XXXXXX)"
+set -o pipefail
+PYTHONPATH=src python scripts/recheck_verifier_group.py \
+  --judgment-dir outputs/h3_verifier_v17_recheck_9tBizf/verifier/final/judgments/12e4402b968b4a3c6b5c90bcd462402d9c857c0ee52967c37c294e6b7f44725c \
+  --group 2 \
+  --auto-review-criterion story.s1.post.token.location \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --output-dir "$probe_dir" \
+  2>&1 | tee "${probe_dir}.log"
+```
+
+此命令验证旧任务和视频哈希，直接测试复核路径，最多 4 次模型调用（初始评估组不重跑），
+不调用 H3。`--dry-run` 只检查来源并打印计划，不调用模型或创建输出文件。
+`summary.json` 的 `auto_review_status` 为 resolved 表示两次合法判断一致，
+不代表视频通过指标或评估正确率已经得到验证；abstained 时检查 errors 和保存的证据判断。
+该单指标诊断不能代替完整复评，不能用于策略准入或报告方法收益。

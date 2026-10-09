@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "bounded-evidence-review-v18"
+VERIFIER_PROTOCOL_VERSION = "bounded-evidence-review-v19"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -436,6 +436,12 @@ def resolve_profiles(config, settings, require_keys=True, apply_env=True):
 
 
 class ConditioningVideoVerifier:
+    response_contract_instructions = ''
+
+    def validate_response_contract(self, raw, criteria):
+        """Validate optional protocol extensions inside the bounded correction loop."""
+        return raw
+
     _normalize_benchmark_result = staticmethod(QwenVLEvaluator._normalize_benchmark_result)
 
     def __init__(self, profile, root):
@@ -764,6 +770,7 @@ class ConditioningVideoVerifier:
                 system += '\nDesired story withheld. Judge only physical motion, not inferred story requirements.\n'
         if fixed:
             system += FRAME_INPUT_INSTRUCTIONS
+        system += self.response_contract_instructions
         key = os.environ.get(p["api_key_env"])
         if not key:
             raise VideoApiError(f"missing {p['api_key_env']}")
@@ -963,11 +970,14 @@ class ConditioningVideoVerifier:
                 raw = self.request(json.dumps(prompt_data, ensure_ascii=False), evidence,
                                    operation + ("/format-correction-1" if correction else ""))
                 write_json(raw_path, raw)
+            response_contract_valid = False
             try:
                 parsed_raw = raw
                 if patch_fields:
                     parsed_raw = apply_assessment_patch(feedback['previous_response'], raw, patch_fields, grounding_fields)
                     write_json(path.with_suffix('.correction-1.merged.json'), parsed_raw)
+                parsed_raw = self.validate_response_contract(parsed_raw, prompt_data.get('criteria', subset))
+                response_contract_valid = True
                 # Preserve independently valid criteria even if a sibling is malformed.
                 candidates = parsed_raw.get('criteria') if isinstance(parsed_raw, dict) else None
                 if isinstance(candidates, dict):
@@ -1010,7 +1020,7 @@ class ConditioningVideoVerifier:
                         'scores, evidence and assessments. Do not infer a desired story or preserve a prior '
                         'score. Occlusion and missing sampled frames alone do not establish a physical defect. '
                         'Genuine visibility uncertainty must remain unobserved, not be scored as success.')
-                if not physical_only and errors and all(e['issues'] and all(i['code'] == 'missing_assessment_object'
+                if response_contract_valid and not physical_only and errors and all(e['issues'] and all(i['code'] == 'missing_assessment_object'
                                                      for i in e['issues']) for e in errors):
                     patch_fields = assessment_patch_fields(raw, subset)
                 print(f"[conditioning verifier] format correction=1/1 job={operation}: {detail}", flush=True)
@@ -1056,8 +1066,16 @@ class ConditioningVideoVerifier:
                     operation + ('/format-correction-1' if attempt else ''))
                 write_json(raw_path, raw)
             errors, failed = [], {}
-            rows = raw.get('criteria') if isinstance(raw, dict) else None
-            if not isinstance(rows, dict) or set(rows) != set(pending) or set(raw) != {'criteria'}:
+            try:
+                checked_raw = self.validate_response_contract(raw, pending)
+            except (ValueError, KeyError, TypeError) as issue:
+                checked_raw = None
+                errors = [{'error': str(issue)}]
+                failed = dict(pending)
+            rows = checked_raw.get('criteria') if isinstance(checked_raw, dict) else None
+            if errors:
+                pass
+            elif not isinstance(rows, dict) or set(rows) != set(pending) or set(checked_raw) != {'criteria'}:
                 errors = [{'error': 'Return exactly the currently requested criterion keys; do not rewrite accepted criteria.'}]
                 failed = dict(pending)
             else:

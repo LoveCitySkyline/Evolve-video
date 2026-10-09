@@ -62,6 +62,28 @@ class GroupRecheckTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'task definition changed'):
                 script.plan_group(source, 2, 0, tasks)
 
+    def test_auto_review_diagnostic_is_bounded_and_skips_initial_group(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _, _, _, args = self.fixture(root)
+            args += ['--auto-review-criterion', 'c']
+            with patch('builtins.print'):
+                plan = script.main(args + ['--dry-run'])
+            self.assertEqual(plan['maximum_model_calls'], 4)
+            self.assertEqual(plan['diagnostic_mode'], 'automatic_review_only')
+            self.assertFalse((root / 'new').exists())
+            audit = {'c': {'status': 'abstained', 'errors': ['ambiguous'], 'observations': []}}
+            with patch.dict(os.environ, {'GROUP_TEST_KEY': 'fixture'}), patch('builtins.print'), patch.object(
+                    script.ConditioningVideoVerifier, '_observe_group') as initial, patch(
+                    'evovideo_skill.verifier_review.review_group', return_value=audit) as review:
+                summary = script.main(args)
+            initial.assert_not_called()
+            review.assert_called_once()
+            self.assertEqual(list(review.call_args.args[4]), ['c'])
+            self.assertEqual(review.call_args.args[-1], plan['source_candidate_hash'])
+            self.assertEqual(summary['auto_review_status'], 'abstained')
+            self.assertEqual(summary['confirmation_count'], 0)
+
     def test_only_selected_group_is_evaluated_once_and_unknown_stays_unknown(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

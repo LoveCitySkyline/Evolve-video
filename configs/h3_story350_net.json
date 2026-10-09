@@ -49,7 +49,7 @@
       "repeats": 1,
       "auto_review": {
         "enabled": true,
-        "max_calls_per_criterion": 2,
+        "max_calls_per_criterion": 4,
         "max_calls_per_video": 8,
         "max_calls_per_run": 200,
         "max_seconds_per_video": 600,
@@ -63,7 +63,7 @@
       "repeats": 2,
       "auto_review": {
         "enabled": true,
-        "max_calls_per_criterion": 2,
+        "max_calls_per_criterion": 4,
         "max_calls_per_video": 8,
         "max_calls_per_run": 200,
         "max_seconds_per_video": 600,

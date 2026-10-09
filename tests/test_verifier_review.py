@@ -5,6 +5,7 @@ import io
 import errno
 import sys
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -13,7 +14,7 @@ import unittest
 from unittest.mock import patch
 
 from evovideo_skill.verifier_review import (options, ReviewLedger, ReviewBudgetExhausted,
-    validate_checks, uncertain, review_group, add_boundary_crops)
+    validate_checks, uncertain, review_group, add_boundary_crops, REVIEW_SYSTEM)
 from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, resolve_profiles
 from evovideo_skill.runtime import RuntimeSettings
 from evovideo_skill.models import VideoArtifact, VideoTask
@@ -318,6 +319,92 @@ class ReviewMediaTests(unittest.TestCase):
         with patch.object(ConditioningVideoVerifier, 'request', side_effect=AssertionError('replay')):
             review_group(self.owner, self.task, self.artifact, {}, self.subset,
                          {'x': [{'status': 'unobserved'}]}, self.folder, 1, 'digest')
+
+    def test_missing_atomic_fields_are_corrected_in_both_response_routes(self):
+        from test_conditioning_verifier import observed
+        for scoped in (False, True):
+            with self.subTest(scoped=scoped):
+                owner = ConditioningVideoVerifier(self.profile, self.root / str(scoped))
+                folder = owner.root / 'judgments/digest'
+                folder.mkdir(parents=True)
+                rule = self.subset if scoped else {'x': {'description': 'object on tray'}}
+                calls = []
+                def request(instance, prompt, evidence, operation):
+                    payload = json.loads(prompt)
+                    self.assertEqual(instance.response_contract_instructions, REVIEW_SYSTEM)
+                    fields = payload['output_contract']['fields']['x']
+                    self.assertIn('atomic_checks', fields['required'])
+                    self.assertEqual(set(fields['atomic_checks']),
+                        {'referents', 'visibility', 'predicate', 'temporal_scope'})
+                    calls.append((payload, evidence, operation))
+                    row = atomic() if scoped else {**observed(.25), 'atomic_checks': atomic()['atomic_checks']}
+                    if 'format-correction' not in operation:
+                        row.pop('atomic_checks')
+                    return {'criteria': {'x': row}}
+                rows = {'x': [{'status': 'unobserved', 'score': None}]}
+                with patch.object(ConditioningVideoVerifier, 'request', new=request):
+                    audit = review_group(owner, self.task, self.artifact, {}, rule, rows, folder, 0, 'digest')
+                self.assertEqual(audit['x']['status'], 'resolved')
+                self.assertEqual(len(calls), 4)  # each of two blind reads needs one format correction
+                for first, correction in ((calls[0], calls[1]), (calls[2], calls[3])):
+                    self.assertNotIn('format_feedback', first[0])
+                    self.assertIn('review requires all atomic_checks', str(correction[0]['format_feedback']))
+                    self.assertEqual(first[1], correction[1])
+                ledger = json.loads((owner.root / 'auto_review_budget.json').read_text())
+                self.assertEqual(ledger['calls'], 4)
+                video = next(iter(ledger['videos'].values()))
+                self.assertTrue(all(r['status'] == 'settled' for r in video['reservations'].values()))
+                for p in folder.glob('auto_review/*/confirmation-*.raw.json'):
+                    self.assertEqual('atomic_checks' in json.loads(p.read_text())['criteria']['x'],
+                                     'correction-1' in p.name)
+
+    def test_repeated_missing_atomic_fields_abstain_after_one_correction(self):
+        row = atomic()
+        row.pop('atomic_checks')
+        rows = {'x': [{'status': 'unobserved', 'score': None}]}
+        with patch.object(ConditioningVideoVerifier, 'request', return_value={'criteria': {'x': row}}) as request:
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                rows, self.folder, 1, 'digest')
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(audit['x']['status'], 'abstained')
+        self.assertIn('after one correction', audit['x']['errors'][0])
+        self.assertIsNone(rows['x'][0]['score'])
+
+    def test_atomic_contract_reaches_serialized_provider_system_and_body(self):
+        requests = []
+        def urlopen(request, **kwargs):
+            body = json.loads(request.data)
+            requests.append(body)
+            self.assertIn(REVIEW_SYSTEM, body['messages'][0]['content'])
+            payload = json.loads(body['messages'][1]['content'][0]['text'])
+            self.assertIn('atomic_checks', payload['output_contract']['fields']['x']['required'])
+            row = atomic()
+            if len(requests) == 1:
+                row.pop('atomic_checks')
+            return io.BytesIO(json.dumps({'choices': [{'message': {
+                'content': json.dumps({'criteria': {'x': row}})}}]}).encode())
+        rows = {'x': [{'status': 'unobserved', 'score': None}]}
+        with patch.dict(os.environ, {self.owner.profile['api_key_env']: 'unit-test-key'}), patch(
+                'urllib.request.urlopen', side_effect=urlopen):
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                rows, self.folder, 1, 'digest')
+        self.assertEqual(len(requests), 3)
+        self.assertEqual(audit['x']['status'], 'resolved')
+
+    def test_correction_does_not_bypass_explicit_two_call_limit(self):
+        self.owner.profile['auto_review']['max_calls_per_criterion'] = 2
+        missing = atomic()
+        missing.pop('atomic_checks')
+        rows = {'x': [{'status': 'unobserved', 'score': None}]}
+        with patch.object(ConditioningVideoVerifier, 'request', side_effect=[
+                {'criteria': {'x': missing}}, {'criteria': {'x': atomic()}}]) as request:
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                rows, self.folder, 1, 'digest')
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(audit['x']['status'], 'abstained')
+        self.assertIn('budget exhausted', audit['x']['errors'][0])
+        self.assertEqual(len(audit['x']['observations']), 1)
+        self.assertIsNone(rows['x'][0]['score'])
 
     def test_opposite_confirmations_abstain_and_provider_error_propagates(self):
         rows = {'x': [{'status': 'unobserved', 'score': None}]}
