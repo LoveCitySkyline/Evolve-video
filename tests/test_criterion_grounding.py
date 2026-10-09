@@ -77,13 +77,13 @@ class GroundingTests(unittest.TestCase):
             verifier = ConditioningVideoVerifier(profile, tmp)
             path = Path(tmp) / 'motion.json'
             with patch.object(verifier, 'request', side_effect=[raw, patch_response]) as request:
-                parsed = verifier._observe_group(path, {'criteria': rules}, [], 'unit', rules, SPANS)
+                parsed = verifier._observe_legacy_group(path, {'criteria': rules}, [], 'unit', rules, SPANS)
                 contract = json.loads(request.call_args.args[0])['output_contract']
                 self.assertEqual(contract['response_mode'], 'assessment_patch_only')
                 self.assertEqual(set(contract['assessment_patches']), {pointer})
                 self.assertEqual(request.call_count, 2)
                 # A cached replay parses the completed model response without another call.
-                self.assertEqual(verifier._observe_group(path, {}, [], 'unit', rules, SPANS), parsed)
+                self.assertEqual(verifier._observe_legacy_group(path, {}, [], 'unit', rules, SPANS), parsed)
                 self.assertEqual(request.call_count, 2)
             self.assertEqual(raw, original)
             saved = json.loads(path.read_text())
@@ -116,7 +116,7 @@ class GroundingTests(unittest.TestCase):
             path = Path(tmp) / 'declined.json'
             with patch.object(verifier, 'request', side_effect=[raw, {'cannot_complete': 'Occlusion is ambiguous.'}]) as request:
                 with self.assertRaisesRegex(ValueError, 'declined assessment completion'):
-                    verifier._observe_group(path, {}, [], 'unit', rules, SPANS)
+                    verifier._observe_legacy_group(path, {}, [], 'unit', rules, SPANS)
                 self.assertEqual(request.call_count, 2)
             self.assertFalse(path.exists())
             self.assertNotIn('assessment', json.loads(path.with_suffix('.raw.json').read_text())['criteria']['state'])
@@ -141,7 +141,7 @@ class GroundingTests(unittest.TestCase):
             verifier = ConditioningVideoVerifier(profile, tmp)
             with patch.object(verifier, 'request', return_value=raw) as request:
                 with self.assertRaises(ValueError):
-                    verifier._observe_group(Path(tmp) / 'conflicts.json', {}, [], 'unit', rules, SPANS)
+                    verifier._observe_legacy_group(Path(tmp) / 'conflicts.json', {}, [], 'unit', rules, SPANS)
                 payload = json.loads(request.call_args.args[0])
                 self.assertNotIn('response_mode', payload['output_contract'])
                 issues = payload['format_feedback']['validation_errors'][0]['issues']
@@ -204,10 +204,10 @@ class GroundingTests(unittest.TestCase):
             path = Path(tmp) / 'flow.json'
             payload = {'evidence_manifest': manifest}
             with patch.object(verifier, 'request', return_value={'criteria': {'flow': row}}) as request:
-                first = verifier._observe_group(path, payload, [], 'unit', {'flow': rule}, SPANS)
+                first = verifier._observe_legacy_group(path, payload, [], 'unit', {'flow': rule}, SPANS)
                 sent = json.loads(request.call_args.args[0])
                 self.assertIn('allowed_context_evidence', sent['output_contract']['grounding_fields']['flow']['evidence_times_seconds'])
-                again = verifier._observe_group(path, payload, [], 'unit', {'flow': rule}, SPANS)
+                again = verifier._observe_legacy_group(path, payload, [], 'unit', {'flow': rule}, SPANS)
                 self.assertEqual(request.call_count, 1)
                 self.assertEqual(again, first)
 
@@ -220,7 +220,7 @@ class GroundingTests(unittest.TestCase):
             del bad['segments'][0]['evidence_times_seconds']
             with patch.object(verifier, 'request', side_effect=[{'criteria': {'a': bad, 'b': bad}},
                     {'criteria': {'a': judgment(1), 'b': judgment(1)}}]) as request:
-                verifier._observe_group(Path(tmp) / 'multi.json', {}, [], 'unit', {'a': rule, 'b': rule}, SPANS)
+                verifier._observe_legacy_group(Path(tmp) / 'multi.json', {}, [], 'unit', {'a': rule, 'b': rule}, SPANS)
                 feedback = json.loads(request.call_args.args[0])['format_feedback']
                 self.assertEqual({e['criterion'] for e in feedback['validation_errors']}, {'a', 'b'})
                 self.assertEqual(request.call_count, 2)
@@ -269,7 +269,7 @@ class GroundingTests(unittest.TestCase):
             path = Path(tmp) / 'request-test.json'
             with patch.object(verifier, 'request', side_effect=[{'criteria': {'criterion': invalid}},
                                                                {'criteria': {'criterion': judgment(1)}}]) as request:
-                verifier._observe_group(path, {'criteria': rules}, [], 'unit', rules, SPANS)
+                verifier._observe_legacy_group(path, {'criteria': rules}, [], 'unit', rules, SPANS)
                 for i, call in enumerate(request.call_args_list):
                     payload = json.loads(call.args[0])
                     self.assertIn('grounding_fields', payload['output_contract'])
@@ -287,13 +287,13 @@ class GroundingTests(unittest.TestCase):
             valid = {'criteria': {'criterion': judgment(0, {'outcome': 'violated'})}}
             path = Path(tmp) / 'first.json'
             with patch.object(verifier, 'request', side_effect=[invalid, valid]) as request:
-                result = verifier._observe_group(path, {}, [], 'unit', rule, SPANS)
+                result = verifier._observe_legacy_group(path, {}, [], 'unit', rule, SPANS)
                 self.assertEqual(request.call_count, 2)
                 self.assertEqual(result['criterion']['score'], 0)
                 self.assertEqual(json.loads(path.with_suffix('.raw.json').read_text()), invalid)
             unknown = {'criteria': {'criterion': judgment(None, {'outcome': 'unknown'})}}
             with patch.object(verifier, 'request', return_value=unknown) as request:
-                result = verifier._observe_group(Path(tmp) / 'second.json', {}, [], 'unit', rule, SPANS)
+                result = verifier._observe_legacy_group(Path(tmp) / 'second.json', {}, [], 'unit', rule, SPANS)
                 self.assertEqual(request.call_count, 1)
                 self.assertIsNone(result['criterion']['score'])
 

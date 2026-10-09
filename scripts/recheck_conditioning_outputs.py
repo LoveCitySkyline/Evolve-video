@@ -11,7 +11,8 @@ import os
 from pathlib import Path
 
 from evovideo_skill.benchmarks import BenchmarkSuite
-from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, resolve_profiles, VERIFIER_PROTOCOL_VERSION
+from evovideo_skill.conditioning_verifier import (ConditioningVideoVerifier, resolve_profiles,
+    VERIFIER_PROTOCOL_VERSION, failure_category)
 from evovideo_skill.models import VideoArtifact
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.runtime import RuntimeSettings, with_env_overrides
@@ -141,6 +142,7 @@ def main(argv=None):
             # not burn the remaining API budget on a systemic account failure.
             write_json(root / 'stopped.json', {'evaluation_id': row['evaluation_id'],
                 'completed_videos': len(summaries), 'error_type': type(exc).__name__,
+                'failure_category': failure_category(exc),
                 'reason': 'Verifier failed; inspect verifier call/format audits. No score assigned.'})
             raise
         artifact.metadata['vlm_evaluation'] = result

@@ -28,9 +28,30 @@ from evovideo_skill.vlm_evaluator import QwenVLEvaluator, VLMEvidenceAugmenter
 from evovideo_skill.criterion_grounding import (grounded_criteria, validate_grounding, grounding_output_contract,
     assessment_patch_fields, apply_assessment_patch, GROUNDING_INSTRUCTIONS,
     physical_motion_only, physical_judgment_payload, PHYSICAL_JUDGE_SYSTEM)
+from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUDGE_SYSTEM,
+    is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "timestamped-window-frames-v14"
+VERIFIER_PROTOCOL_VERSION = "single-window-judgment-v15"
+
+
+class VerifierFormatError(VideoApiError, ValueError):
+    """The response cannot be interpreted under the declared output contract."""
+
+
+class VerifierEvidenceError(VideoApiError):
+    """Local evidence preparation or integrity checks failed, before valid judging."""
+
+
+def failure_category(exc):
+    if isinstance(exc, VerifierFormatError):
+        return 'response_format'
+    if isinstance(exc, VerifierEvidenceError):
+        return 'local_evidence'
+    if isinstance(exc, VideoApiError):
+        return 'transport_or_provider'
+    return 'internal_error'
+
 FRAME_INPUT_INSTRUCTIONS = """
 This fixed window is supplied as an ordered sequence of individually attached
 candidate images, NOT a native video attachment. Each SAMPLE label identifies
@@ -734,6 +755,11 @@ class ConditioningVideoVerifier:
             prompt = json.dumps(text_payload, ensure_ascii=False)
         system = (PHYSICAL_JUDGE_SYSTEM if isinstance(text_payload, dict)
                   and text_payload.get('judgment_domain') == 'physical_motion' else JUDGE_SYSTEM)
+        if isinstance(text_payload, dict) and text_payload.get('output_contract', {}).get(
+                'response_protocol') == SCOPED_RESPONSE_PROTOCOL:
+            system = SCOPED_JUDGE_SYSTEM
+            if text_payload.get('judgment_domain') == 'physical_motion':
+                system += '\nDesired story withheld. Judge only physical motion, not inferred story requirements.\n'
         if fixed:
             system += FRAME_INPUT_INSTRUCTIONS
         key = os.environ.get(p["api_key_env"])
@@ -816,7 +842,7 @@ class ConditioningVideoVerifier:
         except VideoApiError:
             raise
         except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError) as exc:
-            raise VideoApiError(f"conditioning verifier unavailable: {exc}") from exc
+            raise VerifierEvidenceError(f"conditioning verifier evidence/processing unavailable: {exc}") from exc
 
     def _evaluate(self, task, artifact):
         evidence, manifest = self.evidence(task, artifact)
@@ -850,7 +876,8 @@ class ConditioningVideoVerifier:
         public["metadata"].pop("h3_audio_criteria", None)
         public["metadata"].pop("evaluation", None)
         digest = stable_hash([public, criteria, manifest, self.profile, JUDGE_SYSTEM,
-                             PHYSICAL_JUDGE_SYSTEM, VERIFIER_PROTOCOL_VERSION])
+                             PHYSICAL_JUDGE_SYSTEM, SCOPED_JUDGE_SYSTEM, FRAME_INPUT_INSTRUCTIONS,
+                             VERIFIER_PROTOCOL_VERSION])
         from evovideo_skill.h3_api import portable_interprocess_lock
 
         with portable_interprocess_lock(self.root / "locks" / f"{digest}.lock", 3600):
@@ -858,6 +885,12 @@ class ConditioningVideoVerifier:
 
     def _observe_group(self, path, payload, evidence, operation, subset, spans):
         """Correct malformed contracts once; never retry a valid low/unknown score."""
+        if is_scoped(subset):
+            return self._observe_scoped(path, payload, evidence, operation, subset, spans)
+        return self._observe_legacy_group(path, payload, evidence, operation, subset, spans)
+
+    def _observe_legacy_group(self, path, payload, evidence, operation, subset, spans):
+        """Full-video judgments retain distinct overall and per-window assessments."""
         physical_only = physical_motion_only(subset)
         if physical_only:
             payload = physical_judgment_payload(payload, subset)
@@ -942,7 +975,7 @@ class ConditioningVideoVerifier:
                     "expected_keys": list(subset), "raw_response_path": str(raw_path),
                     "correction_attempt": correction})
                 if correction == 1:
-                    raise ValueError(f"verifier response format invalid after one correction: {detail}; "
+                    raise VerifierFormatError(f"verifier response format invalid after one correction: {detail}; "
                                      f"see {audit_path}") from exc
                 feedback = {"error": detail, "validation_errors": errors, "previous_response": raw,
                     "instruction": "Correct ALL listed contract errors using the SAME task, rubric and media. "
@@ -965,6 +998,66 @@ class ConditioningVideoVerifier:
                 'correction_mode': 'assessment_patch_only' if patch_fields else 'full_response',
                 'completed_assessment_paths': list(patch_fields or {})})
             write_json(path, parsed_raw)
+            return parsed
+
+    def _observe_scoped(self, path, payload, evidence, operation, subset, spans):
+        if physical_motion_only(subset):
+            payload = physical_judgment_payload(payload, subset)
+        else:
+            payload = deepcopy(payload)
+            original = payload.get('original_task', {})
+            payload['frozen_identity_context'] = {'source': 'original_task', 'requirements':
+                original.get('metadata', {}).get('h3_global_constraints') or original.get('prompt', '')}
+        manifest = payload.get('evidence_manifest', {})
+        if self.cache_enabled and path.exists():
+            return parse_judgment(json.loads(path.read_text()), subset, spans, manifest)
+        feedback = None
+        for attempt in range(2):
+            prompt = deepcopy(payload)
+            prompt['output_contract'] = scoped_output_contract(subset, spans, manifest)
+            if feedback:
+                prompt['format_feedback'] = feedback
+            write_json(path.with_suffix(f'.request-{attempt}.json'), prompt)
+            raw_path = path.with_suffix('.raw.json' if attempt == 0 else '.correction-1.raw.json')
+            if self.cache_enabled and raw_path.exists():
+                raw = json.loads(raw_path.read_text())
+            else:
+                raw = self.request(json.dumps(prompt, ensure_ascii=False), evidence,
+                    operation + ('/format-correction-1' if attempt else ''))
+                write_json(raw_path, raw)
+            errors = []
+            normalized = None
+            try:
+                normalized = project_scoped(raw, subset)
+                parsed = parse_judgment(normalized, subset, spans, manifest)
+            except (ValueError, KeyError, TypeError) as exc:
+                # Collect each criterion's error so one correction can fix all
+                # malformed fields. Never turn missing JSON into unknown evidence.
+                rows = raw.get('criteria') if isinstance(raw, dict) else None
+                if isinstance(rows, dict) and set(rows) == set(subset):
+                    for name, rule in subset.items():
+                        try:
+                            item = project_scoped({'criteria': {name: rows[name]}}, {name: rule})
+                            parse_judgment(item, {name: rule}, spans, manifest)
+                        except (ValueError, KeyError, TypeError) as issue:
+                            errors.append({'criterion': name, 'error': str(issue)})
+                if not errors:
+                    errors = [{'error': str(exc)}]
+                audit = path.with_suffix(f'.format-{attempt}.json')
+                write_json(audit, {'status': 'invalid_response_format', 'failure_category': 'response_format',
+                    'response_protocol': SCOPED_RESPONSE_PROTOCOL, 'validation_errors': errors,
+                    'raw_response_path': str(raw_path), 'correction_attempt': attempt})
+                if attempt:
+                    raise VerifierFormatError(f'single-window response invalid after one correction: {errors}; see {audit}') from exc
+                feedback = {'validation_errors': errors,
+                    'instruction': 'Return the complete ONE-object-per-criterion response. Correct all listed fields '
+                                   'from the same evidence. Do not invent facts or upgrade scores to pass.'}
+                print(f'[conditioning verifier] format correction=1/1 job={operation}: {errors}', flush=True)
+                continue
+            write_json(path.with_suffix(f'.format-{attempt}.json'), {'status': 'valid_response_format',
+                'response_protocol': SCOPED_RESPONSE_PROTOCOL, 'correction_attempt': attempt,
+                'normalization': 'categorical outcome mapping and same-window structural projection only'})
+            write_json(path, normalized)
             return parsed
 
     def _judge(self, task, evidence, manifest, rubric, criteria, public, digest):

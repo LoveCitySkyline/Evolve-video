@@ -345,6 +345,8 @@ class VerifierTests(unittest.TestCase):
                     row["segments"][0]["segment_id"] = rule["story_shot_index"]
                     row["observation_basis"] = "visible_mismatch"
                     self.assertEqual(view["segment_id"], rule["story_shot_index"])
+                if "story_shot_index" in rule:
+                    row.pop("segments")
                 rows[name] = row
             return {"criteria": rows}
         with patch.object(verifier, "request", side_effect=request):
@@ -416,6 +418,9 @@ class VerifierTests(unittest.TestCase):
                 if len(calls) == 4:
                     rows["scene_geometry"].update(status="unobserved", score=None)
                     rows["scene_geometry"]["segments"][0].update(status="unobserved", score=None)
+            if view["kind"] == "fixed_window_clip":
+                for row in rows.values():
+                    row.pop("segments")
             return {"criteria": rows}
         with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
                 verifier, "request", side_effect=request):
@@ -444,7 +449,7 @@ class VerifierTests(unittest.TestCase):
                     if name in rows:
                         rows[name].update(observation_basis=basis, status=status, score=score,
                             evidence="The required action is missing; occlusion prevents deciding whether it occurred.")
-                        rows[name]["segments"][0].update(status=status, score=score)
+                        rows[name].pop("segments")
                     return {"criteria": rows}
                 with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
                         verifier, "request", side_effect=request) as call:
@@ -452,7 +457,7 @@ class VerifierTests(unittest.TestCase):
                 self.assertEqual(call.call_count, 2)
                 self.assertEqual(prompts[1]["frozen_identity_context"]["requirements"], identity)
                 self.assertEqual(prompts[1]["criteria"][name]["evidence_status_contract"], "visible-outcome-v1")
-                self.assertEqual(prompts[1]["output_contract"]["observation_basis"]["required_for"], [name])
+                self.assertIn("observation_basis", prompts[1]["output_contract"]["fields"][name]["required"])
                 if status == "observed":
                     self.assertEqual(result["evaluation_status"], "complete")
                     self.assertEqual(result["criterion_scores"][name], 0)
@@ -475,7 +480,7 @@ class VerifierTests(unittest.TestCase):
             if name in rows:
                 rows[name].update(status="unobserved", score=None,
                     observation_basis="visible_mismatch" if len(calls) == 2 else "insufficient_evidence")
-                rows[name]["segments"][0].update(status="unobserved", score=None)
+                rows[name].pop("segments")
             return {"criteria": rows}
         with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
                 verifier, "request", side_effect=request):
@@ -485,7 +490,7 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(calls[1][1], calls[2][1])
         for key in ("original_task", "criteria", "evidence_manifest", "frozen_identity_context"):
             self.assertEqual(calls[1][0][key], calls[2][0][key])
-        self.assertIn("observation_basis", calls[2][0]["format_feedback"]["error"])
+        self.assertIn("observation_basis", str(calls[2][0]["format_feedback"]["validation_errors"]))
         self.assertEqual(result["evaluation_status"], "needs_review")
         self.assertNotIn(name, result["criterion_scores"])
 

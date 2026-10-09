@@ -4,7 +4,44 @@
 
 **完成的是任务规格和准备工具；仓库不包含已生成的参考图片、真实 H3 实验结果或人工标注。** `benchmark_status`、审计报告和素材报告会分别显示这些状态。350 个不同场景 ID 不等于已经验证了 350 个统计独立样本，也不能据此宣布预沉淀规模足够。
 
-## 当前评估协议 v14：固定窗口使用显式时间戳帧序列
+## 当前评估协议 v15：单窗口只输出一次判断
+
+`single-window-judgment-v15` 将固定窗口的模型输出与内部兼容数据结构分开。模型每个指标只给一个对象，不再同时输出顶层和 `segments` 两份判断。例如一个已明确违反的边界状态可返回：
+
+```json
+{"criteria":{"story.s0.pre.token.location":{"confidence":0.9,"evidence":"描述实际可见的边界事实","evidence_times_seconds":[0.0],"assessment":{"outcome":"violated"}}}}
+```
+
+此例只说明输出格式，不是该真实视频的标注。宿主把同一窗口的判断投影到内部顶层与目标 segment，保留原始模型响应和规范化结果。状态等式 satisfied/violated/unknown 固定映射为 1/0/null；动作 complete/absent/unknown 映射为 1/0/null，partial 仍须模型给出严格介于 0 与 1 的分数及 matched/unmet；运动 coherent/unknown 映射为 1/null，defective 仍须给出小于 1 的分数和具体缺陷。映射依据显式模型分类，不从自由文本猜事实或补造缺失判断。冗余字段如果出现且矛盾仍拒绝，缺少 assessment 不自动变成未知或通过。
+
+单窗口使用独立系统提示、逐指标最小输出契约与统一的一次完整纠正，移除旧的 assessment-only 补丁流程。所有可识别字段错误一起报告；有效低分或未知不重试。原始响应保存在 `.raw.json`、`.correction-1.raw.json`，组 `.json` 保存带 `normalization_source` 的内部投影。全片评估的整体判断与不同窗口判断语义不同，仍保留两层，并继续验证跨镜头问题。v13 物理/剧情输入隔离和 v14 显式图片传输继续保留。解析、汇总及准入门槛不放宽。
+
+复评停止记录新增 `failure_category`：`response_format`（不可解释的输出）、`local_evidence`（本地媒体/完整性或处理异常）、`transport_or_provider`（接口失败）、`internal_error`。模型的有效 unknown 留在正常评估结果中，不冒充格式错误或零分。
+
+### 独立验收评估器，再恢复生成搜索
+
+新增 `scripts/validate_verifier_fixtures.py`，只评估固定的本地视频和人工标签，不生成视频、不调用 planner、不更新策略。准备 JSON 清单，视频路径相对清单所在目录；`expected` 是人工针对任务原要求确认的 pass/fail/unknown，不应从旧 VLM 分数复制：
+
+```json
+{"cases":[{"case_id":"manual-case-01","task_id":"实际任务ID","video":"实际视频.mp4","expected":{"实际指标名":"fail"}}]}
+```
+
+选择正确动作、反向动作、可见物体凭空出现、真实遮挡和时间边界等固定开发案例；必须人工确认标签，不能把此模板当成已完成的验收集。明确可见的失败与遮挡未知分别标注。声明指标使用原 rubric 阈值，未声明的通用指标使用 0.75；实际阈值记录在比较结果中。清单和视频在调用前固定并记录哈希，人工标签不会传入模型。
+
+```bash
+PYTHONPATH=src python scripts/validate_verifier_fixtures.py \
+  --manifest verifier_fixtures.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --config configs/h3_story350_debug.json \
+  --output-dir outputs/verifier_acceptance_v15 --dry-run
+# 核对清单后去掉 --dry-run，使用新空目录，才会调用 final VLM。
+```
+
+`summary.json` 同时报格式/媒体/API失败数量、未知数量、重复判断分歧和人工标签一致率。`exact_label_agreement` 是已产生比较的标签一致率，必须与失败数及覆盖一起看；`observed_binary_agreement` 只统计双方均为明确 pass/fail 的部分，不能用它隐藏 unknown。格式/本地证据失败会继续收集清单中其他案例；接口或程序失败立即停止。`all_labels_agree_without_errors` 要求全部案例完成且没有错误并逐项符合标签；即便为 true 也只表示该固定开发集通过，不证明整体可靠性或方法收益。
+
+本地自动化测试只验证协议和数据流，真实接口验收尚需在服务器运行。v15 必须使用新空目录，不能向 v14 或旧训练输出 `--continue`，不能混合不同协议结果。
+
+### v14：固定窗口使用显式时间戳帧序列（继续保留）
 
 `timestamped-window-frames-v14` 处理本地裁片确有 6 秒 / 24 帧，但 VLM 声称仅看到一张视频静帧的输入不确定性。现有记录不能证明服务端是否完整解码，也不能把模型的自述直接当作解码结果。
 
@@ -57,7 +94,7 @@ v12.1 补齐实际请求 `output_contract.grounding_fields`：逐指标明确 `s
 
 ```bash
 old_run=outputs/h3_story350_semantics_v2_RowaH0
-review_dir="$(mktemp -d outputs/h3_verifier_v14_recheck_XXXXXX)"
+review_dir="$(mktemp -d outputs/h3_verifier_v15_recheck_XXXXXX)"
 
 # 先核对本次 market_change / seed 42 的已有基线和已提交候选。
 # dry-run 只校验文件哈希并列出覆盖，不调用 API、不写输出目录。
