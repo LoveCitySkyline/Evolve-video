@@ -414,3 +414,76 @@ python -m evovideo_skill.conditioning_curriculum summarize \
 现有汇总是**验证策略准入诊断**，不是完整部署策略在共同验证任务上的性能曲线。判断“够不够”还需真实运行、检查预算截断与实际覆盖，并在共同验证协议下比较剧情成功率、质量、调用量、生成秒数与失败类型。不要把更多随机种子当成更多独立故事，也不要用最终测试反馈调整预沉淀规模。定下规模和方法后，再对冻结的 100 条测试集运行一次约定协议。
 
 本次在本地可验证任务编译、状态链、素材准备逻辑、配置与测试；服务器上的真实参考图生成、人工复核和 H3 学习曲线仍未执行。这些工作完成前，不能把此版本称为已验证的 benchmark 或宣称方法产生了质量增益。
+
+## v17：有预算的自动复核与未决样本继续运行
+
+`bounded-evidence-review-v17` 保留净收益与协商收益算法，只改变证据获取和未决样本的处理。
+四个 `configs/h3_story350_{debug,net,ks,nash}.json` 已启用 `unresolved_policy: continue`，
+并在 runtime/final 中启用 `auto_review`。其他配置默认保留旧的停止策略。
+
+当一个评估组出现未知、重复评分冲突或窗口内冲突时，仅复核争议指标。
+重新从同一原视频获取最多 1536 像素宽、8 FPS 的证据，保留原始首末帧；
+固定窗口额外附带首末帧的四个重叠局部裁片，同时保留完整画面。
+裁片记录父图哈希、像素坐标、尺寸和原视频时间，不做生成式增强。
+全局指标仍使用全视频及其时间边界，以保留跨镜头关系。
+
+复核要求明确回答对象身份、可见性、目标谓词及时间范围，并逐项引用原指标描述。
+身份不可确认/遮挡不能作为违反条件的依据；部分动作不能凭正确终点判为完成。
+两次复核分别独立读取增强后的证据，不看到原评分或对方结论。
+只有两次均有效且无超阈值分歧才采用复核结果；原判断、复核原文和最终决策均留档。
+同模型两次一致只是协议上的采纳条件，不代表独立模型验证或真实正确率。
+文本引用校验不能证明模型完整理解了所有语义，仍需用人工标注的小型校准集验证。
+
+默认额外预算：每个指标/时间范围/评估阶段最多 2 次调用，同一视频共 8 次，
+同一 run 的 runtime/final 合计最多 200 次。视频证据获取与请求使用保守的
+600 秒预留时间额度，每次最多预留 180 秒（实际请求超时不超过剩余额度）。
+因此时间额度可能先于调用额度用完。请求失败和格式纠正也占额度，进程重启不返还额度。
+FFmpeg 本地处理还有逐命令超时；600 秒是预留预算，不是整个流程的严格墙钟终止保证。
+`verifier/auto_review_budget.json` 保存预留账本；各 `auto_review/*/decision.json`
+保存实际复核耗时和结果；请求的用量/时长继续写入 `calls.jsonl`。
+这些评估成本单独记录，不偷偷改动既有生成调用数/视频秒数的净收益定义。
+
+可选 `auto_review.secondary_model`：在**同一已配置服务商/密钥**下指定第二个视觉模型。
+默认不更换模型，也不引入新服务商。需要不同服务商时尚须扩展路由，不应只填不兼容的模型名。
+初次输出格式仍允许既有的一次纠正；自动复核的额外请求计入上述独立额度。
+开启自动复核时，格式仍无法解析的指标可成为无分数的未决项；鉴权、欠费、网络、媒体损坏等错误不会被伪装成质量失败。
+
+未决结果的用途：
+
+- 训练：父图、单因子或联合因子任一计划 replicate 未决，整组比较退出收益估计；保留已花费成本、父图和未决原因。未知不计为零收益或负收益。
+- 策略图：`unresolved_experiments` 单独记录未决实验及关联因子，不写入有符号边的质量观测。
+- 验证：保存 `unresolved_comparisons`，继续验证其余任务/策略。计划比较未决的策略暂不准入，不只凭幸存比较放行。
+- 测试：保留全部 task/seed 分母。含未决项时状态为 `complete_with_abstentions`，`heldout_gain`、`heldout_net_gain` 和主置信区间为 null。
+  `observed_pair_mean_delta` 仅是可评估子集描述，不能宣称完整测试收益。
+  `quality_gain_bounds` 将每个未决质量差限定在 [-1,1]，给出全计划比较的最坏/最好界限；它不是统计置信区间。
+  不完整配对不产生策略增益，也不通过重新生成/按最终分数选择其他视频补位。
+
+旧实验不能 `--continue` 混用新协议。先复评已存视频（没有 H3 生成调用）：
+
+```bash
+review_dir="$(mktemp -d outputs/h3_verifier_v17_recheck_XXXXXX)"
+set -o pipefail
+PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
+  --run-dir outputs/h3_story350_semantics_v2_RowaH0 \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --task-id story350-market_change --seed 42 \
+  --output-dir "$review_dir" 2>&1 | tee "${review_dir}.log"
+python -m json.tool "$review_dir/summary.json"
+```
+
+小范围复评确认服务兼容后，使用**新目录**开展学习/验证/测试；继续使用已准备的素材：
+
+```bash
+run_dir="$(mktemp -d outputs/h3_story350_auto_review_XXXXXX)"
+set -o pipefail
+bash scripts/run_h3_conditioning_graph_search.sh \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --phase all --test-protocol both --output-dir "$run_dir" \
+  2>&1 | tee "$run_dir/run.log"
+```
+
+人工校准沿用 `scripts/validate_verifier_fixtures.py`，固定标注不进入模型提示。
+定期检查自动通过、自动失败和未决三类样本，尤其是错误放行率。
+不能仅因自动复核减少了分歧，就认定判断准确率提高；需同时报告覆盖率、误判率和额外成本。

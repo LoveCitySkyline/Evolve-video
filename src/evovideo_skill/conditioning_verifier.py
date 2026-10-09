@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "evidence-ref-scoped-v16"
+VERIFIER_PROTOCOL_VERSION = "bounded-evidence-review-v17"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -398,7 +398,7 @@ def resolve_profiles(config, settings, require_keys=True, apply_env=True):
         "api_key_env": "DASHSCOPE_API_KEY", "fps": 2, "max_width": 768,
         "max_media_bytes": 16_000_000, "max_request_bytes": 48_000_000,
         "timeout_seconds": 180, "max_attempts": 2, "repeats": 1,
-        "criteria_per_call": 8, "disagreement_threshold": .2}
+        "criteria_per_call": 8, "disagreement_threshold": .2, "auto_review": {}}
     profiles = {}
     for phase in ("runtime", "final"):
         supplied = value.get(phase, {})
@@ -422,6 +422,8 @@ def resolve_profiles(config, settings, require_keys=True, apply_env=True):
         if type(profile["fps"]) not in (int, float) or not math.isfinite(profile["fps"]) or not 0 < profile["fps"] <= 30:
             raise ValueError("verifier fps must be in (0,30]")
         unit(profile["disagreement_threshold"])
+        from evovideo_skill.verifier_review import options as review_options
+        profile["auto_review"] = review_options(profile["auto_review"])
         if require_keys and not os.environ.get(profile["api_key_env"]):
             raise ValueError(f"missing verifier credential: {profile['api_key_env']}")
         profiles[phase] = profile
@@ -881,7 +883,7 @@ class ConditioningVideoVerifier:
         from evovideo_skill.h3_api import portable_interprocess_lock
 
         with portable_interprocess_lock(self.root / "locks" / f"{digest}.lock", 3600):
-            return self._judge(task, evidence, manifest, rubric, criteria, public, digest)
+            return self._judge(task, evidence, manifest, rubric, criteria, public, digest, artifact)
 
     def _observe_group(self, path, payload, evidence, operation, subset, spans):
         """Correct malformed contracts once; never retry a valid low/unknown score."""
@@ -1003,7 +1005,8 @@ class ConditioningVideoVerifier:
     def _observe_scoped(self, path, payload, evidence, operation, subset, spans):
         payload = deepcopy(payload)
         initial_manifest = payload.get('evidence_manifest', {})
-        if initial_manifest.get('evaluation_view', {}).get('sampled_media_file'):
+        if (initial_manifest.get('evaluation_view', {}).get('sampled_media_file')
+                and initial_manifest['evaluation_view'].get('input_representation') != 'timestamped_images'):
             evidence, payload['evidence_manifest'] = self.fixed_window_input(evidence, initial_manifest)
         if physical_motion_only(subset):
             payload = physical_judgment_payload(payload, subset)
@@ -1074,12 +1077,16 @@ class ConditioningVideoVerifier:
             write_json(path, normalized)
             return parsed
 
-    def _judge(self, task, evidence, manifest, rubric, criteria, public, digest):
+    def _judge(self, task, evidence, manifest, rubric, criteria, public, digest, artifact=None):
         folder = self.root / "judgments" / digest
         final = folder / "result.json"
         if self.cache_enabled and final.exists():
             return json.loads(final.read_text())
         write_json(folder / "evidence.json", manifest)
+        from evovideo_skill.verifier_review import options as review_options, review_group, uncertain
+        auto_options = review_options(self.profile.get("auto_review"))
+        review_audits = {}
+        format_failures = []
         observations = {k: [] for k in criteria}
         window_observations = {}
         host_na = {k: v["host_not_applicable"] for k, v in criteria.items()
@@ -1094,16 +1101,38 @@ class ConditioningVideoVerifier:
             group_media, group_manifest = self.group_evidence(evidence, manifest, subset)
             payload = {"original_task": public, "criteria": subset, "evidence_manifest": group_manifest}
             write_json(folder / f"group-{group:03d}.evidence.json", group_manifest)
+            group_rows = {k: [] for k in subset}
             for repeat in range(self.profile["repeats"]):
                 path = folder / f"group-{group:03d}-repeat-{repeat}.json"
-                parsed = self._observe_group(path, payload, group_media, f"{digest[:12]}/{group}/{repeat}",
-                                             subset, manifest["windows"])
+                try:
+                    parsed = self._observe_group(path, payload, group_media, f"{digest[:12]}/{group}/{repeat}",
+                                                 subset, manifest["windows"])
+                except VerifierFormatError as exc:
+                    if not auto_options['enabled']:
+                        raise
+                    format_failures.append({'group': group, 'repeat': repeat, 'error': str(exc)})
+                    parsed = {k: {'status': 'unobserved', 'score': None, 'confidence': 0,
+                        'evidence': 'No valid structured response; no quality score inferred.',
+                        'observation_source': 'response_format_failure',
+                        'segments': [{'segment_id': i, 'status': 'unobserved', 'score': None,
+                            'evidence': 'No valid structured response.'}
+                            for i in required_segment_ids(k, rule, manifest['windows'])]}
+                        for k, rule in subset.items()}
                 for k, v in parsed.items():
-                    if subset[k].get("window_component_of_global"):
-                        index = subset[k]["story_shot_index"]
-                        window_observations.setdefault(k, {}).setdefault(index, []).append(v)
-                    else:
-                        observations[k].append(v)
+                    group_rows[k].append(v)
+            if auto_options['enabled'] and artifact is not None:
+                review_audits[str(group)] = review_group(self, task, artifact, public, subset,
+                                                       group_rows, folder, group, digest, manifest["candidate_hash"])
+            for k, rows in group_rows.items():
+                # Both confirmation calls are retained in the audit, not counted as independent samples.
+                if len(rows) != self.profile['repeats']:
+                    conservative = deepcopy(min(rows, key=lambda r: r.get('score') if r.get('score') is not None else -1))
+                    rows = [deepcopy(conservative) for _ in range(self.profile['repeats'])]
+                if subset[k].get("window_component_of_global"):
+                    index = subset[k]["story_shot_index"]
+                    window_observations.setdefault(k, {})[index] = rows
+                else:
+                    observations[k].extend(rows)
         for name, by_window in window_observations.items():
             for repeat, full in enumerate(observations[name]):
                 components = [by_window[span["segment_id"]][repeat] for span in manifest["windows"]]
@@ -1113,6 +1142,7 @@ class ConditioningVideoVerifier:
         from evovideo_skill.story_semantics import combine_obligations
         conjunction_audit = combine_obligations(task, observations)
         scores, texts, unobserved, disagreements, failed = {}, {}, [], {}, []
+        disputed = []
         scope_issues = {}
         for name, rows in observations.items():
             issues = sorted({issue for row in rows for issue in row.get("scope_issues", [])})
@@ -1124,8 +1154,11 @@ class ConditioningVideoVerifier:
                 unobserved.append(name)
                 continue
             values = [1.0 if r["status"] == "not_applicable" else r["score"] for r in rows]
-            scores[name] = statistics.mean(values)
             disagreements[name] = max(values) - min(values)
+            if uncertain(rows, self.profile['disagreement_threshold']):
+                disputed.append(name)
+                continue
+            scores[name] = statistics.mean(values)
             for row in rows:
                 for segment in row["segments"]:
                     if (name in rubric or not rubric) and segment["status"] == "observed" and segment["score"] < (rubric.get(name, {}).get("threshold", .75) if isinstance(rubric.get(name, {}), dict) else .75):
@@ -1148,15 +1181,17 @@ class ConditioningVideoVerifier:
                     if span[field] not in merged[field]:
                         merged[field] += " " + span[field]
         failed = sorted(grouped.values(), key=lambda span: span["start_ratio"])
-        review = [k for k, v in disagreements.items() if v > self.profile["disagreement_threshold"]]
+        review = sorted(set(disputed) | {k for k, v in disagreements.items() if v > self.profile["disagreement_threshold"]})
         result = {k: scores[k] for k in GENERIC if k in scores}
         result.update(model=self.model, criterion_scores={k: scores[k] for k in rubric if k in scores},
             criterion_evidence={k: texts[k] for k in rubric}, failed_segments=failed, failure_types=[],
             evaluation_status="needs_review" if unobserved or review else "complete",
             verification_metadata={**manifest, "unobserved_criteria": unobserved, "disagreement_criteria": review,
                 "verifier_protocol": VERIFIER_PROTOCOL_VERSION, "scope_issues": scope_issues,
+                "auto_review": review_audits, "response_format_failures": format_failures,
                 "global_fixed_window_criteria": sorted(window_observations),
                 "event_conjunctions": conjunction_audit,
+                "abstention_policy": "continue-without-quality-estimate" if auto_options["enabled"] else "stop",
                 "criterion_contracts": rubric, "host_not_applicable_criteria": host_na,
                 "effective_criterion_contracts": criteria,
                 'criterion_input_domains': {name: 'physical_motion' if physical_motion_only({name: rule})

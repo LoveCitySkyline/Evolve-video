@@ -46,12 +46,30 @@
     "runtime": {
       "model": "qwen3-vl-plus",
       "fps": 2,
-      "repeats": 1
+      "repeats": 1,
+      "auto_review": {
+        "enabled": true,
+        "max_calls_per_criterion": 2,
+        "max_calls_per_video": 8,
+        "max_calls_per_run": 200,
+        "max_seconds_per_video": 600,
+        "fps": 8,
+        "max_width": 1536
+      }
     },
     "final": {
       "model": "qwen3-vl-plus",
       "fps": 4,
-      "repeats": 2
+      "repeats": 2,
+      "auto_review": {
+        "enabled": true,
+        "max_calls_per_criterion": 2,
+        "max_calls_per_video": 8,
+        "max_calls_per_run": 200,
+        "max_seconds_per_video": 600,
+        "fps": 8,
+        "max_width": 1536
+      }
     }
   },
   "runtime": {
@@ -102,5 +120,6 @@
     "se_multiplier": 1.0,
     "stop_patience": 2,
     "stop_min_rounds": 2
-  }
+  },
+  "unresolved_policy": "continue"
 }

@@ -1,0 +1,294 @@
+"""Bounded blind evidence acquisition. Unresolved judgments remain abstentions."""
+from copy import deepcopy
+import fcntl
+import json
+import math
+import os
+import tempfile
+import subprocess
+from pathlib import Path
+import time
+from evovideo_skill.research_protocol import write_json
+from evovideo_skill.research_subgraphs import stable_hash
+
+VERSION = 'bounded-evidence-review-v1'
+DEFAULTS = dict(enabled=False, max_calls_per_criterion=2, max_calls_per_video=8,
+                max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
+                secondary_model=None)
+CHECKS = {
+    'referents': 'Can required actors/objects be identified visually, without inferring identity from desired actions?',
+    'visibility': 'Is the predicate observable, rather than occluded or hidden in an unsampled gap?',
+    'predicate': 'Does the EXACT requirement hold? Decompose all explicit clauses into components; add no requirements.',
+    'temporal_scope': 'Does evidence establish this predicate in the required window, using the true pre/post boundary?',
+}
+
+class ReviewBudgetExhausted(RuntimeError):
+    pass
+
+
+def options(value=None):
+    value = {} if value is None else value
+    if not isinstance(value, dict) or set(value) - set(DEFAULTS):
+        raise ValueError('unknown auto_review options')
+    out = {**DEFAULTS, **value}
+    if type(out['enabled']) is not bool:
+        raise ValueError('auto_review.enabled must be boolean')
+    for key in ('max_calls_per_criterion', 'max_calls_per_video', 'max_calls_per_run',
+                'max_seconds_per_video', 'max_width'):
+        if type(out[key]) is not int or out[key] <= 0:
+            raise ValueError('invalid auto_review.' + key)
+    if type(out['fps']) not in (int, float) or not math.isfinite(out['fps']) or not 0 < out['fps'] <= 30:
+        raise ValueError('invalid auto_review.fps')
+    if out['secondary_model'] is not None and (not isinstance(out['secondary_model'], str) or not out['secondary_model'].strip()):
+        raise ValueError('auto_review.secondary_model must be a model ID at the same configured provider')
+    return out
+
+
+def uncertain(rows, threshold):
+    if not rows or any(r.get('status') == 'unobserved' or r.get('scope_issues') for r in rows):
+        return True
+    if len({r.get('status') for r in rows}) != 1:
+        return True
+    if rows[0].get('status') == 'not_applicable':
+        return False
+    if max(r['score'] for r in rows) - min(r['score'] for r in rows) > threshold:
+        return True
+    segments = {}
+    for row in rows:
+        for s in row.get('segments', []):
+            segments.setdefault(s['segment_id'], []).append(s)
+    return any(any(s.get('status') == 'unobserved' for s in ss) or
+               len({s['status'] for s in ss}) > 1 or
+               (all(s['status'] == 'observed' for s in ss) and
+                max(s['score'] for s in ss) - min(s['score'] for s in ss) > threshold)
+               for ss in segments.values())
+
+
+class ReviewLedger:
+    """Reserve before sending; crashes cannot reset API budgets on resume."""
+    def __init__(self, root, config, candidate, criterion):
+        self.path = Path(root) / 'auto_review_budget.json'
+        self.config, self.candidate, self.criterion = config, candidate, criterion
+
+    def reserve(self):
+        with self.path.with_suffix('.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            data = json.loads(self.path.read_text()) if self.path.exists() else {'calls': 0, 'videos': {}}
+            video = data['videos'].setdefault(self.candidate, {'calls': 0, 'reserved_seconds': 0, 'criteria': {}})
+            count = video['criteria'].get(self.criterion, 0)
+            remaining = self.config['max_seconds_per_video'] - video['reserved_seconds']
+            if (data['calls'] >= self.config['max_calls_per_run'] or video['calls'] >= self.config['max_calls_per_video']
+                    or count >= self.config['max_calls_per_criterion'] or remaining <= 0):
+                raise ReviewBudgetExhausted('automatic review budget exhausted; no score assigned')
+            timeout = min(180, remaining)
+            data['calls'] += 1
+            video['calls'] += 1
+            video['criteria'][self.criterion] = count + 1
+            video['reserved_seconds'] += timeout
+            write_json(self.path, data)
+            return timeout
+
+
+def validate_checks(raw, criteria):
+    """Validate explicit support, never infer facts from prose or confidence."""
+    clean = deepcopy(raw)
+    rows = clean.get('criteria', {}) if isinstance(clean, dict) else {}
+    if not isinstance(rows, dict) or set(rows) != set(criteria):
+        raise ValueError('review must return exactly the requested criteria')
+    for name, rule in criteria.items():
+        row = rows[name]
+        if not isinstance(row, dict):
+            raise ValueError('review judgment must be an object')
+        checks = row.pop('atomic_checks', None)
+        if not isinstance(checks, dict) or set(checks) != set(CHECKS):
+            raise ValueError('review requires all atomic_checks')
+        for key, check in checks.items():
+            if (not isinstance(check, dict) or check.get('status') not in {'supported', 'contradicted', 'unknown'}
+                    or not isinstance(check.get('evidence'), str) or not check['evidence'].strip()):
+                raise ValueError('invalid atomic check ' + key)
+        components = checks['predicate'].get('components')
+        if not isinstance(components, list) or not components:
+            raise ValueError('predicate needs source-backed components')
+        description = rule.get('description', '')
+        for part in components:
+            if (not isinstance(part, dict) or not isinstance(part.get('source_quote'), str) or not part['source_quote']
+                    or part['source_quote'] not in description
+                    or part.get('status') not in {'supported', 'contradicted', 'unknown'}
+                    or not isinstance(part.get('evidence'), str) or not part['evidence'].strip()):
+                raise ValueError('each component needs an exact criterion quote, status and evidence')
+        statuses = [c['status'] for c in components]
+        predicate = 'contradicted' if 'contradicted' in statuses else 'unknown' if 'unknown' in statuses else 'supported'
+        if checks['predicate']['status'] != predicate:
+            raise ValueError('predicate contradicts component conjunction')
+        observable = all(checks[k]['status'] == 'supported' for k in ('referents', 'visibility', 'temporal_scope'))
+        conclusion = predicate if observable else 'unknown'
+        assessment = row.get('assessment', {})
+        if not isinstance(assessment, dict):
+            raise ValueError('review assessment must be an object')
+        outcome = assessment.get('outcome')
+        if rule.get('judgment_contract') == 'state-equality-v1':
+            if outcome != {'supported': 'satisfied', 'contradicted': 'violated', 'unknown': 'unknown'}[conclusion]:
+                raise ValueError('state judgment contradicts atomic checks')
+        else:
+            unknown = outcome == 'unknown' if rule.get('judgment_contract') else row.get('status') == 'unobserved'
+            if unknown != (conclusion == 'unknown'):
+                raise ValueError('observability contradicts atomic checks')
+            score = row.get('score')
+            if conclusion == 'contradicted' and (outcome in {'complete', 'coherent', 'satisfied'} or score == 1):
+                raise ValueError('violated component cannot receive full credit')
+            if conclusion == 'supported' and (outcome in {'absent', 'defective', 'violated'} or score == 0):
+                raise ValueError('supported components contradict negative judgment')
+    return clean
+
+
+def add_boundary_crops(reviewer, evidence, manifest):
+    """Deterministic overlapping tiles retain the full frame and exact provenance."""
+    from evovideo_skill.h3_api import probe_media
+    view = manifest.get('evaluation_view', {})
+    if view.get('kind') != 'fixed_window_clip':
+        return evidence, manifest
+    evidence, manifest = reviewer.fixed_window_input(evidence, manifest)
+    view = manifest['evaluation_view']
+    view['evidence_crops'] = []
+    for frame in view.get('boundary_frames', []):
+        source = reviewer.root / 'media' / frame['media_file']
+        stream = probe_media(str(source))['streams'][0]
+        width, height = stream['width'], stream['height']
+        cw, ch = max(1, int(width * .6)), max(1, int(height * .6))
+        for index, (x, y) in enumerate(((0, 0), (width-cw, 0), (0, height-ch), (width-cw, height-ch))):
+            bbox = [x, y, cw, ch]
+            digest = stable_hash([frame['image_hash'], bbox, VERSION])
+            target = reviewer.root / 'media' / f'review-crop-{digest}.png'
+            if not target.exists():
+                fd, temporary = tempfile.mkstemp(suffix='.png', dir=target.parent)
+                os.close(fd)
+                try:
+                    subprocess.run(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', str(source),
+                        '-vf', f'crop={cw}:{ch}:{x}:{y}', '-frames:v', '1', temporary],
+                        check=True, capture_output=True, timeout=30)
+                    Path(temporary).replace(target)
+                finally:
+                    Path(temporary).unlink(missing_ok=True)
+            label = (f"CANDIDATE CROP {index}, {frame['boundary']} boundary, segment_id={frame['segment_id']}; "
+                f"original-video timestamp={frame['source_timestamp_seconds']}; crop xywh={bbox} "
+                f"in supplied boundary frame {width}x{height}; SAME frame, full image also supplied")
+            medium = reviewer.media(target, 'image')
+            record = {**deepcopy(frame), 'parent_image_hash': frame['image_hash'],
+                'image_hash': medium['source_hash'], 'media_file': target.name, 'media_label': label,
+                'crop_xywh': bbox, 'parent_dimensions': [width, height],
+                'evidence_id': f"s{frame['segment_id']}:{frame['boundary']}:crop{index}"}
+            view['evidence_crops'].append(record)
+            evidence.append((label, medium))
+    return evidence, manifest
+
+
+def review_group(owner, task, artifact, public, subset, rows, folder, group, digest, expected_source_hash=None):
+    """Two blind valid confirmations on enhanced evidence, or retain uncertainty."""
+    from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, VerifierFormatError, VerifierEvidenceError
+    from evovideo_skill.api_tools import VideoApiError
+    config = options(owner.profile.get('auto_review'))
+    source_hash = stable_hash(Path(artifact.metadata['local_video_path']).read_bytes().hex())
+    if expected_source_hash is not None and source_hash != expected_source_hash:
+        raise VerifierEvidenceError('candidate source changed before automatic review')
+    audit = {}
+    for name, initial in rows.items():
+        if not uncertain(initial, owner.profile['disagreement_threshold']):
+            continue
+        key = stable_hash([group, name])[:16]
+        root = folder / 'auto_review' / key
+        saved = root / 'decision.json'
+        if saved.exists():
+            decision = json.loads(saved.read_text())
+            audit[name] = decision
+            if decision['status'] == 'resolved':
+                rows[name] = decision['observations']
+            continue
+        root.mkdir(parents=True, exist_ok=True)
+        print(f'[conditioning verifier] auto-review criterion={name} group={group} budgeted=true', flush=True)
+        started = time.monotonic()
+        results, failures = [], []
+        rule = {name: subset[name]}
+        ledger_root = owner.root.parent if owner.root.name in {'runtime', 'final'} else owner.root
+        ledger = ReviewLedger(ledger_root, config, source_hash,
+                              stable_hash([owner.root.name, name, subset[name]]))
+
+        class Reviewer(ConditioningVideoVerifier):
+            def request(self, prompt, evidence, operation):
+                payload = json.loads(prompt)
+                payload['atomic_review'] = {'checks': CHECKS, 'location': 'atomic_checks inside each criterion',
+                    'schema': {'each_check': {'status': 'supported|contradicted|unknown', 'evidence': 'visible support or limitation'},
+                        'predicate.components': [{'source_quote': 'exact substring of this criterion description',
+                            'status': 'supported|contradicted|unknown', 'evidence': 'support for this clause'}]},
+                    'instruction': 'Independently assess ALL explicit requirements including conjunctions. '
+                        'Unknown identity or occlusion does not establish a violation. Box-like appearance alone '
+                        'does not establish an object function. Never infer identity from the target. '
+                        'No new numerical distance, object count or action requirement may be invented. '
+                        'Components must cover ALL explicit clauses; unknown prerequisites mean unknown judgment. '
+                        'Crops supplement the full image; never infer absence outside a crop. '
+                        'For physical motion judge physics only, not desired narrative.'}
+                # Physical-domain sanitization already happened in _observe_group.
+                timeout = getattr(self, 'prepaid_timeout', None)
+                if timeout is not None:
+                    self.prepaid_timeout = None
+                    timeout -= time.monotonic() - self.acquisition_started
+                    if timeout < 1:
+                        raise ReviewBudgetExhausted('evidence acquisition exhausted reserved review time')
+                else:
+                    timeout = ledger.reserve()
+                self.profile['timeout_seconds'] = min(self.profile['timeout_seconds'], max(1, int(timeout)))
+                raw = super().request(json.dumps(payload, ensure_ascii=False), evidence, operation)
+                write_json(root / (stable_hash(operation) + '.atomic.raw.json'), raw)
+                try:
+                    return validate_checks(raw, payload['criteria'])
+                except ValueError as exc:
+                    raise VerifierFormatError(str(exc)) from exc
+
+        for repeat in range(2):
+            p = {**owner.profile, 'auto_review': {**config, 'enabled': False}, 'max_attempts': 1,
+                 'max_width': max(owner.profile['max_width'], config['max_width']),
+                 'fps': max(owner.profile['fps'], config['fps'])}
+            if repeat and config['secondary_model']:
+                p['model'] = config['secondary_model']
+            reviewer = Reviewer(p, owner.root)
+            parsed_cache = root / f'confirmation-{repeat}.parsed.json'
+            if parsed_cache.exists():
+                results.append(json.loads(parsed_cache.read_text())[name])
+                continue
+            try:
+                reviewer.prepaid_timeout = ledger.reserve()
+                reviewer.acquisition_started = time.monotonic()
+                evidence, manifest = reviewer.evidence(task, artifact)
+                if manifest['candidate_hash'] != source_hash:
+                    raise VerifierEvidenceError('candidate source changed during automatic review')
+                media, manifest = reviewer.group_evidence(evidence, manifest, rule)
+                media, manifest = add_boundary_crops(reviewer, media, manifest)
+                payload = {'original_task': public, 'criteria': rule, 'evidence_manifest': manifest}
+                parsed = reviewer._observe_group(root / f'confirmation-{repeat}.json', payload, media,
+                    f'{digest[:12]}/review/{key}/{repeat}', rule, manifest['windows'])
+                write_json(parsed_cache, parsed)
+                results.append(parsed[name])
+            except ReviewBudgetExhausted as exc:
+                failures.append(str(exc))
+                break
+            except VerifierFormatError as exc:
+                failures.append(str(exc))
+                break
+            except (ValueError, VideoApiError) as exc:
+                if str(exc).startswith(('verifier media exceeds fixed size budget',
+                        'verifier request exceeds fixed byte budget', 'verifier image count exceeds')):
+                    failures.append(str(exc))
+                    break
+                raise
+        resolved = len(results) == 2 and not uncertain(results, owner.profile['disagreement_threshold'])
+        decision = {'protocol': VERSION, 'criterion': name, 'status': 'resolved' if resolved else 'abstained',
+            'initial_observations': initial, 'observations': results, 'errors': failures,
+            'wall_seconds': time.monotonic() - started,
+            'models': [owner.model, config['secondary_model'] or owner.model],
+            'independent_model': bool(config['secondary_model'] and config['secondary_model'] != owner.model),
+            'qualification': 'Two blind reviews of enhanced source evidence; agreement is not proof of correctness.'}
+        write_json(saved, decision)
+        print(f"[conditioning verifier] auto-review criterion={name} status={decision['status']} audit={saved}", flush=True)
+        audit[name] = decision
+        if resolved:
+            rows[name] = results
+    return audit

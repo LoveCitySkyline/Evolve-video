@@ -131,6 +131,15 @@ class SignedInteractionGraph:
             "metrics": {k: v["mean"] for k, v in interaction["metrics"].items()},
             "cost_interaction": deepcopy(interaction.get("cost_interaction"))})
 
+    def abstain(self, task, descriptors, event_id, reason):
+        """Keep missing support alongside graph evidence without updating any gain."""
+        if not event_id.startswith('factorial/'):
+            raise ValueError('only training experiments may update unresolved graph support')
+        self.data.setdefault('unresolved', {}).setdefault(event_id, {
+            'task_id': task.task_id, 'factors': sorted(d['factor_id'] for d in descriptors.values()),
+            'descriptors': deepcopy(descriptors), 'reason': reason, 'quality_gain': None,
+            'qualification': 'Unresolved joint experiment, not a negative factor or interaction.'})
+
     @staticmethod
     def estimate(entry, options):
         rows = list((entry or {}).get("observations", {}).values())
@@ -201,6 +210,8 @@ class SignedInteractionGraph:
         edges = [{"edge_id": key, "factors": entry["factors"], **self.estimate(entry, options), **costs(entry)}
                  for key, entry in sorted(self.data["edges"].items()) if set(entry["factors"]) <= ids]
         return {"nodes": nodes, "edges": edges, "version": self.data["version"],
+                "unresolved_experiments": list(self.data.get('unresolved', {}).values()),
+                "unresolved_count": len(self.data.get('unresolved', {})),
                 "scope": "train-only task-balanced empirical evidence"}
 
 

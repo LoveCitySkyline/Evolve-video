@@ -38,12 +38,14 @@ def collect(run, task_ids=None, seeds=None):
     if not paths:
         raise ValueError('no committed test selections exist in this run')
     records = {}
-    for path in sorted((run / 'evaluations').glob('*.json')):
+    for path in sorted([*(run / 'evaluations').glob('*.json'), *(run / 'unobserved_evaluations').glob('*.json')]):
         row = json.loads(path.read_text())
-        if row.get('status') == 'ok':
+        if row.get('status') in {'ok', 'evidence_incomplete'}:
             ident = row['evaluation_id']
             if ident in records or path.stem != ident:
                 raise ValueError('ambiguous evaluation identity')
+            if row.get('status') == 'evidence_incomplete':
+                row['files'] = row.get('video_files', {})
             records[ident] = row
     chosen, coverage = {}, []
     def add(record, role):
@@ -64,7 +66,7 @@ def collect(run, task_ids=None, seeds=None):
                 continue
             if seeds and seed not in seeds:
                 continue
-            record = records.get(selection['evaluation_id'])
+            record = records.get(selection.get('evaluation_id') or selection.get('details', {}).get('evaluation_id'))
             if not record or record['task_id'] != task or record['seed'] != seed:
                 raise ValueError('committed selection has no matching saved evaluation')
             if Path(selection['video']).resolve() != Path(record['video']).resolve():
@@ -76,7 +78,7 @@ def collect(run, task_ids=None, seeds=None):
                 add(base, {'kind': 'comparison_draw', 'mode': mode, 'arm': arm, 'selection_seed': seed})
             add(record, {'kind': 'committed_candidate', 'mode': mode, 'arm': arm, 'selection_seed': seed})
             coverage.append({'mode': mode, 'arm': arm, 'task_id': task, 'seed': seed,
-                'candidate': record['evaluation_id'], 'existing_baseline_draws': [r['evaluation_id'] for r in bases],
+                'candidate': record['evaluation_id'], 'original_selection_status': selection.get('status', 'committed'), 'existing_baseline_draws': [r['evaluation_id'] for r in bases],
                 'missing_baseline': not bases})
     if not chosen:
         raise ValueError('no committed outputs match the requested tasks')

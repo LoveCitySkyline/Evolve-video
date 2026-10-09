@@ -61,7 +61,7 @@ class MeasurementUnavailable(RuntimeError):
 
 
 class EvidenceIncomplete(MeasurementUnavailable):
-    """A valid verifier response with unknown criteria, not an API or scope error."""
+    """A valid unresolved response (unknown/disputed), not an API or scope error."""
     def __init__(self, message, details):
         super().__init__(message)
         self.details = deepcopy(details)
@@ -171,6 +171,12 @@ class ConditioningRunner:
             if record["files"] != material_hashes(list(record["files"])):
                 raise RuntimeError("saved evaluation media changed or disappeared; do not reuse this experiment")
             return record
+        unresolved = self.root / "unobserved_evaluations" / (ident + ".json")
+        if self.config.get('unresolved_policy') == 'continue' and unresolved.exists():
+            saved = json.loads(unresolved.read_text())
+            if saved.get('video_files') != material_hashes([saved.get('video')]):
+                raise RuntimeError('unresolved evaluation media changed; use a new run')
+            raise EvidenceIncomplete(saved['error'], saved)
         cache = ConditioningNodeCache(self.root / "node_cache" / stable_hash([episode, task.task_id, seed]),
             self.signature, lambda c, s, hit, key: self.charge(c, s, hit, episode, key),
             self.complete_reservation)
@@ -181,7 +187,7 @@ class ConditioningRunner:
         print(f"[conditioning] project_state={workspace.path}", flush=True)
         try:
             rollout = self.evolver.rollout(sampled, graph, node_cache=cache, observer=workspace)
-            self.check_measurement(rollout.artifact, rollout.score)
+            self.check_measurement(rollout.artifact, rollout.score, self.config.get('unresolved_policy') == 'continue')
             if self.signature.get("provider") == "local-h3" and rollout.artifact.metadata.get("generation_seed_applied") is not True:
                 raise RuntimeError("local H3 did not confirm the fixed evaluation seed")
             record = {"status": "ok", "evaluation_id": ident, "task_id": task.task_id, "seed": seed,
@@ -190,6 +196,8 @@ class ConditioningRunner:
                 "artifact": asdict(rollout.artifact), "files": material_hashes(asdict(rollout.artifact)),
                 "criterion_scores": deepcopy(rollout.artifact.metadata.get("vlm_evaluation", {}).get("criterion_scores", {})),
                 "verification": deepcopy(rollout.artifact.metadata.get("vlm_evaluation", {}).get("verification_metadata", {})),
+                "evaluation_cost": {"auto_review": deepcopy(rollout.artifact.metadata.get('vlm_evaluation', {}).get(
+                    'verification_metadata', {}).get('auto_review', {}))},
                 "video": rollout.artifact.metadata.get("local_video_path"),
                 "project_state_path": str(workspace.path),
                 "process_diagnostics": workspace.diagnostics(),
@@ -225,7 +233,8 @@ class ConditioningRunner:
                     graph_id=graph.graph_id, episode=episode, project_state_path=str(workspace.path),
                     reserved_budget_delta={k: self.state["episodes"].get(episode, {}).get(k, 0) - usage_before.get(k, 0)
                                            for k in ("calls", "seconds")},
-                    wall_seconds=time.monotonic() - started)
+                    wall_seconds=time.monotonic() - started,
+                    video_files=material_hashes([exc.details.get("video")]))
                 write_json(self.root / "unobserved_evaluations" / (ident + ".json"),
                            {"status": "evidence_incomplete", "error": str(exc), **exc.details})
             append_json(self.root / "errors.jsonl", {"episode": episode, "task_id": task.task_id,
@@ -240,15 +249,16 @@ class ConditioningRunner:
             raise
 
     @staticmethod
-    def check_measurement(artifact, score):
+    def check_measurement(artifact, score, allow_disputed=False):
         vlm = artifact.metadata.get("vlm_evaluation", {})
         if str(vlm.get("evaluation_status", "")).startswith("failed"):
             raise MeasurementUnavailable("verifier unavailable; no valid quality observation")
         if vlm.get("evaluation_status") == "needs_review":
             details = vlm.get("verification_metadata", {})
-            if (details.get("unobserved_criteria") and not details.get("disagreement_criteria")
+            if ((details.get("unobserved_criteria") or details.get("disagreement_criteria"))
+                    and (not details.get("disagreement_criteria") or allow_disputed or details.get('abstention_policy') == 'continue-without-quality-estimate')
                     and not details.get("scope_issues") and details.get("verifier_protocol")):
-                raise EvidenceIncomplete("verifier has unobserved criteria; inspect " +
+                raise EvidenceIncomplete("verifier has unresolved criteria; inspect " +
                     str(details.get("judgment_path", "verifier logs")),
                     {"verification": details, "criterion_observations": vlm.get("criterion_observations", {}),
                      "video": artifact.metadata.get("local_video_path")})
@@ -416,7 +426,15 @@ class ConditioningRunner:
             visited.append(task.task_id)
             parent = parents.get(task.task_id, self.baseline)
             episode = "train/" + task.task_id
-            before = [self.evaluate(task, parent, seed, episode) for seed in self.seeds]
+            self.active_selection = None
+            try:
+                before = [self.evaluate(task, parent, seed, episode) for seed in self.seeds]
+            except EvidenceIncomplete as exc:
+                if self.config.get('unresolved_policy') != 'continue':
+                    raise
+                self.exclude_incomplete_experiment(index, task, parent, {'anchor': parent}, ('anchor',),
+                    'anchor', exc.details.get('seed'), {}, [], {}, exc)
+                continue
             memory = self.memory.retrieve(task, self.config["retrieval_limit"])
             proposal = self.propose(task, parent, before, memory, f"train/{index}")
             if proposal is None:
@@ -428,6 +446,12 @@ class ConditioningRunner:
                 after = [self.evaluate(task, graph, seed, episode) for seed in self.seeds]
             except ResearchBudgetExceeded:
                 raise
+            except EvidenceIncomplete as exc:
+                if self.config.get('unresolved_policy') != 'continue':
+                    raise
+                self.exclude_incomplete_experiment(index, task, parent, {'candidate': graph}, ('candidate',),
+                    'candidate', exc.details.get('seed'), {}, [], {}, exc)
+                continue
             except Exception as exc:
                 if h3_run_should_stop(exc) or isinstance(exc, MeasurementUnavailable):
                     raise
@@ -451,6 +475,7 @@ class ConditioningRunner:
         write_json(self.root / "learning_summary.json", {"train_task_count": len(self.dataset.train),
             "visited_train_tasks": sorted(set(visited)), "max_searches": self.config["max_searches"],
             "strategy_count": len(self.memory.entries), "budget": asdict(self.ledger),
+            "evidence_exclusions": self.evidence_exclusion_summary(),
             "note": "The fixed budget may cover only a family-balanced subset of training tasks."})
 
     def learn_interactions(self):
@@ -466,7 +491,16 @@ class ConditioningRunner:
             visited.append(task.task_id)
             parent = parents.get(task.task_id, self.baseline)
             episode = "train/" + task.task_id
-            before = [self.evaluate(task, parent, s, episode) for s in self.seeds]
+            self.active_selection = None
+            try:
+                before = [self.evaluate(task, parent, s, episode) for s in self.seeds]
+            except EvidenceIncomplete as exc:
+                if self.config.get('unresolved_policy') != 'continue':
+                    raise
+                self.exclude_incomplete_experiment(index, task, parent, {'anchor': parent}, ('anchor',),
+                    'anchor', exc.details.get('seed'), {}, [], {}, exc)
+                self.commit_interaction_cursor(index, parents, visited)
+                continue
             proposal = self.propose(task, parent, before, self.memory.retrieve(task, self.config["retrieval_limit"]),
                                     f"factorial/{index}", experiment=True)
             if proposal is None:
@@ -491,7 +525,8 @@ class ConditioningRunner:
                 except ResearchBudgetExceeded:
                     raise
                 except EvidenceIncomplete as exc:
-                    if self.config.get("candidate_review_policy", "stop") != "skip-experiment":
+                    if (self.config.get("candidate_review_policy", "stop") != "skip-experiment"
+                            and self.config.get("unresolved_policy") != "continue"):
                         raise
                     self.exclude_incomplete_experiment(index, task, parent, graphs, labels, label, seed,
                                                        cells, partial, errors, exc)
@@ -599,6 +634,8 @@ class ConditioningRunner:
         # Keep the complete planned seed set as the unit of inference. Never
         # drop an unknown replicate and estimate an effect from the survivors.
         records = {**cells, label: partial}
+        if self.active_selection and self.active_selection.get('descriptors'):
+            self.signed_graph.abstain(task, self.active_selection['descriptors'], f'factorial/{index}', str(exc))
         report = {"iteration": index, "task_id": task.task_id, "search_mode": self.config["search_mode"],
             "status": "evidence_incomplete", "excluded_from_estimation": True,
             "parent_graph": parent.graph_id, "selected_cell": "parent", "selected_graph": graph_payload(parent),
@@ -654,6 +691,7 @@ class ConditioningRunner:
             tasks = [t for t in self.dataset.validation if StrategyMemory.matches(entry, task_state(t))]
             tasks = tasks[:self.config["validation_tasks_per_strategy"]]
             effects, failures, preservation, mandatory_preserved = [], [], [], []
+            unresolved = []
             for task in tasks:
                 # Validation observations are never fed back to the training memory/planner.
                 proposal = self.propose(task, self.baseline, [], [StrategyMemory.view(entry)],
@@ -671,6 +709,10 @@ class ConditioningRunner:
                             self.search_options["preservation_threshold"], self.search_options["preservation_tolerance"]))
                 except ResearchBudgetExceeded:
                     raise
+                except EvidenceIncomplete as exc:
+                    if self.config.get('unresolved_policy') != 'continue':
+                        raise
+                    unresolved.append({'task_id': task.task_id, 'reason': str(exc), 'details': exc.details})
                 except Exception as exc:
                     if h3_run_should_stop(exc) or isinstance(exc, MeasurementUnavailable):
                         raise
@@ -679,7 +721,7 @@ class ConditioningRunner:
             objective = cost_options(self.config)
             bargain = bargaining.options(self.config)
             net_gain = statistics.mean(selection_gain(e, self.config) for e in effects) if effects else None
-            accepted = (len(effects) >= self.config["min_validation_tasks"] and not failures
+            accepted = (len(effects) >= self.config["min_validation_tasks"] and not failures and not unresolved
                         and net_gain >= (bargain['min_validation_gain'] if bargain['enabled'] else
                             objective["min_validation_net_gain"] if objective["enabled"] else self.config["min_gain"])
                         and all(v >= -self.config["max_metric_regression"]
@@ -693,7 +735,8 @@ class ConditioningRunner:
                 "selection_gain": net_gain, "cost_objective": objective,
                 "bargaining_objective": bargain,
                 "tasks": [t.task_id for t in tasks], "execution_failures": failures, "effects": effects,
-                "preservation": preservation, "mandatory_preserved": mandatory_preserved,
+                "unresolved_comparisons": unresolved, "valid_comparisons": len(effects),
+                "planned_comparisons": len(tasks), "preservation": preservation, "mandatory_preserved": mandatory_preserved,
                 "required_task_support": self.config["min_validation_tasks"],
                 "insufficient_support": len(effects) < self.config["min_validation_tasks"]})
         write_json(self.root / "validation_reports.json", reports)
@@ -808,6 +851,7 @@ class ConditioningRunner:
                 parent, incumbent = self.baseline, None
                 history, attempts = [], []
                 stopping = None
+                unresolved_selection = None
                 limit = 1 if mode == "direct" else self.config["test_max_attempts"]
                 for attempt in range(limit):
                     proposal = self.propose(task, parent, history, retrieved, f"{episode}/{attempt}")
@@ -819,6 +863,12 @@ class ConditioningRunner:
                         break
                     except ResearchBudgetExceeded:
                         raise
+                    except EvidenceIncomplete as exc:
+                        if self.config.get('unresolved_policy') != 'continue':
+                            raise
+                        unresolved_selection = {'reason': str(exc), 'details': exc.details}
+                        attempts.append({'attempt': attempt, 'status': 'abstained', **unresolved_selection})
+                        break
                     except Exception as exc:
                         if h3_run_should_stop(exc) or isinstance(exc, MeasurementUnavailable):
                             raise
@@ -834,9 +884,29 @@ class ConditioningRunner:
                         stopping = bargaining.update_stopping(stopping, improved, self.config)
                         if stopping['stop']:
                             break
+                if unresolved_selection is not None:
+                    selection = {'status': 'abstained', 'task_id': task.task_id, 'seed': seed,
+                        'episode': episode, 'memory_hash': digest, 'attempts': attempts,
+                        'evaluation_id': None, 'video': unresolved_selection['details'].get('video'),
+                        'budget': deepcopy(self.state['episodes'].get(episode, {})), **unresolved_selection}
+                    write_json(selection_path, selection)
+                    selected.append(selection)
+                    continue
                 if incumbent is None:
                     # Predeclared operational fallback, not a score-based oracle choice.
-                    incumbent = self.evaluate(task, self.baseline, seed, episode)
+                    try:
+                        incumbent = self.evaluate(task, self.baseline, seed, episode)
+                    except EvidenceIncomplete as exc:
+                        if self.config.get('unresolved_policy') != 'continue':
+                            raise
+                        selection = {'status': 'abstained', 'task_id': task.task_id, 'seed': seed,
+                            'episode': episode, 'memory_hash': digest, 'attempts': attempts,
+                            'evaluation_id': None, 'video': exc.details.get('video'),
+                            'budget': deepcopy(self.state['episodes'].get(episode, {})),
+                            'reason': str(exc), 'details': exc.details}
+                        write_json(selection_path, selection)
+                        selected.append(selection)
+                        continue
                     parent = self.baseline
                     attempts.append({"status": "baseline_operational_fallback"})
                 selection = {"task_id": task.task_id, "seed": seed, "evaluation_id": incumbent["evaluation_id"],
@@ -848,14 +918,26 @@ class ConditioningRunner:
                 selected.append(selection)
         # All outputs are committed before any final scoring or baseline comparison.
         write_json(root / "committed_selections.json", selected)
-        pairs = []
+        pairs, unresolved_pairs = [], []
         tasks = {t.task_id: t for t in self.dataset.test}
         for selection in selected:
             task, seed = tasks[selection["task_id"]], selection["seed"]
+            if selection.get('status') == 'abstained':
+                unresolved_pairs.append({'task_id': task.task_id, 'seed': seed, 'stage': 'runtime_selection',
+                    'delta': None, 'selection': selection})
+                continue
             candidate = json.loads((self.root / "evaluations" / (selection["evaluation_id"] + ".json")).read_text())
-            baseline, comparison = self.comparison_baseline(task, seed, selection, mode, arm)
-            base_score = self.final_score(task, baseline, root)
-            score = self.final_score(task, candidate, root)
+            try:
+                baseline, comparison = self.comparison_baseline(task, seed, selection, mode, arm)
+                base_score = self.final_score(task, baseline, root)
+                score = self.final_score(task, candidate, root)
+            except EvidenceIncomplete as exc:
+                if self.config.get('unresolved_policy') != 'continue':
+                    raise
+                unresolved_pairs.append({'task_id': task.task_id, 'seed': seed, 'stage': 'paired_assessment',
+                    'delta': None, 'candidate_video': selection['video'], 'details': exc.details, 'reason': str(exc)})
+                write_json(root / 'unresolved_pairs.json', unresolved_pairs)
+                continue
             objective = cost_options(self.config)
             bc, cc = baseline["generation_cost"], candidate["generation_cost"]
             dc = cost_penalty(cc, objective) - cost_penalty(bc, objective)
@@ -886,12 +968,20 @@ class ConditioningRunner:
             by_task.setdefault(pair["task_id"], []).append(pair["delta"])
         gains = [statistics.mean(x) for x in by_task.values()]
         rng = random.Random(0)
-        boot = sorted(statistics.mean(rng.choices(gains, k=len(gains))) for _ in range(2000))
-        result = {"status": "complete", **protocol, "heldout_gain": statistics.mean(gains),
+        boot = sorted(statistics.mean(rng.choices(gains, k=len(gains))) for _ in range(2000)) if gains else []
+        complete_evidence = bool(gains) and not unresolved_pairs
+        result = {"status": "complete" if complete_evidence else "complete_with_abstentions", **protocol,
+            "heldout_gain": statistics.mean(gains) if complete_evidence else None,
+            "observed_pair_mean_delta": statistics.mean(p['delta'] for p in pairs) if pairs else None,
+            "coverage": {'planned_pairs': len(selected), 'measured_pairs': len(pairs),
+                'unresolved_pairs': len(unresolved_pairs), 'fraction': len(pairs) / len(selected) if selected else 0},
+            "unresolved_pairs": unresolved_pairs,
+            "quality_gain_bounds": [(sum(p['delta'] for p in pairs) + sign * len(unresolved_pairs)) / len(selected)
+                                    for sign in (-1, 1)] if selected else None,
             "cost_objective": cost_options(self.config),
             "heldout_net_gain": statistics.mean(statistics.mean(p["cost_tradeoff"]["net_gain"]
-                for p in pairs if p["task_id"] == task_id) for task_id in by_task),
-            "task_bootstrap_95ci": [boot[49], boot[1949]], "pairs": pairs,
+                for p in pairs if p["task_id"] == task_id) for task_id in by_task) if complete_evidence else None,
+            "task_bootstrap_95ci": [boot[49], boot[1949]] if complete_evidence else None, "pairs": pairs,
             "test_tasks": len(by_task), "admitted_strategies": len(admitted),
             "independent_final_model": self.signature.get("verifier_profiles", {}).get("independent_model", False)
                 if self.signature.get("verifier_profiles") else False,
@@ -905,14 +995,15 @@ class ConditioningRunner:
         result['bargaining_objective'] = bargaining.options(self.config)
         if bargaining.options(self.config)['enabled']:
             result['heldout_bargaining_gain'] = statistics.mean(statistics.mean(p['bargaining']['gain']
-                for p in pairs if p['task_id'] == task_id) for task_id in by_task)
+                for p in pairs if p['task_id'] == task_id) for task_id in by_task) if complete_evidence else None
         result["contract_acceptance"] = {
-            "evaluated_outputs": len(contract_pairs),
+            "evaluated_outputs": len(contract_pairs), "planned_outputs": len(selected),
+            "unresolved_outputs": len(unresolved_pairs),
             "baseline_pass_rate": (statistics.mean(p["baseline_acceptance"]["status"] == "passed" for p in contract_pairs)
                                    if contract_pairs else None),
             "candidate_pass_rate": (statistics.mean(p["candidate_acceptance"]["status"] == "passed" for p in contract_pairs)
                                     if contract_pairs else None),
-            "note": "Experiment completion is separate from story acceptance; rates count task/seed outputs."}
+            "note": "Experiment completion is separate from story acceptance; rates are conditional on evaluable pairs; unresolved outputs remain in coverage denominators."}
         write_json(root / "summary.json", result)
         # Human review sees both videos under random labels, never their scores or graphs.
         blind, key = [], []
@@ -940,7 +1031,7 @@ class ConditioningRunner:
         write_json(root / "human_review_pairs.json", blind)
         write_json(root / "human_review_key.json", key)
         self.archive.export(programs=[], feedback=[], weighted_categories={}, frontier=[])
-        print(f"[conditioning] {mode}/{arm} heldout_gain={result['heldout_gain']:+.4f} summary={root / 'summary.json'}", flush=True)
+        print(f"[conditioning] {mode}/{arm} heldout_gain={result['heldout_gain']} summary={root / 'summary.json'}", flush=True)
         return result
 
     def final_score(self, task, record, root):
@@ -949,6 +1040,10 @@ class ConditioningRunner:
             raise RuntimeError("selected media changed before final scoring")
         if path.exists():
             return json.loads(path.read_text())
+        unresolved = path.with_suffix('.abstained.json')
+        if self.config.get('unresolved_policy') == 'continue' and unresolved.exists():
+            saved = json.loads(unresolved.read_text())
+            raise EvidenceIncomplete(saved['reason'], saved['details'])
         artifact = VideoArtifact(**deepcopy(record["artifact"]))
         # Do not show the assessor earlier scores, graph rationale, or strategy IDs.
         artifact.metadata = {k: v for k, v in artifact.metadata.items() if k in {
@@ -959,7 +1054,11 @@ class ConditioningRunner:
         report = self.evolver.evaluators.evaluate(task, artifact)
         reward = self.evolver.reward_router.evaluate(task, artifact, report)
         artifact.metadata["task_reward"] = reward.to_dict()
-        self.check_measurement(artifact, reward.score)
+        try:
+            self.check_measurement(artifact, reward.score, self.config.get('unresolved_policy') == 'continue')
+        except EvidenceIncomplete as exc:
+            write_json(unresolved, {'status': 'abstained', 'reason': str(exc), 'details': exc.details})
+            raise
         result = {"evaluation_id": record["evaluation_id"], "score": reward.score, "reward": reward.to_dict(),
                   "acceptance": acceptance_report(task, artifact),
                   "metrics": [asdict(m) for m in report.active_metrics], "assessment": "post_commit_fresh_verifier",
@@ -970,6 +1069,9 @@ class ConditioningRunner:
 
 
 def validate_config(config):
+    config.setdefault('unresolved_policy', 'stop')
+    if config['unresolved_policy'] not in {'stop', 'continue'}:
+        raise ValueError('unresolved_policy must be stop or continue')
     defaults = {"searches_per_task": 2, "max_nodes": 16, "max_edits": 24, "retrieval_limit": 4,
         "max_validation_strategies": 8, "validation_tasks_per_strategy": 2, "min_validation_tasks": 1,
         "min_gain": .02, "max_metric_regression": .05, "selection_min_gain": .01,
@@ -1032,6 +1134,8 @@ def main():
     parser.add_argument("--max-searches", type=int)
     parser.add_argument("--candidate-review-policy", choices=["stop", "skip-experiment"],
                         help="Training only: stop or exclude an entire experiment on unknown candidate evidence")
+    parser.add_argument("--unresolved-policy", choices=["stop", "continue"],
+                        help="Across phases: stop or preserve unresolved comparisons and continue")
     parser.add_argument("--require-independent-final", action="store_true")
     parser.add_argument("--continue", dest="resume", action="store_true")
     parser.add_argument("--smoke", action="store_true")
@@ -1040,7 +1144,7 @@ def main():
     if args.memory and args.phase != "test":
         parser.error("--memory is only accepted for --phase test")
     config = json.loads(Path(args.config).read_text())
-    for key in ("task_file", "search_mode", "max_searches", "candidate_review_policy"):
+    for key in ("task_file", "search_mode", "max_searches", "candidate_review_policy", "unresolved_policy"):
         if getattr(args, key) is not None:
             config[key] = getattr(args, key)
     for arg, key in (("active_search", "enabled"), ("local_repair", "local_repair")):

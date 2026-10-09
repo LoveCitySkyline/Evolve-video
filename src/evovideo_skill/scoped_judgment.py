@@ -60,6 +60,8 @@ def evidence_catalog(manifest, rule):
         catalog[f's{index}:f{frame["sample_index"]:03d}'] = {'kind': 'sample', 'frames': [frame]}
     for frame in view.get('boundary_frames', []):
         catalog[f's{index}:{frame["boundary"]}'] = {'kind': 'boundary', 'frames': [frame]}
+    for frame in view.get('evidence_crops', []):
+        catalog[frame['evidence_id']] = {'kind': 'source_frame_crop', 'frames': [frame]}
     samples = view.get('sampled_frames', [])
     if samples and rule.get('judgment_contract') != 'state-equality-v1':
         catalog[f'window:{index}:samples'] = {'kind': 'sampled_window_coverage',

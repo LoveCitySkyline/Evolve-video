@@ -29,6 +29,9 @@ def actual_label(result, name, threshold):
 def summarize(rows, planned):
     comparisons = [c for row in rows for c in row.get('comparisons', [])]
     known = [c for c in comparisons if c['actual'] in {'pass', 'fail'} and c['expected'] in {'pass', 'fail'}]
+    predicted_pass = [c for c in comparisons if c['actual'] == 'pass']
+    human_fail = [c for c in comparisons if c['expected'] == 'fail']
+    false_pass = sum(c['actual'] == 'pass' and c['expected'] == 'fail' for c in comparisons)
     failures = {kind: sum(r.get('failure_category') == kind for r in rows)
                 for kind in ('response_format', 'local_evidence', 'transport_or_provider', 'internal_error')}
     return {'purpose': 'development_verifier_acceptance_not_method_gain',
@@ -39,6 +42,12 @@ def summarize(rows, planned):
         'exact_label_agreement': (sum(c['actual'] == c['expected'] for c in comparisons) / len(comparisons)
                                   if comparisons else None),
         'observed_binary_comparisons': len(known),
+        'false_pass_count': false_pass,
+        'human_fail_comparisons': len(human_fail),
+        'false_pass_rate_on_human_fail': false_pass / len(human_fail) if human_fail else None,
+        'predicted_pass_comparisons': len(predicted_pass),
+        'human_unknown_among_predicted_pass': sum(c['expected'] == 'unknown' for c in predicted_pass),
+        'binary_coverage': sum(c['actual'] in {'pass', 'fail'} for c in comparisons) / len(comparisons) if comparisons else None,
         'observed_binary_agreement': (sum(c['actual'] == c['expected'] for c in known) / len(known) if known else None),
         'all_labels_agree_without_errors': (len(rows) == planned and bool(comparisons)
             and not any(failures.values()) and all(c['actual'] == c['expected'] for c in comparisons)),
