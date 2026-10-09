@@ -4,7 +4,19 @@
 
 **完成的是任务规格和准备工具；仓库不包含已生成的参考图片、真实 H3 实验结果或人工标注。** `benchmark_status`、审计报告和素材报告会分别显示这些状态。350 个不同场景 ID 不等于已经验证了 350 个统计独立样本，也不能据此宣布预沉淀规模足够。
 
-## 当前评估协议 v13：隔离物理运动与剧情评估
+## 当前评估协议 v14：固定窗口使用显式时间戳帧序列
+
+`timestamped-window-frames-v14` 处理本地裁片确有 6 秒 / 24 帧，但 VLM 声称仅看到一张视频静帧的输入不确定性。现有记录不能证明服务端是否完整解码，也不能把模型的自述直接当作解码结果。
+
+所有固定窗口（运动、动作、状态及场景检查）现在在发送请求前，把已抽样 MP4 的全部解码帧转成 PNG，逐张作为图片发送，附采样编号、裁片局部时间及映射后的原视频时间。6 秒 / 4 FPS 的窗口发送 24 张样本，加原视频首尾边界帧；需要上一窗口末帧的状态检查仍保留该上下文，非物理指标仍保留原参考图。全片请求继续使用原生视频。没有重新抽样、补帧、裁掉末帧、替换视频或改写分数。标注时间来自裁片解码 PTS 加固定窗口偏移，不冒充原视频逐帧精确采集时间；首尾帧仍使用原视频 PTS。
+
+发送前核对裁片字节哈希、解码帧数、时间范围、完整帧文件集合及总请求字节预算；超限报错，不静默减少图片。DashScope Base64 图片总数上限为 250，见[官方多图输入说明](https://www.alibabacloud.com/help/en/model-studio/vision)。帧序列仍只能判断采样可见的运动，不证明全帧率平滑性。该改动不增加每组模型调用次数，但图片输入可能改变 token 消耗。
+
+`verifier/<phase>/requests/<operation_hash>.json` 保存转换后真正发送的文本、媒体顺序、每张媒体的内容哈希及图片/视频数量；不保存凭据或 Base64 媒体字节。`calls.jsonl` 的 `request_audit` 指向该文件。这与 `judgments/group-*.request-*.json`（转换前的逻辑请求）不同。固定窗口记录中 `evaluation_view.input_representation=timestamped_images`、`sampled_frames` 列出全部样本；物理窗口应为 26 张图片、0 个视频（本例无参考媒体）。记录证明本地构造了哪些请求内容，不保证供应商或模型正确感知它们。
+
+v13 的物理/剧情隔离、未知保留、一次纠正和跨窗口聚合规则继续有效。必须在新空输出目录复评旧视频，不能向旧实验目录 `--continue`，不能将 v13/v14 分数混合为统一实验结果。无需重新生成 H3 视频或准备素材；真实 VLM 效果仍须服务器复评确认。
+
+### v13：隔离物理运动与剧情评估（继续保留）
 
 `domain-isolated-motion-video-v13` 针对“模型自述物理运动正常，却因预期持有者不符而扣运动分”的根因，改变输入隔离和纠正流程：
 
@@ -45,7 +57,7 @@ v12.1 补齐实际请求 `output_contract.grounding_fields`：逐指标明确 `s
 
 ```bash
 old_run=outputs/h3_story350_semantics_v2_RowaH0
-review_dir="$(mktemp -d outputs/h3_verifier_v12_recheck_XXXXXX)"
+review_dir="$(mktemp -d outputs/h3_verifier_v14_recheck_XXXXXX)"
 
 # 先核对本次 market_change / seed 42 的已有基线和已提交候选。
 # dry-run 只校验文件哈希并列出覆盖，不调用 API、不写输出目录。
@@ -71,7 +83,7 @@ PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
 
 后续全量复评用另一个新空目录，去掉 `--task-id` 和 `--seed` 即可；先 dry-run 查看保存视频数和缺失基线数。脚本读取所有 `committed_selections.json`，复评已保存的候选及对应 baseline draws，不按旧分数挑样本。未生成的基线不会补造，匹配预算的多次 baseline draws 不重新挑优，也不计算 heldout gain。未知/分歧照常保存后继续收集其他视频；接口或格式失败则停止并写 `stopped.json`，保留已完成项。
 
-单视频入口 `scripts/recheck_story_video.py` 也支持 `--verifier-phase final`（默认仍 runtime）。这些复评都是开发诊断；如果旧运行验证准入为 0，不能宣称测试变化证明经验迁移有效。要得到统一 v12 方法结果，需用新输出目录重新完成训练、验证与测试，重新冻结策略。
+单视频入口 `scripts/recheck_story_video.py` 也支持 `--verifier-phase final`（默认仍 runtime）。这些复评都是开发诊断；如果旧运行验证准入为 0，不能宣称测试变化证明经验迁移有效。要得到统一当前协议的方法结果，需用新输出目录重新完成训练、验证与测试，重新冻结策略。
 
 ## 任务语义修复：Story350 draft v2 / verifier v11
 

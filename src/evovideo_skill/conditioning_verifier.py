@@ -30,7 +30,18 @@ from evovideo_skill.criterion_grounding import (grounded_criteria, validate_grou
     physical_motion_only, physical_judgment_payload, PHYSICAL_JUDGE_SYSTEM)
 
 
-VERIFIER_PROTOCOL_VERSION = "domain-isolated-motion-video-v13"
+VERIFIER_PROTOCOL_VERSION = "timestamped-window-frames-v14"
+FRAME_INPUT_INSTRUCTIONS = """
+This fixed window is supplied as an ordered sequence of individually attached
+candidate images, NOT a native video attachment. Each SAMPLE label identifies
+its index, clip-local timestamp and mapped original-video timestamp. Read the
+images in order. A local timestamp near zero belongs to the selected window,
+not to an earlier shot. These are sampled observations, not target references.
+First/last BOUNDARY images are additional observations from the original video.
+The manifest records host-attached media, not proof that every detail is visible.
+Do not infer continuity through occlusion or between samples. Genuine ambiguity
+remains unknown; do not award success merely because the frame sequence exists.
+"""
 OBSERVATION_BASIS = {
     "visible_match": "Adequate visible evidence supports the requirement; status=observed.",
     "visible_mismatch": "Adequate visible evidence shows a missing, wrong, partial or mistimed requirement; status=observed, with a score reflecting the defect.",
@@ -647,14 +658,84 @@ class ConditioningVideoVerifier:
         return finish([(label, medium) for label, medium in evidence
                 if label not in excluded or label in selected_labels])
 
+    def fixed_window_input(self, evidence, manifest):
+        """Expand the selected clip bytes into auditable timestamped images.
+
+        No new sampling, frame padding, score inference or provider video decoding.
+        Global video and original reference inputs keep their existing routes.
+        """
+        view = manifest.get("evaluation_view", {})
+        if view.get("kind") != "fixed_window_clip":
+            return evidence, manifest
+        selected = [(label, medium) for label, medium in evidence if label == view.get("media_label")]
+        if len(selected) != 1 or selected[0][1].get("mime") != "video/mp4":
+            raise ValueError("fixed-window transport requires exactly one selected candidate clip")
+        label, medium = selected[0]
+        data = base64.b64decode(medium["data"], validate=True)
+        digest = stable_hash(data.hex())
+        if digest != view.get("sampled_media_hash"):
+            raise ValueError("fixed-window request bytes do not match the evidence manifest")
+        source = self.root / "media" / view["sampled_media_file"]
+        if not source.is_file() or source.read_bytes() != data:
+            raise ValueError("fixed-window cached clip differs from request bytes")
+        times = self.frame_times(source, digest)
+        if (len(times) != view["sampled_frame_count"] or len(times) < 2
+                or any(t >= view["clip_duration_seconds"] for t in times)
+                or any(a >= b for a, b in zip(times, times[1:]))):
+            raise ValueError("fixed-window decoded frame count/timestamps do not match the manifest")
+        folder = self.root / "media" / f"frames-{digest}-png-v1"
+        names = [f"{i + 1:06d}.png" for i in range(len(times))]
+        if not folder.exists():
+            with tempfile.TemporaryDirectory(dir=folder.parent) as tmp:
+                temporary = Path(tmp) / "frames"
+                temporary.mkdir()
+                subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-i", str(source),
+                    "-map", "0:v:0", "-fps_mode", "passthrough", str(temporary / "%06d.png")],
+                    check=True, capture_output=True, timeout=120)
+                if sorted(p.name for p in temporary.iterdir()) != names:
+                    raise ValueError("fixed-window frame extraction incomplete; no silent truncation")
+                temporary.replace(folder)
+        if sorted(p.name for p in folder.iterdir()) != names:
+            raise ValueError("fixed-window cached frame sequence is incomplete")
+        frames, metadata = [], []
+        for i, (name, timestamp) in enumerate(zip(names, times)):
+            path = folder / name
+            if not path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"):
+                raise ValueError("fixed-window cached frame is not a PNG")
+            original = timestamp + view["source_time_offset_seconds"]
+            if not view["start_seconds"] <= original < view["end_seconds"]:
+                raise ValueError("fixed-window sample timestamp is outside the original window")
+            frame_label = (f"CANDIDATE SAMPLE {i + 1}/{len(times)}, segment_id={view['segment_id']}; "
+                           f"clip-local timestamp={timestamp:.6f}s; original-video timestamp={original:.6f}s")
+            frame = self.media(path, "image")
+            frames.append((frame_label, frame))
+            metadata.append({"sample_index": i, "clip_timestamp_seconds": timestamp,
+                "source_timestamp_seconds": original, "image_hash": frame["source_hash"],
+                "media_file": str(path.relative_to(self.root / "media")), "media_label": frame_label})
+        expanded = []
+        for existing_label, existing_medium in evidence:
+            expanded.extend(frames if existing_label == label else [(existing_label, existing_medium)])
+        updated = deepcopy(manifest)
+        updated["evaluation_view"].update(input_representation="timestamped_images",
+            native_candidate_video_attached=False, sampled_frames=metadata)
+        return expanded, updated
+
     def request(self, prompt, evidence, operation):
         p = self.profile
         try:
             text_payload = json.loads(prompt)
         except (ValueError, TypeError):
             text_payload = {}
+        fixed = isinstance(text_payload, dict) and text_payload.get("evidence_manifest", {}).get(
+            "evaluation_view", {}).get("kind") == "fixed_window_clip"
+        if fixed:
+            evidence, manifest = self.fixed_window_input(evidence, text_payload["evidence_manifest"])
+            text_payload["evidence_manifest"] = manifest
+            prompt = json.dumps(text_payload, ensure_ascii=False)
         system = (PHYSICAL_JUDGE_SYSTEM if isinstance(text_payload, dict)
                   and text_payload.get('judgment_domain') == 'physical_motion' else JUDGE_SYSTEM)
+        if fixed:
+            system += FRAME_INPUT_INSTRUCTIONS
         key = os.environ.get(p["api_key_env"])
         if not key:
             raise VideoApiError(f"missing {p['api_key_env']}")
@@ -690,12 +771,28 @@ class ConditioningVideoVerifier:
         body = json.dumps(payload).encode()
         if len(body) > p["max_request_bytes"]:
             raise VideoApiError("verifier request exceeds fixed byte budget")
+        image_count = sum(m["mime"].startswith("image/") for _, m in evidence)
+        if p["transport"] == "dashscope_video" and image_count > 250:
+            raise VideoApiError("verifier image count exceeds the 250-image Base64 limit; no silent truncation")
+        audit = self.root / "requests" / (stable_hash(operation) + ".json")
+        write_json(audit, {"operation": operation, "protocol": VERIFIER_PROTOCOL_VERSION,
+            "transport": p["transport"], "model": self.model, "prompt": text_payload,
+            "system": system, "request_bytes": len(body),
+            "image_count": image_count,
+            "video_count": sum(m["mime"].startswith("video/") for _, m in evidence),
+            "media": [{"label": label, "mime": m["mime"],
+                       "content_hash": stable_hash(base64.b64decode(m["data"]).hex())}
+                      for label, m in evidence]})
         for attempt in range(p["max_attempts"]):
             started = time.monotonic()
             log = {"operation": operation, "attempt": attempt + 1, "model": self.model,
-                   "request_bytes": len(body), "status": "started"}
+                   "request_bytes": len(body), "status": "started", "request_audit": str(audit),
+                   "image_count": image_count,
+                   "video_count": sum(m["mime"].startswith("video/") for _, m in evidence)}
             append_json(self.root / "calls.jsonl", log)
-            print(f"[conditioning verifier] model={self.model} job={operation} attempt={attempt + 1} timeout={p['timeout_seconds']}s", flush=True)
+            print(f"[conditioning verifier] model={self.model} job={operation} attempt={attempt + 1} "
+                  f"timeout={p['timeout_seconds']}s input={'timestamped_images' if fixed else 'native_video'} "
+                  f"images={image_count} videos={log['video_count']}", flush=True)
             try:
                 with urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers), timeout=p["timeout_seconds"]) as response:
                     raw = json.loads(response.read())
