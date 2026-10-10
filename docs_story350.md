@@ -716,3 +716,30 @@ PYTHONPATH=src python scripts/audit_verifier_corrections.py \
 报告中的 original_scores 只是旧模型分数的解析，不是新视觉评估或方法收益。
 不要把审计输出写回旧 result.json。还有其他格式错误时先查报告，避免反复
 完整付费复评。后续真实 v22 复评需要新输出目录，不能续用 v21 的评估缓存。
+
+### v22.1：边界状态证据与上下文分开
+
+真实证据目录离线检查进一步显示：`s:last` 已引用，但附带 `s:f023` 仍被拒。
+4 FPS 的最后采样点可以是 5.75 秒，实际末帧是 5.958333 秒；两者不应假装为
+同一帧，也不应该因为引用上下文而把含真实末帧的整个判断作为格式错误丢弃。
+
+`source-fact-consistency-v22.1` / `source-fact-consistency-v4` 保持前置/后置
+必须引用原始完整首帧/末帧，允许同一窗口的采样帧作为附加上下文。
+请求中的 `citation_contract.context_only_refs` 明确区分这些引用：可以辅助识别
+人物或物体，但不能证明边界时刻的状态，不能从早晚采样外推；边界不可见仍为未知。
+只引用采样帧、缺少实际边界，或加入其他窗口引用仍被拒绝。原引用、时间戳、
+事实、评分不被程序改写。v22 的格式纠正判断翻转保护继续生效。
+
+这次离线结果也包含真正的语义冲突：assessment 判动作不存在，但主事实说未知；
+或事实声明 contradicted、依据却是 not_visible。此类结果仍无有效分数，
+必须经过有限自动复核或保持未知，不能当成语法修正直接改成可见反例。
+
+离线脚本新增 `error_categories` 和总计 `summary`，区分 citation_contract、
+semantic_conflict、response_format。它仍不读取视频、不调用模型、不修订旧结果。
+可沿用 v22 离线命令，先检查已知边界误拒是否消失；只剩语义冲突时无需再放宽
+格式校验，应按已有单指标 `--auto-review-criterion` 路径测试真实证据复核。
+复核协议为 `bounded-evidence-review-v6.1`，调用预算与 48 MB 上限均未改变。
+
+同步文件仍是三个运行模块 `verifier_facts.py`、`conditioning_verifier.py`、
+`verifier_review.py`（在 `src/evovideo_skill/` 下），以及
+`scripts/audit_verifier_corrections.py`。付费复评须使用新输出目录，不修改旧判断。

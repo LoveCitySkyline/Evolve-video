@@ -1,7 +1,7 @@
 """Source-defined visual propositions, separate from desired state and quality scores."""
 from copy import deepcopy
 
-VERSION = 'source-fact-consistency-v3'
+VERSION = 'source-fact-consistency-v4'
 INSTRUCTIONS = '''
 For criteria with fact_contract, return fact_observations using exactly its IDs.
 These are questions about the actual candidate, NOT statements of desired truth.
@@ -18,11 +18,18 @@ For graded setup/invariant/state-flow criteria, supported means the complete
 proposition holds (score 1); a lower observed score needs a visible counterexample.
 Unknown never receives a score. An acceptance threshold does not redefine truth.
 Follow EACH fact's citation_contract, not the union of the group's evidence IDs.
-For a known pre/post fact cite the required full boundary and optionally its crops
-or catalog samples with the exact same source timestamp; do not add other time
-samples. The full boundary is still required. Unknown facts use no evidence_refs. State-flow
+For a known pre/post fact cite the required full boundary. Its crops and listed
+same-window samples are optional context for identifying referents, not proof of
+the boundary state. Judge that state at the required boundary itself; do not
+extrapolate it from earlier or later samples. Unknown facts use no evidence_refs. State-flow
 may additionally cite an attached previous boundary only when explicitly listed.
 '''
+
+
+class FactValidationError(ValueError):
+    def __init__(self, category, message):
+        self.category = category
+        super().__init__(message)
 
 
 def with_fact_contract(criteria, public):
@@ -74,17 +81,15 @@ def with_fact_contract(criteria, public):
 def citation_contract(definition, rule, catalog):
     """Use the same scope definition for the request schema and its validator."""
     index, phase = definition['shot_index'], definition['phase']
+    context = []
     if phase in {'pre', 'post'}:
         boundary = f"s{index}:{'first' if phase == 'pre' else 'last'}"
         allowed = [r for r in catalog if r == boundary or r.startswith(boundary + ':crop')]
-        # The boundary remains mandatory. A sample at the same host-recorded
-        # timestamp is supplementary evidence, not a substituted boundary image.
-        boundary_frames = catalog.get(boundary, {}).get('frames', [])
-        timestamp = boundary_frames[0].get('source_timestamp_seconds') if len(boundary_frames) == 1 else None
-        if type(timestamp) in (int, float):
-            allowed.extend(ref for ref, item in catalog.items() if item.get('kind') == 'sample'
-                and ref.startswith(f's{index}:') and len(item.get('frames', [])) == 1
-                and item['frames'][0].get('source_timestamp_seconds') == timestamp)
+        # Samples may identify referents or provide context, but never replace
+        # the required full boundary. No timestamp equivalence is asserted.
+        context = [ref for ref, item in catalog.items() if item.get('kind') == 'sample'
+                   and ref.startswith(f's{index}:')]
+        allowed.extend(context)
         required = [boundary]
     else:
         allowed = [r for r in catalog if r.startswith(f's{index}:') or r == f'window:{index}:samples']
@@ -94,8 +99,12 @@ def citation_contract(definition, rule, catalog):
                 allowed.append(previous)
         required = []
     return {'allowed_refs_when_known': allowed, 'required_refs_when_known': required,
+        'context_only_refs': context,
         'refs_when_unknown': [], 'instruction': 'Nonempty unique subset of allowed refs when known, '
-            'including ALL required refs. These are allowed citations, not supplied observations.'}
+            'including ALL required refs. Context-only refs identify referents or supply context; '
+            'they cannot establish the pre/post state at another timestamp. '
+            'If the required boundary does not reveal that state, use unknown regardless of context. '
+            'These are allowed citations, not supplied observations.'}
 
 
 def output_fields(rule, manifest):
@@ -175,7 +184,10 @@ def validate_facts(name, rule, row, manifest):
             'unknown': {'not_visible', 'occluded', 'ambiguous', 'sampling_gap'}}
         if (not isinstance(value, str) or not isinstance(basis, str)
                 or value not in allowed or basis not in allowed[value]):
-            raise ValueError(f'{name}: {key}: visibility basis cannot establish the claimed fact value')
+            known_basis = {b for values in allowed.values() for b in values}
+            category = ('semantic_conflict' if isinstance(value, str) and value in allowed
+                        and isinstance(basis, str) and basis in known_basis else 'response_format')
+            raise FactValidationError(category, f'{name}: {key}: visibility basis cannot establish the claimed fact value')
         if not isinstance(fact.get('evidence'), str) or not fact['evidence'].strip():
             raise ValueError(f'{name}: {key}: fact needs actual evidence or limitation')
         if value == 'contradicted' and (not isinstance(fact.get('counterexample'), str) or not fact['counterexample'].strip()):
@@ -183,7 +195,7 @@ def validate_facts(name, rule, row, manifest):
         refs = fact.get('evidence_refs')
         if (not isinstance(refs, list) or any(not isinstance(r, str) or r not in catalog for r in refs)
                 or len(refs) != len(set(refs)) or (bool(refs) != (value != 'unknown'))):
-            raise ValueError(f'{name}: {key}: invalid fact evidence_refs; unknown requires []')
+            raise FactValidationError('citation_contract', f'{name}: {key}: invalid fact evidence_refs; unknown requires []')
         if not refs:
             continue
         scope = citation_contract(definition, rule, catalog)
@@ -192,7 +204,7 @@ def validate_facts(name, rule, row, manifest):
         if missing or unexpected:
             description = ('fact must cite its exact full boundary' if scope['required_refs_when_known']
                            else 'fact citation is outside its allowed temporal scope')
-            raise ValueError(f'{name}: {key}: {description}; received={refs}; missing={missing}; '
+            raise FactValidationError('citation_contract', f'{name}: {key}: {description}; received={refs}; missing={missing}; '
                 f'unexpected={unexpected}; allowed={scope["allowed_refs_when_known"]}. '
                 'Reconcile against the same evidence; do not invent or auto-replace citations.')
     primary = contract['primary_fact']
@@ -205,7 +217,7 @@ def validate_facts(name, rule, row, manifest):
             actual = ('unknown' if row.get('status') == 'unobserved' else
                       'supported' if row.get('score') == 1 else 'contradicted')
         if actual != expected:
-            raise ValueError(f'{name}: assessment contradicts its primary observed fact {primary}')
+            raise FactValidationError('semantic_conflict', f'{name}: assessment contradicts its primary observed fact {primary}')
 
 
 def fact_conflicts(observations):

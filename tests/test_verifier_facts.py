@@ -56,7 +56,7 @@ def raw_row(rule, event=False):
 
 
 class FactContractTests(unittest.TestCase):
-    def test_same_timestamp_sample_supplements_but_never_replaces_full_boundary(self):
+    def test_context_samples_supplement_but_never_replace_full_boundary(self):
         public, _ = fixture()
         name = 'story.s2.pre.token.location'
         rule = with_fact_contract({name: {**STATE, 'description': 'Token in A hand'}}, public)[name]
@@ -68,7 +68,9 @@ class FactContractTests(unittest.TestCase):
         result = project({'criteria': {name: row}}, {name: rule}, citation_manifest())
         self.assertEqual(result['criteria'][name]['score'], 1)
         self.assertEqual(row, before)
-        for refs in (['s2:f000'], ['s2:first', 's2:f001'], ['s2:first', 's1:last']):
+        row['fact_observations'][key]['evidence_refs'] = ['s2:first', 's2:f001']
+        self.assertEqual(project({'criteria': {name: row}}, {name: rule}, citation_manifest())['criteria'][name]['score'], 1)
+        for refs in (['s2:f000'], ['s2:first', 's2:last'], ['s2:first', 's1:last']):
             row['fact_observations'][key]['evidence_refs'] = refs
             with self.assertRaises(ValueError):
                 project({'criteria': {name: row}}, {name: rule}, citation_manifest())
@@ -175,11 +177,50 @@ class FactContractTests(unittest.TestCase):
         spec = output_contract(rules, SPANS, citation_manifest())['fields'][POST]['fact_observations']
         citations = spec['facts'][POST_FACT]['citation_contract']
         self.assertEqual(citations['required_refs_when_known'], ['s2:last'])
-        self.assertEqual(citations['allowed_refs_when_known'], ['s2:last'])
+        self.assertEqual(citations['allowed_refs_when_known'], ['s2:last', 's2:f000', 's2:f001'])
+        self.assertEqual(citations['context_only_refs'], ['s2:f000', 's2:f001'])
         row = raw_row(rules[POST])
-        row['fact_observations'][POST_FACT]['evidence_refs'] = ['s2:last', 's2:f000']
-        with self.assertRaisesRegex(ValueError, "missing=\\[\\]; unexpected=\\['s2:f000'\\]"):
+        row['fact_observations'][POST_FACT]['evidence_refs'] = ['s2:last', 's2:first']
+        with self.assertRaisesRegex(ValueError, "missing=\\[\\]; unexpected=\\['s2:first'\\]"):
             project({'criteria': {POST: row}}, {POST: rules[POST]}, citation_manifest())
+
+    def test_last_boundary_with_earlier_final_sample_is_valid_without_changing_score(self):
+        _, rules = fixture()
+        manifest = citation_manifest()
+        manifest['evaluation_view']['sampled_frames'].append({'sample_index': 23,
+            'source_timestamp_seconds': 17.75, 'media_label': 'sample23', 'image_hash': 'fixture23'})
+        for outcome in ('satisfied', 'violated'):
+            row = raw_row(rules[POST])
+            row['assessment']['outcome'] = outcome
+            if outcome == 'violated':
+                row['fact_observations'][POST_FACT] = negative(row['fact_observations'][POST_FACT])
+            row['evidence_refs'] = ['s2:last', 's2:f023']
+            row['fact_observations'][POST_FACT]['evidence_refs'] = row['evidence_refs'][:]
+            original = deepcopy(row)
+            projected = project({'criteria': {POST: row}}, {POST: rules[POST]}, manifest)
+            parsed = parse_judgment(projected, {POST: rules[POST]}, SPANS, manifest)
+            self.assertEqual(parsed[POST]['score'], int(outcome == 'satisfied'))
+            self.assertEqual(row, original)
+            self.assertEqual(parsed[POST]['fact_observations'], original['fact_observations'])
+            # The 17.75s sample is NOT relabeled as the actual 17.958333s boundary.
+            self.assertEqual(parsed[POST]['evidence_times_seconds'], [17.75, 17.958333])
+            row['fact_observations'][POST_FACT]['evidence_refs'] = ['s2:f023']
+            with self.assertRaisesRegex(ValueError, "missing=\\['s2:last'\\]"):
+                project({'criteria': {POST: row}}, {POST: rules[POST]}, manifest)
+
+    def test_semantic_conflicts_remain_distinct_from_citation_errors(self):
+        from evovideo_skill.verifier_facts import FactValidationError
+        _, rules = fixture()
+        row = raw_row(rules[POST])
+        row['fact_observations'][POST_FACT].update(basis='not_visible')
+        with self.assertRaises(FactValidationError) as error:
+            project({'criteria': {POST: row}}, {POST: rules[POST]}, citation_manifest())
+        self.assertEqual(error.exception.category, 'semantic_conflict')
+        row = raw_row(rules[POST])
+        row['fact_observations'][POST_FACT]['evidence_refs'] = ['s2:f001']
+        with self.assertRaises(FactValidationError) as error:
+            project({'criteria': {POST: row}}, {POST: rules[POST]}, citation_manifest())
+        self.assertEqual(error.exception.category, 'citation_contract')
 
     def test_state_flow_can_cite_attached_previous_boundary_without_extending_event_scope(self):
         public, rules = fixture()

@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "source-fact-consistency-v22"
+VERIFIER_PROTOCOL_VERSION = "source-fact-consistency-v22.1"
 
 
 class VerifierFormatError(VideoApiError, ValueError):

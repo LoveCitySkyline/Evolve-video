@@ -18,9 +18,10 @@ def audit_response(request, raw, correction=None):
     # frames, substitute citations, or use this audit as visual ground truth.
     spans = manifest.get('windows', [])
     rows = raw.get('criteria') if isinstance(raw, dict) else None
-    errors, scores, changes = {}, {}, {}
+    errors, scores, changes, categories = {}, {}, {}, {}
     if not isinstance(rows, dict) or set(rows) != set(criteria) or set(raw) != {'criteria'}:
-        return {'original_valid': False, 'errors': {'response': 'Requested criterion keys differ from response.'}}
+        return {'original_valid': False, 'errors': {'response': 'Requested criterion keys differ from response.'},
+            'error_categories': {'response': 'response_format'}}
     for name, rule in criteria.items():
         try:
             projected = project({'criteria': {name: rows[name]}}, {name: rule}, manifest)
@@ -28,12 +29,14 @@ def audit_response(request, raw, correction=None):
             scores[name] = parsed[name]['score']
         except (ValueError, KeyError, TypeError) as exc:
             errors[name] = str(exc)
+            categories[name] = getattr(exc, 'category', 'response_format')
         corrected_rows = correction.get('criteria') if isinstance(correction, dict) else None
         if rule.get('fact_contract') and isinstance(corrected_rows, dict) and name in corrected_rows:
             drift = correction_semantic_changes(rows[name], corrected_rows[name])
             if drift:
                 changes[name] = drift
     return {'original_valid': not errors, 'original_scores': scores, 'errors': errors,
+        'error_categories': categories,
         'correction_semantic_changes': changes,
         'qualification': 'Original scores are parsed model claims, not verified truth. '
             'If the original response is valid, its old format correction is unnecessary. '
@@ -63,6 +66,12 @@ def main():
         parser.error('No matching saved group responses; check --judgment-dir and --group.')
     print(json.dumps({'purpose': 'offline_protocol_audit_only_not_visual_recheck',
         'protocol': VERIFIER_PROTOCOL_VERSION, 'model_calls': 0,
+        'summary': {'original_valid_groups': sum(r.get('original_valid') is True for r in reports),
+            'original_invalid_groups': sum(r.get('original_valid') is False for r in reports),
+            'audit_errors': sum('audit_error' in r for r in reports),
+            'criteria_errors_by_category': {category: sum(list(r.get('error_categories', {}).values()).count(category)
+                for r in reports) for category in ('citation_contract', 'semantic_conflict', 'response_format')},
+            'criteria_with_correction_changes': sum(len(r.get('correction_semantic_changes', {})) for r in reports)},
         'qualification': 'Uses saved request manifests; does not read images, verify media bytes or change old results.',
         'reports': reports}, ensure_ascii=False, indent=2))
 
