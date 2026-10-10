@@ -31,6 +31,36 @@ def atomic(outcome='violated', prerequisite='supported'):
 
 
 class ReviewUnitTests(unittest.TestCase):
+    def test_host_primary_proposition_quote_is_valid_but_wrong_fact_is_not(self):
+        from evovideo_skill.verifier_review import add_review_contract
+        records = json.loads((Path(__file__).parent / 'fixtures/verifier_v221_nested_facts.json').read_text())
+        name = next(iter(records['review']['criteria']))
+        rule = records['request_excerpt']['criterion']
+        criteria = {name: rule}
+        raw = records['review']
+        clean = validate_checks(raw, criteria)
+        # Source quote is legitimate. This does NOT make the whole response valid:
+        # its fact observation still uses status instead of value and lacks basis.
+        from evovideo_skill.verifier_facts import validate_facts
+        with self.assertRaisesRegex(ValueError, 'missing observation fields'):
+            validate_facts(name, rule, clean['criteria'][name], {})
+        payload = {'criteria': criteria, 'output_contract': {'fields': {name: {}}}}
+        add_review_contract(payload)
+        self.assertEqual(payload['output_contract']['predicate_sources'][name]['primary_proposition'],
+                         "baton.holder equals 'A'")
+        rule['fact_contract']['facts']['s0:post:baton.holder'] = {'proposition': "baton.holder equals 'B'"}
+        raw['criteria'][name]['atomic_checks']['predicate']['components'][0]['source_quote'] = "baton.holder equals 'B'"
+        with self.assertRaisesRegex(ValueError, 'exact criterion quote'):
+            validate_checks(raw, criteria)
+
+    def test_atomic_referent_changes_are_not_format_corrections(self):
+        from evovideo_skill.verifier_facts import correction_semantic_changes
+        initial = atomic()
+        corrected = deepcopy(initial)
+        corrected['atomic_checks']['referents']['evidence'] = 'Different actor assignment.'
+        self.assertIn('atomic_checks.referents.evidence',
+                      {c['path'] for c in correction_semantic_changes(initial, corrected)})
+
     def test_media_fit_uses_bounded_widths_without_dropping_timestamps(self):
         owner = type('Owner', (), {'profile': {'max_width': 1536, 'max_request_bytes': 1000}})()
         source = [('sample', {'mime': 'image/png', 'data': 'original'})]

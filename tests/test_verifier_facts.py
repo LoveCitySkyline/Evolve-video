@@ -56,6 +56,58 @@ def raw_row(rule, event=False):
 
 
 class FactContractTests(unittest.TestCase):
+    def test_response_fields_are_direct_real_ids_separate_from_source_definitions(self):
+        _, rules = fixture()
+        contract = output_contract(rules, SPANS, citation_manifest())
+        for name, rule in rules.items():
+            fields = contract['fields'][name]['fact_observations']
+            self.assertEqual(set(fields), set(rule['fact_contract']['facts']))
+            self.assertNotIn('facts', fields)
+            self.assertNotIn('exact_fact_id', fields)
+            for row in fields.values():
+                self.assertEqual(set(row), {'value', 'basis', 'evidence_refs', 'evidence', 'counterexample'})
+            self.assertEqual(set(contract['fact_sources'][name]['facts']), set(fields))
+
+    def test_nested_wrapper_drift_is_detected_without_accepting_or_mutating_it(self):
+        records = json.loads((Path(__file__).parent / 'fixtures/verifier_v221_nested_facts.json').read_text())
+        original, corrected = records['original'], records['correction']
+        before = deepcopy(original)
+        changes = correction_semantic_changes(original, corrected)
+        self.assertIn('evidence', {c['path'] for c in changes})
+        self.assertIn('fact_observations.s0:pre:baton.holder.evidence', {c['path'] for c in changes})
+        rule = records['request_excerpt']['criterion']
+        name = next(iter(records['review']['criteria']))
+        with self.assertRaisesRegex(ValueError, 'no facts wrapper'):
+            validate_facts(name, rule, original, {})
+        self.assertEqual(original, before)
+
+    def test_wrapper_only_format_repair_keeps_observations_but_changes_are_not_hidden(self):
+        _, rules = fixture()
+        canonical = raw_row(rules[POST])
+        wrapped = deepcopy(canonical)
+        wrapped['fact_observations'] = {'facts': wrapped['fact_observations']}
+        self.assertEqual(correction_semantic_changes(wrapped, canonical), [])
+        canonical['fact_observations'][POST_FACT] = negative(canonical['fact_observations'][POST_FACT])
+        paths = {c['path'] for c in correction_semantic_changes(wrapped, canonical)}
+        self.assertIn(f'fact_observations.{POST_FACT}.value', paths)
+        with self.assertRaises(ValueError):
+            project({'criteria': {POST: wrapped}}, {POST: rules[POST]}, citation_manifest())
+
+    def test_changed_actor_description_cannot_pass_as_enum_preserving_format_repair(self):
+        public, rules = fixture()
+        row = raw_row(rules[POST])
+        initial = deepcopy(row)
+        initial['evidence_refs'] = ['invalid-id']
+        initial['evidence'] = 'A is the gray-haired person.'
+        row['evidence'] = 'B is the gray-haired person.'
+        with TemporaryDirectory() as tmp:
+            verifier = ConditioningVideoVerifier(profile(), tmp)
+            with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: initial}}, {'criteria': {POST: row}}]):
+                with self.assertRaisesRegex(VerifierFormatError, 'format correction changed semantic judgments'):
+                    verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
+                        'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()}, [], 'replay', {POST: rules[POST]}, SPANS)
+            self.assertFalse((Path(tmp)/'g.json').exists())
+
     def test_context_samples_supplement_but_never_replace_full_boundary(self):
         public, _ = fixture()
         name = 'story.s2.pre.token.location'
@@ -170,11 +222,11 @@ class FactContractTests(unittest.TestCase):
         self.assertNotIn('s2:post:hidden.contents', result[EVENT]['fact_contract']['facts'])
         fields = output_contract(result, SPANS, citation_manifest())['fields'][POST]
         self.assertIn('fact_observations', fields['required'])
-        self.assertIn('s2:last', fields['fact_observations']['allowed_evidence_refs'])
+        self.assertIn('s2:last', output_contract(result, SPANS, citation_manifest())['fact_sources'][POST]['allowed_evidence_refs'])
 
     def test_fact_specific_prompt_schema_matches_boundary_validator(self):
         _, rules = fixture()
-        spec = output_contract(rules, SPANS, citation_manifest())['fields'][POST]['fact_observations']
+        spec = output_contract(rules, SPANS, citation_manifest())['fact_sources'][POST]
         citations = spec['facts'][POST_FACT]['citation_contract']
         self.assertEqual(citations['required_refs_when_known'], ['s2:last'])
         self.assertEqual(citations['allowed_refs_when_known'], ['s2:last', 's2:f000', 's2:f001'])
@@ -240,7 +292,7 @@ class FactContractTests(unittest.TestCase):
         normalized = project({'criteria': {name: row}}, {name: rule}, citation_manifest())
         self.assertEqual(normalized['criteria'][name]['score'], 1.)
         self.assertEqual(row, before)
-        fields = output_contract({name: rule}, SPANS, citation_manifest())['fields'][name]['fact_observations']['facts']
+        fields = output_contract({name: rule}, SPANS, citation_manifest())['fact_sources'][name]['facts']
         self.assertIn('s1:last', fields[whole]['citation_contract']['allowed_refs_when_known'])
         self.assertNotIn('s1:last', fields[EVENT_FACT]['citation_contract']['allowed_refs_when_known'])
         # A genuine current-shot event still cannot cite the previous shot as its evidence.
@@ -250,7 +302,7 @@ class FactContractTests(unittest.TestCase):
         # No attached previous image => no authorization, even with the task flag.
         manifest = citation_manifest()
         manifest['evaluation_view'].pop('previous_boundary_context')
-        fields = output_contract({name: rule}, SPANS, manifest)['fields'][name]['fact_observations']['facts']
+        fields = output_contract({name: rule}, SPANS, manifest)['fact_sources'][name]['facts']
         self.assertNotIn('s1:last', fields[whole]['citation_contract']['allowed_refs_when_known'])
 
     def test_unseen_spatial_referent_cannot_establish_false(self):

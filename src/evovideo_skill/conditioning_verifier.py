@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "source-fact-consistency-v22.1"
+VERIFIER_PROTOCOL_VERSION = "source-fact-consistency-v22.2"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -1056,7 +1056,11 @@ class ConditioningVideoVerifier:
             payload = deepcopy(payload)
             original = payload.get('original_task', {})
             payload['frozen_identity_context'] = {'source': 'original_task', 'requirements':
-                original.get('metadata', {}).get('h3_global_constraints') or original.get('prompt', '')}
+                original.get('metadata', {}).get('h3_global_constraints') or original.get('prompt', ''),
+                'instruction': 'Bind A/B to these source appearance descriptions before judging actions. '
+                    'Neither current possession nor expected possession defines identity. Check every A/B '
+                    'label against these definitions. If the visible person cannot be bound, use unknown; '
+                    'never swap the source labels to explain a state judgment.'}
         manifest = payload.get('evidence_manifest', {})
         if self.cache_enabled and path.exists():
             return parse_judgment(json.loads(path.read_text()), subset, spans, manifest)
@@ -1098,7 +1102,8 @@ class ConditioningVideoVerifier:
                         canonical = {name: subset[name]}
                         if attempt and rule.get('fact_contract'):
                             from evovideo_skill.verifier_facts import correction_semantic_changes
-                            changes = correction_semantic_changes(original_rows.get(name), rows[name])
+                            current_raw_row = raw.get('criteria', {}).get(name) if isinstance(raw, dict) else None
+                            changes = correction_semantic_changes(original_rows.get(name), current_raw_row)
                             if changes:
                                 raise ValueError(f'{name}: format correction changed semantic judgments: {changes}; '
                                     'neither response is accepted as truth; bounded evidence review is required')
@@ -1133,6 +1138,8 @@ class ConditioningVideoVerifier:
                     feedback['previous_response'] = {'criteria': guarded}
                     feedback['instruction'] += (' This is FORMAT REPAIR ONLY: preserve existing recognized statuses, '
                         'scores, assessment outcomes and fact values/bases. Repair citations or missing fields only. '
+                        'Preserve existing evidence and counterexample text verbatim, including actor identities; '
+                        'do not rewrite observations while keeping the same verdict enum. '
                         'If these judgments cannot be reconciled with the contract, report the uncertainty honestly; '
                         'changed judgments will be retained for audit but require a separate bounded review, not acceptance.')
                 pending = failed

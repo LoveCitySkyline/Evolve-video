@@ -1,9 +1,12 @@
 """Source-defined visual propositions, separate from desired state and quality scores."""
 from copy import deepcopy
 
-VERSION = 'source-fact-consistency-v4'
+VERSION = 'source-fact-consistency-v5'
 INSTRUCTIONS = '''
 For criteria with fact_contract, return fact_observations using exactly its IDs.
+fact_observations is a DIRECT map from those IDs to observations: no 'facts'
+wrapper. Return value and basis, NOT status or copied source-definition fields.
+The output_contract.fact_sources are source questions, not response objects.
 These are questions about the actual candidate, NOT statements of desired truth.
 Judge each proposition independently. Supported needs directly visible support;
 contradicted needs a visible counterexample, not merely a missing view. In
@@ -107,7 +110,7 @@ def citation_contract(definition, rule, catalog):
             'These are allowed citations, not supplied observations.'}
 
 
-def output_fields(rule, manifest):
+def fact_sources(rule, manifest):
     from evovideo_skill.scoped_judgment import evidence_catalog
     catalog = evidence_catalog(manifest, {**rule, 'judgment_contract': 'required-action-v1'})
     definitions = {key: {**deepcopy(definition), 'citation_contract': citation_contract(definition, rule, catalog)}
@@ -117,15 +120,28 @@ def output_fields(rule, manifest):
         'primary_assessment_mapping': {'satisfied_or_complete': 'supported',
             'violated_absent_or_partial': 'contradicted', 'unknown': 'unknown',
             'graded_no_assessment': 'unobserved => unknown; observed score=1 => supported; observed score<1 => contradicted'},
-        'shape': {'exact_fact_id': {'value': 'supported|contradicted|unknown',
-            'basis': 'visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap',
-            'evidence_refs': ['attached evidence ID; [] for unknown'],
-            'evidence': 'actual visible support or limitation',
-            'counterexample': 'required nonempty visible alternative for contradicted; otherwise omit'}},
         'instruction': 'Return every declared fact once. Pre cites first full boundary; post cites last full boundary. '
             'Event/invariant cites current-window samples. State-flow may include the listed previous boundary. '
             'Use each fact citation_contract; the group-wide allowed_evidence_refs is only a union. '
             'Missing views never prove a negative.'}
+
+
+def output_fields(rule, manifest):
+    """The response shape contains real IDs, never a competing 'facts' wrapper."""
+    return {key: {'value': 'supported|contradicted|unknown',
+        'basis': 'visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap',
+        'evidence_refs': ['attached evidence ID; [] for unknown'],
+        'evidence': 'actual visible support or limitation',
+        'counterexample': 'required nonempty visible alternative for contradicted; otherwise omit'}
+        for key in rule['fact_contract']['facts']}
+
+
+def _comparison_facts(row):
+    """Read the known wrapper ONLY to detect drift; never normalize a judgment."""
+    facts = row.get('fact_observations')
+    if isinstance(facts, dict) and set(facts) == {'facts'} and isinstance(facts['facts'], dict):
+        return facts['facts']
+    return facts
 
 
 def correction_semantic_changes(previous, current):
@@ -138,6 +154,10 @@ def correction_semantic_changes(previous, current):
         return []
     changes = []
 
+    def compare_text(path, before, after):
+        if isinstance(before, str) and before.strip() and isinstance(after, str) and before != after:
+            changes.append({'path': path, 'before': before, 'after': after})
+
     def compare(path, before, after, allowed=None):
         if allowed is not None:
             if not isinstance(before, str) or not isinstance(after, str) or before not in allowed or after not in allowed:
@@ -149,11 +169,14 @@ def correction_semantic_changes(previous, current):
 
     compare('status', previous.get('status'), current.get('status'), {'observed', 'unobserved', 'not_applicable'})
     compare('score', previous.get('score'), current.get('score'))
+    # Prose carries actor bindings and visible observations. Keeping enum values
+    # while rewriting A/B or the observed state is not a format-only correction.
+    compare_text('evidence', previous.get('evidence'), current.get('evidence'))
     before_assessment, after_assessment = previous.get('assessment'), current.get('assessment')
     if isinstance(before_assessment, dict) and isinstance(after_assessment, dict):
         compare('assessment.outcome', before_assessment.get('outcome'), after_assessment.get('outcome'),
             {'satisfied', 'violated', 'complete', 'absent', 'partial', 'unknown', 'coherent', 'defective'})
-    before_facts, after_facts = previous.get('fact_observations'), current.get('fact_observations')
+    before_facts, after_facts = _comparison_facts(previous), _comparison_facts(current)
     if isinstance(before_facts, dict) and isinstance(after_facts, dict):
         for key in sorted(before_facts.keys() & after_facts.keys()):
             a, b = before_facts[key], after_facts[key]
@@ -163,6 +186,16 @@ def correction_semantic_changes(previous, current):
                 {'supported', 'contradicted', 'unknown'})
             compare(f'fact_observations.{key}.basis', a.get('basis'), b.get('basis'),
                 {'visible_support', 'visible_counterexample', 'not_visible', 'occluded', 'ambiguous', 'sampling_gap'})
+            for field in ('evidence', 'counterexample'):
+                compare_text(f'fact_observations.{key}.{field}', a.get(field), b.get(field))
+    before_checks, after_checks = previous.get('atomic_checks'), current.get('atomic_checks')
+    if isinstance(before_checks, dict) and isinstance(after_checks, dict):
+        for key in before_checks.keys() & after_checks.keys():
+            a, b = before_checks[key], after_checks[key]
+            if isinstance(a, dict) and isinstance(b, dict):
+                compare(f'atomic_checks.{key}.status', a.get('status'), b.get('status'),
+                    {'supported', 'contradicted', 'unknown'})
+                compare_text(f'atomic_checks.{key}.evidence', a.get('evidence'), b.get('evidence'))
     return changes
 
 
@@ -174,11 +207,20 @@ def validate_facts(name, rule, row, manifest):
     catalog = evidence_catalog(manifest, {**rule, 'judgment_contract': 'required-action-v1'})
     facts = row.get('fact_observations')
     if not isinstance(facts, dict) or set(facts) != set(contract['facts']):
-        raise ValueError(f'{name}: fact_observations must contain exactly the source-defined fact IDs')
+        received = list(facts) if isinstance(facts, dict) else type(facts).__name__
+        raise ValueError(f'{name}: fact_observations must contain exactly the source-defined fact IDs; '
+            f'expected={list(contract["facts"])}; received={received}. '
+            'Use a direct ID-to-observation map, with no facts wrapper. Preserve all existing observations.')
     for key, definition in contract['facts'].items():
         fact = facts[key]
         if not isinstance(fact, dict):
             raise ValueError(f'{name}: invalid fact observation {key}')
+        missing_fields = sorted({'value', 'basis', 'evidence_refs', 'evidence'} - set(fact))
+        if missing_fields:
+            raise FactValidationError('response_format', f'{name}: {key}: missing observation fields '
+                f'{missing_fields}; required=value,basis,evidence_refs,evidence. '
+                'status and source-definition metadata cannot replace value/basis. '
+                'Fill only from actual evidence; do not infer facts from an existing verdict.')
         value, basis = fact.get('value'), fact.get('basis')
         allowed = {'supported': {'visible_support'}, 'contradicted': {'visible_counterexample'},
             'unknown': {'not_visible', 'occluded', 'ambiguous', 'sampling_gap'}}

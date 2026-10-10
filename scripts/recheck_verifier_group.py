@@ -17,14 +17,61 @@ from evovideo_skill.story_contracts import prepare_story_task
 from evovideo_skill.story_assets import verify_story_task
 
 
+def runtime_source(source, request, manifest, tasks):
+    """Find a saved runtime observation, including excluded training anchors."""
+    from evovideo_skill.conditioning_memory import task_payload
+    root = source.parents[3]
+    rows = []
+    for folder in ('evaluations', 'unobserved_evaluations'):
+        for path in sorted((root / folder).glob('*.json')):
+            record = json.loads(path.read_text())
+            judgment = record.get('verification', {}).get('judgment_path')
+            if not judgment or Path(judgment).resolve() != source:
+                continue
+            if record.get('status') not in {'ok', 'evidence_incomplete'}:
+                continue
+            video = Path(record['video']).resolve()
+            data = video.read_bytes()
+            expected = record.get('video_files', record.get('files', {})).get(str(video))
+            if expected != hashlib.sha256(data).hexdigest() or stable_hash(data.hex()) != manifest['candidate_hash']:
+                raise ValueError('saved runtime video changed; no substituted media')
+            rows.append({'evaluation_id': record['evaluation_id'], 'task_id': record['task_id'],
+                'seed': record['seed'], 'video': str(video), 'sha256': expected,
+                'roles': [{'kind': 'runtime_diagnostic', 'episode': record.get('episode')}]})
+    if not rows or len({(r['task_id'], r['sha256']) for r in rows}) != 1:
+        raise ValueError('cannot uniquely identify saved runtime evaluation')
+    task = tasks[rows[0]['task_id']]
+    public = task_payload(task)
+    public.pop('reference_video', None)
+    for key in ('h3_references', 'h3_audio_criteria', 'evaluation'):
+        public['metadata'].pop(key, None)
+    if stable_hash(public) != stable_hash(request['original_task']):
+        raise ValueError('task definition changed since source runtime judgment')
+    references = []
+    for ref in task.metadata.get('h3_references', []):
+        if ref.get('kind') == 'audio':
+            continue
+        label = {k: ref[k] for k in ('id', 'kind', 'role', 'semantic_role') if k in ref}
+        references.append({**label, 'source_hash': stable_hash(Path(ref['uri']).read_bytes().hex())})
+    if task.reference_video and not any(str(r.get('uri')) == str(task.reference_video)
+                                      for r in task.metadata.get('h3_references', [])):
+        references.append({'role': 'source_video', 'source_hash': stable_hash(Path(task.reference_video).read_bytes().hex())})
+    if references != manifest.get('references', []):
+        raise ValueError('source reference assets changed; no substituted references')
+    return {'videos': rows, 'tasks': [asdict(task)]}
+
+
 def plan_group(judgment_dir, group, repeat, task_file):
     source = Path(judgment_dir).resolve()
     if group < 0 or repeat < 0:
         raise ValueError('group/repeat must be nonnegative')
-    protocol = json.loads((source.parents[3] / 'recheck_protocol.json').read_text())
     request_path = source / f'group-{group:03d}-repeat-{repeat}.request-0.json'
     request = json.loads(request_path.read_text())
     source_manifest = json.loads((source / 'evidence.json').read_text())
+    tasks = {t.task_id: prepare_story_task(t) for t in BenchmarkSuite.from_file(task_file).tasks}
+    protocol_path = source.parents[3] / 'recheck_protocol.json'
+    protocol = (json.loads(protocol_path.read_text()) if protocol_path.exists()
+                else runtime_source(source, request, source_manifest, tasks))
     task_id = request.get('original_task', {}).get('task_id')
     videos = []
     for row in protocol['videos']:
@@ -41,7 +88,6 @@ def plan_group(judgment_dir, group, repeat, task_file):
     if not videos or len({(r['task_id'], r['sha256']) for r in videos}) != 1:
         raise ValueError('cannot uniquely identify the original group video; no substituted media')
     row = videos[0]
-    tasks = {t.task_id: prepare_story_task(t) for t in BenchmarkSuite.from_file(task_file).tasks}
     task = tasks[row['task_id']]
     original = next(t for t in protocol['tasks'] if t['task_id'] == task.task_id)
     if stable_hash(asdict(task)) != stable_hash(original):

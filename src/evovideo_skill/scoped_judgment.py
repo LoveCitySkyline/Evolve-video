@@ -76,6 +76,7 @@ def evidence_catalog(manifest, rule):
 def output_contract(criteria, spans, manifest):
     grounding = grounding_output_contract(criteria, spans, manifest)
     fields = {}
+    sources = {}
     shared_catalog = {}
     for name, rule in criteria.items():
         entry = {'required': ['confidence', 'evidence'],
@@ -117,14 +118,18 @@ def output_contract(criteria, spans, manifest):
                                     'structure_status': 'present|absent|unobservable',
                                     'score_basis': 'appearance|structure|insufficient_evidence'}
         if rule.get('fact_contract'):
-            from evovideo_skill.verifier_facts import output_fields
+            from evovideo_skill.verifier_facts import output_fields, fact_sources
             entry['required'].append('fact_observations')
             entry['fact_observations'] = output_fields(rule, manifest)
+            sources[name] = fact_sources(rule, manifest)
         fields[name] = entry
     return {'response_protocol': SCOPED_RESPONSE_PROTOCOL, 'criterion_keys': list(criteria),
             'segment_id': next(iter(criteria.values()))['story_shot_index'],
             'evidence_catalog': shared_catalog,
-            'fields': fields, 'instruction': 'One object per criterion. No segments array. No duplicated judgments.'}
+            'fields': fields, 'fact_sources': sources,
+            'instruction': 'One object per criterion. No segments array. No duplicated judgments. '
+                'fact_sources contains source definitions, NOT output fields. fact_observations is a direct '
+                'map with the literal IDs shown under fields; do not add a facts wrapper or copy source metadata.'}
 
 
 def project(raw, criteria, manifest=None):

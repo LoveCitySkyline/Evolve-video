@@ -1,0 +1,299 @@
+{
+  "qualification": "Raw model claims from user-supplied server output; not visually verified labels.",
+  "request_excerpt": {
+    "criterion": {
+      "description": "Shot 0, 0..6s: pre: baton.holder must equal 'A'. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+      "threshold": 0.9,
+      "mandatory": true,
+      "weight": 1.0,
+      "story_shot_index": 0,
+      "aggregation": "mean",
+      "evidence_status_contract": "visible-outcome-v1",
+      "temporal_grounding": "original-timestamps-v1",
+      "judgment_contract": "state-equality-v1",
+      "fact_contract": {
+        "version": "source-fact-consistency-v4",
+        "facts": {
+          "s0:pre:baton.holder": {
+            "shot_index": 0,
+            "phase": "pre",
+            "proposition": "baton.holder equals 'A'",
+            "source": "shots[0].preconditions.baton.holder"
+          }
+        },
+        "primary_fact": "s0:pre:baton.holder",
+        "state_flow": false
+      }
+    },
+    "output_fields": {
+      "required": [
+        "confidence",
+        "evidence",
+        "evidence_refs",
+        "assessment",
+        "fact_observations"
+      ],
+      "confidence": "number in [0,1], self-reported, not calibrated",
+      "evidence": "nonempty description of visible support or specific evidence limitation",
+      "evidence_refs": "Array of listed IDs. Nonempty for observed outcomes including absent/violated. Unknown uses [].",
+      "allowed_evidence_refs": [
+        "s0:f000",
+        "s0:f001",
+        "s0:f002",
+        "s0:f003",
+        "s0:f004",
+        "s0:f005",
+        "s0:f006",
+        "s0:f007",
+        "s0:f008",
+        "s0:f009",
+        "s0:f010",
+        "s0:f011",
+        "s0:first",
+        "s0:last"
+      ],
+      "assessment": {
+        "contract": "state-equality-v1",
+        "location": "criteria['story.s0.pre.baton.holder'].assessment (ONE object)",
+        "required_fields": [
+          "outcome"
+        ],
+        "outcomes": {
+          "satisfied": "observed, score=1",
+          "violated": "observed, score=0",
+          "unknown": "unobserved, score=null"
+        }
+      },
+      "host_derives": "status and categorical score from assessment.outcome; do not output status",
+      "score": "Required ONLY for partial action (0<score<1) or defective physical motion (0<=score<1). Otherwise omit score; host derives the exact categorical value.",
+      "fact_observations": {
+        "facts": {
+          "s0:pre:baton.holder": {
+            "shot_index": 0,
+            "phase": "pre",
+            "proposition": "baton.holder equals 'A'",
+            "source": "shots[0].preconditions.baton.holder",
+            "citation_contract": {
+              "allowed_refs_when_known": [
+                "s0:first",
+                "s0:f000",
+                "s0:f001",
+                "s0:f002",
+                "s0:f003",
+                "s0:f004",
+                "s0:f005",
+                "s0:f006",
+                "s0:f007",
+                "s0:f008",
+                "s0:f009",
+                "s0:f010",
+                "s0:f011"
+              ],
+              "required_refs_when_known": [
+                "s0:first"
+              ],
+              "context_only_refs": [
+                "s0:f000",
+                "s0:f001",
+                "s0:f002",
+                "s0:f003",
+                "s0:f004",
+                "s0:f005",
+                "s0:f006",
+                "s0:f007",
+                "s0:f008",
+                "s0:f009",
+                "s0:f010",
+                "s0:f011"
+              ],
+              "refs_when_unknown": [],
+              "instruction": "Nonempty unique subset of allowed refs when known, including ALL required refs. Context-only refs identify referents or supply context; they cannot establish the pre/post state at another timestamp. If the required boundary does not reveal that state, use unknown regardless of context. These are allowed citations, not supplied observations."
+            }
+          }
+        },
+        "allowed_evidence_refs": [
+          "s0:f000",
+          "s0:f001",
+          "s0:f002",
+          "s0:f003",
+          "s0:f004",
+          "s0:f005",
+          "s0:f006",
+          "s0:f007",
+          "s0:f008",
+          "s0:f009",
+          "s0:f010",
+          "s0:f011",
+          "s0:first",
+          "s0:last",
+          "window:0:samples"
+        ],
+        "primary_fact": "s0:pre:baton.holder",
+        "primary_assessment_mapping": {
+          "satisfied_or_complete": "supported",
+          "violated_absent_or_partial": "contradicted",
+          "unknown": "unknown",
+          "graded_no_assessment": "unobserved => unknown; observed score=1 => supported; observed score<1 => contradicted"
+        },
+        "shape": {
+          "exact_fact_id": {
+            "value": "supported|contradicted|unknown",
+            "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+            "evidence_refs": [
+              "attached evidence ID; [] for unknown"
+            ],
+            "evidence": "actual visible support or limitation",
+            "counterexample": "required nonempty visible alternative for contradicted; otherwise omit"
+          }
+        },
+        "instruction": "Return every declared fact once. Pre cites first full boundary; post cites last full boundary. Event/invariant cites current-window samples. State-flow may include the listed previous boundary. Use each fact citation_contract; the group-wide allowed_evidence_refs is only a union. Missing views never prove a negative."
+      }
+    }
+  },
+  "original": {
+    "confidence": 1.0,
+    "evidence": "At the first boundary (t=0.0s), the person with gray hair and an apron (A) is standing still, while the person with red hair and a teal jacket (B) is holding the striped baton. This contradicts the required pre-condition that A holds the baton.",
+    "evidence_refs": [
+      "s0:first"
+    ],
+    "assessment": {
+      "outcome": "violated"
+    },
+    "fact_observations": {
+      "facts": {
+        "s0:pre:baton.holder": {
+          "value": "contradicted",
+          "basis": "visible_counterexample",
+          "evidence_refs": [
+            "s0:first"
+          ],
+          "evidence": "At t=0.0s, B is visibly holding the baton, not A.",
+          "counterexample": "CANDIDATE BOUNDARY FRAME FIRST (s0:first): B holds the baton."
+        }
+      }
+    }
+  },
+  "correction": {
+    "confidence": 1.0,
+    "evidence": "At the first boundary (t=0.0s), the person with short gray hair and a navy apron (B) is standing still, while the person with tied-back auburn hair and a teal jacket (A) is holding the striped baton. This contradicts the required pre-condition that A holds the baton.",
+    "evidence_refs": [
+      "s0:first"
+    ],
+    "assessment": {
+      "outcome": "violated"
+    },
+    "fact_observations": {
+      "facts": {
+        "s0:pre:baton.holder": {
+          "value": "contradicted",
+          "basis": "visible_counterexample",
+          "evidence_refs": [
+            "s0:first"
+          ],
+          "evidence": "At t=0.0s, A is visibly holding the baton, not B. The required proposition is 'baton.holder equals A', which is satisfied; however, the original task defines A as the adult with tied-back auburn hair and teal jacket, and B as the distinct adult with short gray hair and navy apron. In the image, the person with auburn hair and teal jacket (A) holds the baton, so the proposition is actually supported. Correction: the initial judgment misidentified A and B. Re-evaluating: A (auburn hair, teal jacket) holds the baton at t=0.0s, matching the required pre-condition.",
+          "counterexample": ""
+        }
+      }
+    }
+  },
+  "review": {
+    "criteria": {
+      "story.s0.pre.baton.holder": {
+        "confidence": 0.0,
+        "evidence": "The first boundary frame (0.0s) and all sampled frames show the person with red hair (B) holding the baton, while the person with gray hair (A) stands empty-handed. This directly contradicts the required pre-condition that A holds the baton at the start of shot 0.",
+        "evidence_refs": [
+          "s0:first",
+          "s0:f000",
+          "s0:f001",
+          "s0:f002",
+          "s0:f003",
+          "s0:f004",
+          "s0:f005",
+          "s0:f006",
+          "s0:f007",
+          "s0:f008",
+          "s0:f009",
+          "s0:f010",
+          "s0:f011",
+          "s0:f012",
+          "s0:f013",
+          "s0:f014",
+          "s0:f015",
+          "s0:f016",
+          "s0:f017",
+          "s0:f018",
+          "s0:f019",
+          "s0:f020",
+          "s0:f021",
+          "s0:f022",
+          "s0:f023",
+          "s0:f024",
+          "s0:f025",
+          "s0:f026",
+          "s0:f027",
+          "s0:f028",
+          "s0:f029",
+          "s0:f030",
+          "s0:f031",
+          "s0:f032",
+          "s0:f033",
+          "s0:f034",
+          "s0:f035",
+          "s0:f036",
+          "s0:f037",
+          "s0:f038",
+          "s0:f039",
+          "s0:f040",
+          "s0:f041",
+          "s0:f042",
+          "s0:f043",
+          "s0:f044",
+          "s0:f045",
+          "s0:f046",
+          "s0:f047"
+        ],
+        "assessment": {
+          "outcome": "violated"
+        },
+        "fact_observations": {
+          "s0:pre:baton.holder": {
+            "shot_index": 0,
+            "phase": "pre",
+            "proposition": "baton.holder equals 'A'",
+            "source": "shots[0].preconditions.baton.holder",
+            "status": "contradicted",
+            "evidence_refs": [
+              "s0:first"
+            ],
+            "evidence": "At timestamp 0.0s (first boundary), the person with red hair (B) is visibly holding the striped baton, while the person with gray hair (A) has empty hands. This directly contradicts the proposition."
+          }
+        },
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "The two individuals are consistently identifiable across all frames: A has short gray hair and a navy apron over a white shirt; B has red hair and wears a teal and navy jacket. Their identities do not swap."
+          },
+          "visibility": {
+            "status": "supported",
+            "evidence": "The baton and the hands of both individuals are clearly visible in the first boundary frame and all subsequent samples, with no occlusion."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The predicate 'baton.holder equals 'A'' is false at the required pre-timepoint (0.0s). The baton is held by B.",
+            "components": [
+              {
+                "source_quote": "baton.holder equals 'A'",
+                "status": "contradicted",
+                "evidence": "At 0.0s, the baton is held by the person who matches the description of B (red hair, teal jacket), not A (gray hair, navy apron)."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "supported",
+            "evidence": "The required pre-state is evaluated at the first boundary frame (0.0s), which is provided and fully visible."
+          }
+        }
+      }
+    }
+  }
+}

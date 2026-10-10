@@ -12,7 +12,7 @@ from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'bounded-evidence-review-v6.1'
+VERSION = 'bounded-evidence-review-v6.2'
 DEFAULTS = dict(enabled=False, max_calls_per_criterion=4, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
                 secondary_model=None)
@@ -29,7 +29,8 @@ four named objects: referents, visibility, predicate, temporal_scope. This is pa
 of the output schema, not optional commentary. Each object requires status
 (supported|contradicted|unknown) and evidence. predicate additionally requires a
 nonempty components list; each component has source_quote (an exact substring of
-this criterion's description), status and evidence. Check all explicit clauses.
+this criterion's description, or the EXACT complete primary proposition listed
+in predicate_sources), status and evidence. Check all explicit clauses.
 The predicate status is their conjunction: any contradicted => contradicted;
 otherwise any unknown => unknown; otherwise supported. Unknown prerequisites
 (referents, visibility or temporal_scope) require an unknown judgment. Never
@@ -39,6 +40,20 @@ the host retains and revalidates the previously supplied atomic_checks.
 '''
 
 
+def predicate_sources(rule):
+    """Only this criterion and its host-compiled primary proposition are sources."""
+    contract = rule.get('fact_contract', {})
+    primary = contract.get('facts', {}).get(contract.get('primary_fact'), {})
+    return {'description': rule.get('description', ''),
+            'primary_proposition': primary.get('proposition')}
+
+
+def valid_source_quote(quote, rule):
+    sources = predicate_sources(rule)
+    return isinstance(quote, str) and bool(quote.strip()) and (
+        quote in sources['description'] or quote == sources['primary_proposition'])
+
+
 def add_review_contract(payload):
     """Put the extension in the same required fields the base judge follows."""
     contract = payload['output_contract']
@@ -46,7 +61,7 @@ def add_review_contract(payload):
         return
     check_schema = {'status': 'supported|contradicted|unknown', 'evidence': 'visible support or limitation'}
     schema = {key: deepcopy(check_schema) for key in CHECKS}
-    schema['predicate']['components'] = [{'source_quote': 'exact substring of this criterion description',
+    schema['predicate']['components'] = [{'source_quote': 'exact substring of description OR exact full primary_proposition in predicate_sources',
         **deepcopy(check_schema)}]
     for name in payload['criteria']:
         fields = contract.setdefault('fields', {}).setdefault(name, {})
@@ -54,6 +69,7 @@ def add_review_contract(payload):
         if 'atomic_checks' not in required:
             required.append('atomic_checks')
         fields['atomic_checks'] = deepcopy(schema)
+        contract.setdefault('predicate_sources', {})[name] = predicate_sources(payload['criteria'][name])
 
 class ReviewBudgetExhausted(RuntimeError):
     pass
@@ -172,13 +188,12 @@ def validate_checks(raw, criteria):
         components = checks['predicate'].get('components')
         if not isinstance(components, list) or not components:
             raise ValueError('predicate needs source-backed components')
-        description = rule.get('description', '')
         for part in components:
-            if (not isinstance(part, dict) or not isinstance(part.get('source_quote'), str) or not part['source_quote']
-                    or part['source_quote'] not in description
+            if (not isinstance(part, dict) or not valid_source_quote(part.get('source_quote'), rule)
                     or part.get('status') not in {'supported', 'contradicted', 'unknown'}
                     or not isinstance(part.get('evidence'), str) or not part['evidence'].strip()):
-                raise ValueError('each component needs an exact criterion quote, status and evidence')
+                raise ValueError(f'each component needs an exact criterion quote (description substring or '
+                    f'complete primary proposition), status and evidence; allowed_sources={predicate_sources(rule)}')
         statuses = [c['status'] for c in components]
         predicate = 'contradicted' if 'contradicted' in statuses else 'unknown' if 'unknown' in statuses else 'supported'
         if checks['predicate']['status'] != predicate:
@@ -357,7 +372,7 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                 add_review_contract(payload)
                 payload['atomic_review'] = {'checks': CHECKS, 'location': 'atomic_checks inside each criterion',
                     'schema': {'each_check': {'status': 'supported|contradicted|unknown', 'evidence': 'visible support or limitation'},
-                        'predicate.components': [{'source_quote': 'exact substring of this criterion description',
+                        'predicate.components': [{'source_quote': 'exact description substring or full primary proposition from predicate_sources',
                             'status': 'supported|contradicted|unknown', 'evidence': 'support for this clause'}]},
                     'instruction': 'Independently assess ALL explicit requirements including conjunctions. '
                         'Unknown identity or occlusion does not establish a violation. Box-like appearance alone '

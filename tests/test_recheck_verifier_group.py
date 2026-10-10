@@ -15,6 +15,61 @@ spec.loader.exec_module(script)
 
 
 class GroupRecheckTests(unittest.TestCase):
+    def runtime_fixture(self, root):
+        from evovideo_skill.conditioning_memory import task_payload
+        source, tasks, video, args = self.fixture(root)
+        source = source.resolve()
+        video = video.resolve()
+        protocol = root / 'old/recheck_protocol.json'
+        row = json.loads(protocol.read_text())['videos'][0]
+        protocol.unlink()
+        row.update(status='evidence_incomplete', video=str(video), seed=42,
+            verification={'judgment_path': str(source)}, video_files={str(video): row['sha256']},
+            episode='train/t')
+        records = root / 'old/unobserved_evaluations'
+        records.mkdir()
+        (records / 'base.json').write_text(json.dumps(row))
+        task = script.prepare_story_task(script.BenchmarkSuite.from_file(tasks).tasks[0])
+        public = task_payload(task)
+        public.pop('reference_video', None)
+        public['metadata'].pop('evaluation', None)
+        path = source / 'group-002-repeat-0.request-0.json'
+        request = json.loads(path.read_text())
+        request['original_task'] = public
+        path.write_text(json.dumps(request))
+        return source, tasks, video, args
+
+    def test_excluded_runtime_anchor_supports_bounded_probe_without_recheck_protocol(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source, tasks, video, args = self.runtime_fixture(root)
+            with patch('builtins.print'), patch.object(script.ConditioningVideoVerifier, '_observe_group') as call:
+                result = script.main(args + ['--dry-run'])
+                call.assert_not_called()
+            self.assertEqual(result['video']['roles'][0]['kind'], 'runtime_diagnostic')
+            self.assertEqual(result['maximum_model_calls'], 2)
+            self.assertFalse((root / 'new').exists())
+            video.write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError, 'runtime video changed'):
+                script.plan_group(source, 2, 0, tasks)
+
+    def test_runtime_probe_rejects_changed_task_or_missing_reference(self):
+        with TemporaryDirectory() as tmp:
+            source, tasks, _, _ = self.runtime_fixture(Path(tmp))
+            data = json.loads(tasks.read_text())
+            data['tasks'][0]['prompt'] = 'changed'
+            tasks.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, 'task definition changed'):
+                script.plan_group(source, 2, 0, tasks)
+        with TemporaryDirectory() as tmp:
+            source, tasks, _, _ = self.runtime_fixture(Path(tmp))
+            path = source / 'evidence.json'
+            manifest = json.loads(path.read_text())
+            manifest['references'] = [{'id': 'original', 'source_hash': 'old'}]
+            path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, 'reference assets changed'):
+                script.plan_group(source, 2, 0, tasks)
+
     def fixture(self, root):
         source = root / 'old/verifier/final/judgments/digest'
         source.mkdir(parents=True)
