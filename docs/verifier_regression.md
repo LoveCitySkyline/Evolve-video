@@ -69,6 +69,26 @@ Visual-model errors can remain even when these checks pass.
    checks passed but fixed visual labels have not validated the canary;
    `blocked_contract_or_identity` means it must not advance. These artifacts are sufficient to debug
    a failed case together, without regenerating the video.
+   `binding_coverage` counts only returned identity gates; failed cases without a
+   parsed summary are explicitly counted as `cases_without_parsed_summary`.
+   A coverage of 1 with two failed cases does not mean the cohort passed.
+
+   New canaries also produce `diagnostics.json`: source contracts, original and
+   corrected raw responses, validation errors and identity audits for every case,
+   including parser successes that may contain semantic contradictions. For an
+   already completed v23 canary, collect the same evidence with zero API calls:
+
+   ```bash
+   PYTHONPATH=src python scripts/verifier_regression_suite.py \
+     --collect-suite outputs/h3_verifier_v23_suite_QY979F \
+     > outputs/h3_verifier_v23_suite_QY979F.diagnostics.json
+   ```
+
+   This command needs no API key, source video or original task file and does not
+   rewrite the run. It includes text evidence only, not media bytes or transport
+   configuration. Missing/truncated artifacts are reported, not silently skipped.
+   Share this one diagnostic file instead of repeatedly extracting individual
+   criteria or spending more model calls before examining the saved responses.
 5. After the canary passes, re-evaluate a fixed small set of complete existing
    videos. Check known visual outcomes, whole-video aggregation, disagreement and
    withheld-sample rates before restarting learning under a new protocol directory.

@@ -77,6 +77,8 @@ def summarize(results, selected):
         'identity_dependent_judgments': required, 'bound_identity_judgments': observed,
         'withheld_identity_judgments': blocked,
         'binding_coverage': observed / required if required else None,
+        'binding_coverage_scope': 'Returned identity gates only; excludes cases without a parsed summary. Not whole-cohort coverage.',
+        'cases_without_parsed_summary': sum('summary' not in r for r in results),
         'all_cases_contract_valid': bool(results) and len(results) == len(selected) and all(
             r.get('summary', {}).get('format_valid') is True and not r['summary'].get('fact_conflicts') for r in results),
         'visual_regression': {'labeled_cases': len(labeled), 'passed_cases': sum(c['passed'] for c in labeled),
@@ -89,6 +91,76 @@ def summarize(results, selected):
         'failed_visual_regression' if not all(case['passed'] for case in labeled) else
         'needs_more_tasks' if len(results) < 3 else 'passed_development_regression')
     return report
+
+
+def collect_suite(root):
+    """Export all saved canary attempts without replay, API calls or source writes.
+
+    Include successful responses too: a passed parser can hide a semantic error.
+    Only the fixed local text artifact names are read, never paths in a response.
+    Transport profiles, credentials, media bytes and HTTP logs are not exported.
+    """
+    root = Path(root)
+    plan = json.loads((root / 'suite_plan.json').read_text())
+    saved = json.loads((root / 'summary.json').read_text())
+    selected = plan['cohort']
+    if not isinstance(selected, list) or not 1 <= len(selected) <= 5:
+        raise ValueError('expected a bounded canary with one to five planned cases')
+    cases = []
+    outcomes = {row['case']: row for row in saved.get('cases', [])}
+    for index, source in enumerate(selected):
+        folder = root / f'case-{index:03d}'
+        case = {'case': index, 'source': {key: source.get(key) for key in
+            ('task_key', 'video_sha256', 'group', 'repeat')}, 'attempts': [], 'collection_errors': []}
+        outcome = outcomes.get(index, {})
+        case['outcome'] = {key: outcome[key] for key in
+            ('error', 'failure_category', 'model_calls', 'visual_regression') if key in outcome}
+        if 'summary' in outcome:
+            case['outcome']['parsed_summary'] = {key: value for key, value in outcome['summary'].items()
+                                                 if key != 'identity_gates'}
+
+        def read(name):
+            path = folder / name
+            if not path.is_file():
+                case['collection_errors'].append({'file': name, 'error': 'missing'})
+                return None
+            try:
+                return json.loads(path.read_text())
+            except (OSError, ValueError) as exc:
+                case['collection_errors'].append({'file': name, 'error': str(exc)})
+                return None
+
+        for attempt in range(2):
+            request_name = f'group.request-{attempt}.json'
+            raw_name = 'group.raw.json' if attempt == 0 else 'group.correction-1.raw.json'
+            # A second attempt need not have occurred; report incomplete attempts
+            # without inventing responses or dropping the rest of the cohort.
+            if attempt and not any((folder / name).exists() for name in
+                                   (request_name, raw_name, 'group.format-1.json')):
+                continue
+            request = read(request_name)
+            entry = {'attempt': attempt, 'raw_response': read(raw_name),
+                     'validation': read(f'group.format-{attempt}.json')}
+            if isinstance(request, dict):
+                entry['request'] = {key: request[key] for key in
+                    ('criteria', 'original_task', 'evidence_manifest', 'output_contract',
+                     'identity_contract', 'frozen_identity_context', 'format_feedback') if key in request}
+            for kind in ('identity', 'accepted'):
+                name = f'group.{kind}-{attempt}.json'
+                if (folder / name).is_file():
+                    entry[kind] = read(name)
+            case['attempts'].append(entry)
+        cases.append(case)
+    # Use persisted results only. A new collector must not relabel an old run as
+    # having been executed under today's verifier protocol.
+    results = saved.get('cases', [])
+    report = summarize(results, selected) if results else {
+        key: value for key, value in saved.items() if key != 'cases'}
+    return {'purpose': 'offline_saved_canary_diagnostics_not_visual_validation',
+        'executed_protocol': plan.get('protocol'), 'new_model_calls': 0,
+        'summary': report, 'cases': cases,
+        'qualification': 'Saved response/contract evidence only; no videos inspected, scores changed, '
+                         'or models called. Parser success is not visual or semantic correctness.'}
 
 
 def load_labels(path):
@@ -129,7 +201,9 @@ def compare_labels(summary, expected):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--run-dir', type=Path, required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--run-dir', type=Path)
+    mode.add_argument('--collect-suite', type=Path, help='Print existing canary responses/contracts offline; zero API calls')
     parser.add_argument('--max-groups', type=int, default=3, choices=range(1, 6))
     parser.add_argument('--execute', action='store_true', help='Opt in to at most 2 model calls per selected task')
     parser.add_argument('--config', type=Path, default=Path('configs/h3_story350_debug.json'))
@@ -137,6 +211,12 @@ def main(argv=None):
     parser.add_argument('--output-dir', type=Path)
     parser.add_argument('--labels', type=Path, help='Optional human-reviewed fixed-video labels; never sent to the model')
     args = parser.parse_args(argv)
+    if args.collect_suite:
+        if args.execute or args.output_dir or args.labels:
+            parser.error('collect-suite is read-only; do not combine with execute, output-dir or labels')
+        result = collect_suite(args.collect_suite)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return result
     if not args.run_dir.is_dir():
         parser.error('run-dir must exist')
     reports = audit_run(args.run_dir)
@@ -209,6 +289,7 @@ def main(argv=None):
         print(json.dumps(outcome, ensure_ascii=False), flush=True)
         if outcome.get('failure_category') in {'transport_or_provider', 'local_evidence', 'internal_error'}:
             break
+    write_json(root / 'diagnostics.json', collect_suite(root))
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return summary
 
