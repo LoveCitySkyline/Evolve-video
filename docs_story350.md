@@ -649,3 +649,26 @@ PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
 
 v20 的判断不能当作 v21 缓存续跑；v21 同一目录中断后可使用已有 `--resume`
 流程。复评仍仅用于开发回归，不能作为未见测试集上的方法收益。
+
+### v21.1：修复事实引用范围冲突
+
+服务器 v21 反馈暴露了一个宿主校验错误：`state_flow` 要求核对前一镜头末帧，
+其整体事实却被按普通当前窗口事件校验，合法的上一末帧引用被拒绝。
+`source-fact-consistency-v21.1` / `source-fact-consistency-v2` 将整体 state-flow
+单独建模。只有任务要求、且证据目录确实包含前一末帧时，才允许引用它；
+普通事件、不变量及前后状态事实仍受各自原始时间范围限制。
+
+事实请求新增逐事实 `citation_contract`，明确允许和必须引用的 ID、未知时的空引用，
+与服务端校验使用同一函数生成，避免只给一个全组证据列表却施加不同的隐含限制。
+边界引用失败现在报告 received / missing / unexpected / allowed，保留原始响应，
+不自动补填引用或更改分数。主事实与 assessment 的对应关系也显式放入请求。
+复核协议版本为 `bounded-evidence-review-v5.1`；调用和请求体积预算未更改。
+
+这次修复不证明所有模型输出格式错误或视觉分歧均已解决。v21 日志中
+首末边界引用错误仍需检查原始 fact_observations，区分漏引边界与额外引用采样帧；
+仅靠相同错误消息无法区分。不要为相同错误反复完整复评或直接增加预算。
+先检查具体原始响应，必要时用单组诊断验证，再启动完整新协议复评。
+
+已经同步 v21 时，运行文件只需再更新 `verifier_facts.py`、
+`conditioning_verifier.py`、`verifier_review.py`（均在 `src/evovideo_skill/`）。
+评估协议变更需要新输出目录，不能把 v21 的判断当作 v21.1 缓存。

@@ -1,7 +1,7 @@
 """Source-defined visual propositions, separate from desired state and quality scores."""
 from copy import deepcopy
 
-VERSION = 'source-fact-consistency-v1'
+VERSION = 'source-fact-consistency-v2'
 INSTRUCTIONS = '''
 For criteria with fact_contract, return fact_observations using exactly its IDs.
 These are questions about the actual candidate, NOT statements of desired truth.
@@ -17,6 +17,10 @@ scope: a previous last frame and a current first frame are different observation
 For graded setup/invariant/state-flow criteria, supported means the complete
 proposition holds (score 1); a lower observed score needs a visible counterexample.
 Unknown never receives a score. An acceptance threshold does not redefine truth.
+Follow EACH fact's citation_contract, not the union of the group's evidence IDs.
+For a known pre/post fact cite the required full boundary and optionally its crops;
+do not add other time samples. Unknown facts use no evidence_refs. State-flow
+may additionally cite an attached previous boundary only when explicitly listed.
 '''
 
 
@@ -57,7 +61,7 @@ def with_fact_contract(criteria, public):
         primary = f's{index}:{phase}:{key}' if sep else None
         if suffix == 'state_flow':
             primary = f's{index}:state_flow:whole'
-            facts[primary] = {'shot_index': index, 'phase': 'event',
+            facts[primary] = {'shot_index': index, 'phase': 'state_flow',
                 'proposition': rule['description'], 'source': f'evaluation.{name}.description'}
         elif primary in facts and phase in {'pre', 'post', 'invariant'} and key != 'initial_setup':
             facts = {primary: facts[primary]}
@@ -66,17 +70,44 @@ def with_fact_contract(criteria, public):
     return result
 
 
+def citation_contract(definition, rule, catalog):
+    """Use the same scope definition for the request schema and its validator."""
+    index, phase = definition['shot_index'], definition['phase']
+    if phase in {'pre', 'post'}:
+        boundary = f"s{index}:{'first' if phase == 'pre' else 'last'}"
+        allowed = [r for r in catalog if r == boundary or r.startswith(boundary + ':crop')]
+        required = [boundary]
+    else:
+        allowed = [r for r in catalog if r.startswith(f's{index}:') or r == f'window:{index}:samples']
+        if phase == 'state_flow' and rule.get('requires_previous_boundary'):
+            previous = f's{index - 1}:last'
+            if previous in catalog:
+                allowed.append(previous)
+        required = []
+    return {'allowed_refs_when_known': allowed, 'required_refs_when_known': required,
+        'refs_when_unknown': [], 'instruction': 'Nonempty unique subset of allowed refs when known, '
+            'including ALL required refs. These are allowed citations, not supplied observations.'}
+
+
 def output_fields(rule, manifest):
     from evovideo_skill.scoped_judgment import evidence_catalog
     catalog = evidence_catalog(manifest, {**rule, 'judgment_contract': 'required-action-v1'})
-    return {'facts': rule['fact_contract']['facts'], 'allowed_evidence_refs': list(catalog),
+    definitions = {key: {**deepcopy(definition), 'citation_contract': citation_contract(definition, rule, catalog)}
+                   for key, definition in rule['fact_contract']['facts'].items()}
+    return {'facts': definitions, 'allowed_evidence_refs': list(catalog),
+        'primary_fact': rule['fact_contract']['primary_fact'],
+        'primary_assessment_mapping': {'satisfied_or_complete': 'supported',
+            'violated_absent_or_partial': 'contradicted', 'unknown': 'unknown',
+            'graded_no_assessment': 'unobserved => unknown; observed score=1 => supported; observed score<1 => contradicted'},
         'shape': {'exact_fact_id': {'value': 'supported|contradicted|unknown',
             'basis': 'visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap',
             'evidence_refs': ['attached evidence ID; [] for unknown'],
             'evidence': 'actual visible support or limitation',
             'counterexample': 'required nonempty visible alternative for contradicted; otherwise omit'}},
         'instruction': 'Return every declared fact once. Pre cites first full boundary; post cites last full boundary. '
-            'Event/invariant cites current-window samples. Missing views never prove a negative.'}
+            'Event/invariant cites current-window samples. State-flow may include the listed previous boundary. '
+            'Use each fact citation_contract; the group-wide allowed_evidence_refs is only a union. '
+            'Missing views never prove a negative.'}
 
 
 def validate_facts(name, rule, row, manifest):
@@ -108,13 +139,15 @@ def validate_facts(name, rule, row, manifest):
             raise ValueError(f'{name}: {key}: invalid fact evidence_refs; unknown requires []')
         if not refs:
             continue
-        index, phase = definition['shot_index'], definition['phase']
-        if phase in {'pre', 'post'}:
-            boundary = f"s{index}:{'first' if phase == 'pre' else 'last'}"
-            if boundary not in refs or any(r != boundary and not r.startswith(boundary + ':crop') for r in refs):
-                raise ValueError(f'{name}: {key}: fact must cite its exact full boundary {boundary}')
-        elif any(not (r.startswith(f's{index}:') or r == f'window:{index}:samples') for r in refs):
-            raise ValueError(f'{name}: {key}: fact citation is outside its own window')
+        scope = citation_contract(definition, rule, catalog)
+        missing = sorted(set(scope['required_refs_when_known']) - set(refs))
+        unexpected = sorted(set(refs) - set(scope['allowed_refs_when_known']))
+        if missing or unexpected:
+            description = ('fact must cite its exact full boundary' if scope['required_refs_when_known']
+                           else 'fact citation is outside its allowed temporal scope')
+            raise ValueError(f'{name}: {key}: {description}; received={refs}; missing={missing}; '
+                f'unexpected={unexpected}; allowed={scope["allowed_refs_when_known"]}. '
+                'Reconcile against the same evidence; do not invent or auto-replace citations.')
     primary = contract['primary_fact']
     if primary:
         expected = facts[primary]['value']

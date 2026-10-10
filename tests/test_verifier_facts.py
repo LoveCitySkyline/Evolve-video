@@ -67,6 +67,48 @@ class FactContractTests(unittest.TestCase):
         self.assertIn('fact_observations', fields['required'])
         self.assertIn('s2:last', fields['fact_observations']['allowed_evidence_refs'])
 
+    def test_fact_specific_prompt_schema_matches_boundary_validator(self):
+        _, rules = fixture()
+        spec = output_contract(rules, SPANS, citation_manifest())['fields'][POST]['fact_observations']
+        citations = spec['facts'][POST_FACT]['citation_contract']
+        self.assertEqual(citations['required_refs_when_known'], ['s2:last'])
+        self.assertEqual(citations['allowed_refs_when_known'], ['s2:last'])
+        row = raw_row(rules[POST])
+        row['fact_observations'][POST_FACT]['evidence_refs'] = ['s2:last', 's2:f000']
+        with self.assertRaisesRegex(ValueError, "missing=\\[\\]; unexpected=\\['s2:f000'\\]"):
+            project({'criteria': {POST: row}}, {POST: rules[POST]}, citation_manifest())
+
+    def test_state_flow_can_cite_attached_previous_boundary_without_extending_event_scope(self):
+        public, rules = fixture()
+        public['metadata']['story_contract']['shots'].insert(0, {'shot_index': 1,
+            'postconditions': {'token.location': 'A hand'}})
+        name = 'story.s2.state_flow'
+        flow = {**STATE, 'description': 'State follows previous boundary and current actions.',
+                'requires_previous_boundary': True}
+        flow.pop('judgment_contract')
+        rule = with_fact_contract({name: flow}, public)[name]
+        row = {'confidence': .9, 'status': 'observed', 'score': 1., 'observation_basis': 'visible_match',
+               'evidence': 'Fixture continuity observations.', 'evidence_refs': ['window:2:samples', 's1:last'],
+               'fact_observations': facts(rule)}
+        whole = 's2:state_flow:whole'
+        row['fact_observations'][whole]['evidence_refs'].append('s1:last')
+        before = deepcopy(row)
+        normalized = project({'criteria': {name: row}}, {name: rule}, citation_manifest())
+        self.assertEqual(normalized['criteria'][name]['score'], 1.)
+        self.assertEqual(row, before)
+        fields = output_contract({name: rule}, SPANS, citation_manifest())['fields'][name]['fact_observations']['facts']
+        self.assertIn('s1:last', fields[whole]['citation_contract']['allowed_refs_when_known'])
+        self.assertNotIn('s1:last', fields[EVENT_FACT]['citation_contract']['allowed_refs_when_known'])
+        # A genuine current-shot event still cannot cite the previous shot as its evidence.
+        row['fact_observations'][EVENT_FACT]['evidence_refs'] = ['s1:last']
+        with self.assertRaisesRegex(ValueError, 'outside its allowed temporal scope'):
+            project({'criteria': {name: row}}, {name: rule}, citation_manifest())
+        # No attached previous image => no authorization, even with the task flag.
+        manifest = citation_manifest()
+        manifest['evaluation_view'].pop('previous_boundary_context')
+        fields = output_contract({name: rule}, SPANS, manifest)['fields'][name]['fact_observations']['facts']
+        self.assertNotIn('s1:last', fields[whole]['citation_contract']['allowed_refs_when_known'])
+
     def test_unseen_spatial_referent_cannot_establish_false(self):
         _, rules = fixture()
         row = raw_row(rules[POST])
