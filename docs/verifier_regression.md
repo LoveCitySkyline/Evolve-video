@@ -1,5 +1,50 @@
 # Verifier regression workflow
 
+## v24: separate format repair from semantic reassessment
+
+`bounded-semantic-reassessment-v24` retains the two-call fixed-window limit.
+Missing fields and bad citations still use format-only repair: existing semantic
+claims cannot change silently. Recognized conflicting fact value/basis pairs or
+action outcomes/components instead use one explicit same-evidence reassessment
+of the affected criteria. The invalid verdict is not frozen and no replacement
+score is prescribed. Independently valid sibling criteria remain unchanged.
+Both responses and the classification are saved; an unresolved conflict still
+fails validation. A truthful unknown remains unscored. This is not an independent
+second-model confirmation.
+
+The v23 saved canary caught a retry deadlock: `contradicted + not_visible` and
+`absent + nonempty matched` failed validation, but format-only feedback also
+forbade changing the conflicting claims. The offline regression fixture now
+preserves the reported rows and checks retry routing, unchanged sibling scores,
+failure after two identical invalid responses, and truthful abstention. Synthetic
+follow-up responses in tests exercise control flow; they are not visual labels.
+
+Identity binding v2 also blocks explicit standalone present-tense absence claims
+inside an observed actor binding. The reported declaration that the source A
+person "is not present" cannot support an observed A binding. This limited text
+check does not attempt general contradiction detection or reject time-qualified
+occlusion as an identity error.
+
+After synchronizing the five changed runtime modules (`conditioning_verifier.py`,
+`criterion_grounding.py`, `scoped_judgment.py`, `verifier_facts.py`, and
+`verifier_identity.py`), repeat the same three-task canary in a **new** directory:
+
+```bash
+suite_dir="$(mktemp -d outputs/h3_verifier_v24_suite_XXXXXX)"
+set -o pipefail
+PYTHONPATH=src python scripts/verifier_regression_suite.py \
+  --run-dir outputs/h3_story350_v221_smoke15_x25tKA \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --max-groups 3 --execute --output-dir "$suite_dir" \
+  2>&1 | tee "${suite_dir}.log"
+```
+
+The diagnostics collector from `fd9a472` automatically writes
+`$suite_dir/diagnostics.json`. Preserve that file and `summary.json` together.
+The verifier protocol bump prevents reusing old verdicts as v24 observations;
+it does not invalidate the saved videos used by the development canary.
+
 The v23 protocol (`source-actor-binding-v23`) checks source actor bindings before
 using fixed-window scores. One `identity_bindings` object is shared by all
 criteria in a request. Its appearance IDs and candidate image citations must

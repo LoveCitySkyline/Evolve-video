@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "source-actor-binding-v23"
+VERIFIER_PROTOCOL_VERSION = "bounded-semantic-reassessment-v24"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -1077,6 +1077,7 @@ class ConditioningVideoVerifier:
         accepted_raw = {}
         original_rows = {}
         identity_rechecks = set()
+        semantic_rechecks = set()
         for attempt in range(2):
             prompt = deepcopy(payload)
             prompt['criteria'] = pending
@@ -1090,6 +1091,7 @@ class ConditioningVideoVerifier:
             else:
                 raw = self.request(json.dumps(prompt, ensure_ascii=False), evidence,
                     operation + ('/identity-recheck-1' if attempt and identity_rechecks
+                                 else '/semantic-recheck-1' if attempt and semantic_rechecks
                                  else '/format-correction-1' if attempt else ''))
                 write_json(raw_path, raw)
             errors, failed = [], {}
@@ -1132,7 +1134,7 @@ class ConditioningVideoVerifier:
                 for name, rule in remaining.items():
                     try:
                         canonical = {name: subset[name]}
-                        if attempt and name not in identity_rechecks and rule.get('fact_contract'):
+                        if attempt and name not in identity_rechecks | semantic_rechecks:
                             from evovideo_skill.verifier_facts import correction_semantic_changes
                             current_raw_row = raw.get('criteria', {}).get(name) if isinstance(raw, dict) else None
                             changes = correction_semantic_changes(original_rows.get(name), current_raw_row)
@@ -1145,9 +1147,14 @@ class ConditioningVideoVerifier:
                         if identity and identity['dependencies'][name]:
                             accepted[name]['identity_gate'] = {**deepcopy(identity_audit), 'status': 'bound',
                                 'checked_actors': identity['dependencies'][name]}
+                        if attempt and name in semantic_rechecks:
+                            accepted[name]['semantic_reassessment'] = {
+                                'reason': 'internally_conflicting_prior_judgment', 'attempt': attempt,
+                                'qualification': 'Fresh same-evidence judgment; not independent verification or format repair.'}
                         accepted_raw[name] = deepcopy(rows[name])
                     except (ValueError, KeyError, TypeError) as issue:
-                        errors.append({'criterion': name, 'error': str(issue)})
+                        errors.append({'criterion': name, 'category': getattr(issue, 'category', 'response_format'),
+                                       'error': str(issue)})
                         failed[name] = rule
             write_json(path.with_suffix(f'.accepted-{attempt}.json'), {
                 'criteria': accepted_raw, 'qualification': 'Valid responses retained; no scores inferred for failed criteria.'})
@@ -1167,8 +1174,10 @@ class ConditioningVideoVerifier:
                                    'from the same evidence. Do not invent facts or upgrade scores to pass.'}
                 raw_rows = raw.get('criteria') if isinstance(raw, dict) else None
                 original_rows = deepcopy(raw_rows) if isinstance(raw_rows, dict) else {}
+                semantic_rechecks = {error['criterion'] for error in errors
+                                     if error.get('category') == 'semantic_conflict' and 'criterion' in error}
                 guarded = {name: original_rows[name] for name in failed
-                           if failed[name].get('fact_contract') and name in original_rows}
+                           if name not in semantic_rechecks | set(blocked) and name in original_rows}
                 if guarded:
                     feedback['previous_response'] = {'criteria': guarded}
                     feedback['instruction'] += (' This is FORMAT REPAIR ONLY: preserve existing recognized statuses, '
@@ -1178,11 +1187,21 @@ class ConditioningVideoVerifier:
                         'If these judgments cannot be reconciled with the contract, report the uncertainty honestly; '
                         'changed judgments will be retained for audit but require a separate bounded review, not acceptance.')
                 identity_rechecks = set(blocked)
-                if identity_rechecks:
+                if identity_rechecks or semantic_rechecks:
                     feedback['instruction'] = ('Return only the requested criteria. Criteria listed in '
-                        'identity_reassessment need a fresh evidence-based judgment, not preservation of an '
+                        'identity_reassessment or semantic_reassessment need a fresh evidence-based judgment, not preservation of an '
                         'invalid verdict. For OTHER criteria, repair format only and preserve existing '
                         'observations and judgments. Do not infer a desired score from any validation error.')
+                if semantic_rechecks:
+                    feedback['semantic_reassessment'] = {'criteria': sorted(semantic_rechecks),
+                        'instruction': 'The prior response contains incompatible semantic fields and cannot be '
+                            'repaired by freezing its verdict. Reassess these criteria from the SAME original '
+                            'task and actual media. Decide visibility first, then source facts and action '
+                            'components, then one consistent assessment. Genuine uncertainty stays unknown. '
+                            'Do not change a basis, delete matched actions, or award partial credit merely '
+                            'to pass validation. The host supplies no desired score. This uses the one remaining '
+                            'group call, with no further retries.'}
+                if identity_rechecks:
                     # Binding failure invalidates the affected judgments, not the
                     # video. One fresh assessment replaces per-criterion review.
                     feedback['identity_reassessment'] = {'criteria': sorted(identity_rechecks),
@@ -1195,7 +1214,8 @@ class ConditioningVideoVerifier:
                         feedback['previous_response']['criteria'] = {k: v for k, v in
                             feedback['previous_response']['criteria'].items() if k not in identity_rechecks}
                 pending = failed
-                mode = 'identity reassessment' if identity_rechecks else 'format correction'
+                mode = ('identity reassessment' if identity_rechecks else
+                        'semantic reassessment' if semantic_rechecks else 'format correction')
                 print(f'[conditioning verifier] {mode}=1/1 job={operation}: {errors}', flush=True)
                 continue
             write_json(path.with_suffix(f'.format-{attempt}.json'), {'status': 'valid_response_format',

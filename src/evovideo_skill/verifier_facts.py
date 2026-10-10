@@ -116,6 +116,13 @@ def fact_sources(rule, manifest):
     definitions = {key: {**deepcopy(definition), 'citation_contract': citation_contract(definition, rule, catalog)}
                    for key, definition in rule['fact_contract']['facts'].items()}
     return {'facts': definitions, 'allowed_evidence_refs': list(catalog),
+        'allowed_basis_by_value': {'supported': ['visible_support'],
+            'contradicted': ['visible_counterexample'],
+            'unknown': ['not_visible', 'occluded', 'ambiguous', 'sampling_gap']},
+        'visibility_instruction': 'not_visible means the evidence cannot decide the proposition; it does NOT mean '
+            'a required action was visibly absent. Adequate sampled coverage showing a wrong action may '
+            'support contradicted/visible_counterexample, with a cited visible alternative. '
+            'Do not infer adequate coverage merely from the presence of a clip or change basis to fit a score.',
         'primary_fact': rule['fact_contract']['primary_fact'],
         'primary_assessment_mapping': {'satisfied_or_complete': 'supported',
             'violated_absent_or_partial': 'contradicted', 'unknown': 'unknown',
@@ -176,6 +183,10 @@ def correction_semantic_changes(previous, current):
     if isinstance(before_assessment, dict) and isinstance(after_assessment, dict):
         compare('assessment.outcome', before_assessment.get('outcome'), after_assessment.get('outcome'),
             {'satisfied', 'violated', 'complete', 'absent', 'partial', 'unknown', 'coherent', 'defective'})
+        for field in ('matched', 'unmet', 'defects'):
+            a, b = before_assessment.get(field), after_assessment.get(field)
+            if isinstance(a, list) and isinstance(b, list) and a != b:
+                changes.append({'path': f'assessment.{field}', 'before': deepcopy(a), 'after': deepcopy(b)})
     before_facts, after_facts = _comparison_facts(previous), _comparison_facts(current)
     if isinstance(before_facts, dict) and isinstance(after_facts, dict):
         for key in sorted(before_facts.keys() & after_facts.keys()):
@@ -229,7 +240,9 @@ def validate_facts(name, rule, row, manifest):
             known_basis = {b for values in allowed.values() for b in values}
             category = ('semantic_conflict' if isinstance(value, str) and value in allowed
                         and isinstance(basis, str) and basis in known_basis else 'response_format')
-            raise FactValidationError(category, f'{name}: {key}: visibility basis cannot establish the claimed fact value')
+            raise FactValidationError(category, f'{name}: {key}: visibility basis cannot establish the claimed fact value; '
+                f'received value={value!r}, basis={basis!r}; allowed_basis_by_value={allowed}. '
+                'Reassess visibility and the proposition from the same media; do not mechanically relabel the basis.')
         if not isinstance(fact.get('evidence'), str) or not fact['evidence'].strip():
             raise ValueError(f'{name}: {key}: fact needs actual evidence or limitation')
         if value == 'contradicted' and (not isinstance(fact.get('counterexample'), str) or not fact['counterexample'].strip()):

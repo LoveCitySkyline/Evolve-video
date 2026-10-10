@@ -64,9 +64,15 @@ def physical_judgment_payload(payload, criteria):
     return result
 
 
+class SemanticJudgmentError(ValueError):
+    category = 'semantic_conflict'
+
+
 class AssessmentContractError(ValueError):
     def __init__(self, name, kind, issues):
         self.issues = issues
+        self.category = ('semantic_conflict' if any(i.get('category') == 'semantic_conflict' for i in issues)
+                         else 'response_format')
         super().__init__(f"{name}: {kind}: " + '; '.join(
             f"{issue['location']}: {issue['message']}" for issue in issues))
 
@@ -369,9 +375,21 @@ def validate_grounding(name, definition, item, spans, manifest=None):
         else:
             raise ValueError(f"unknown judgment contract: {kind}")
         if not valid:
+            # Recognized but incompatible judgments need fresh assessment, not
+            # a format repair that freezes the very fields causing the conflict.
+            recognized = (kind == 'required-action-v1' and strings(assessment.get('matched'))
+                and strings(assessment.get('unmet')) and outcome in {'complete', 'absent', 'partial', 'unknown'})
+            detail = ''
+            if recognized:
+                detail = (f" received outcome={outcome!r}, status={row['status']!r}, score={score!r}, "
+                    f"matched={assessment['matched']!r}, unmet={assessment['unmet']!r}. "
+                    'Complete requires matched only; absent requires unmet only; partial requires both '
+                    'and 0<score<1. Incidental props or correct endpoints alone are not correctly '
+                    'performed source action requirements. Unknown remains unscored.')
             issues.append({'code': 'assessment_conflict', 'location': location,
+                'category': 'semantic_conflict' if recognized else 'response_format',
                 'message': 'assessment conflicts with status/score or uses an invalid basis; '
-                           'reassess the SAME evidence, do not invent observations'})
+                           'reassess the SAME evidence, do not invent observations.' + detail})
     if issues:
         raise AssessmentContractError(name, kind, issues)
     if (kind == 'physical-motion-v1' and index is None

@@ -8,7 +8,7 @@ import re
 
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'source-actor-binding-v1'
+VERSION = 'source-actor-binding-v2'
 INSTRUCTIONS = '''
 When identity_contract is present, return ONE top-level identity_bindings object
 alongside criteria. First identify visible appearances from the source registry;
@@ -21,6 +21,8 @@ in the candidate. Unknown uses null appearance_id and []. The host checks actor
 bindings before using dependent scores. A missing/ambiguous person is unknown,
 not a failed action. All prose, facts and actor labels must agree with bindings.
 Source definitions are requirements, not proof that a matching person is visible.
+Give a concise observation, not competing drafts of an identity explanation.
+An observed binding cannot also claim that the same source person is absent.
 If format_feedback.identity_reassessment lists criteria, make a fresh judgment
 for THOSE criteria after re-identifying actors; their previous judgment is invalid
 and must not constrain the new outcome. Other listed errors remain format repair
@@ -135,6 +137,36 @@ def explicit_alias_conflicts(row, actors):
     return conflicts
 
 
+def binding_presence_conflicts(bindings, actors):
+    """Flag explicit unqualified absence claims inside an observed binding.
+
+    Only standalone present-tense actor/source-description clauses are handled.
+    Time-qualified occlusion, an absent action or absence of another person is
+    not a contradiction. This is a conservative declaration check, not NLP truth.
+    """
+    conflicts = []
+    if not isinstance(bindings, dict):
+        return conflicts
+    for actor, binding in bindings.items():
+        if actor not in actors or not isinstance(binding, dict) or binding.get('status') != 'observed':
+            continue
+        text = binding.get('evidence', '')
+        if not isinstance(text, str):
+            continue
+        actor_pattern = rf'(?:^|[.;]\s*){re.escape(actor)}\s+is\s+(?:not present|not visible|absent)\s*(?=[.;]|$)'
+        for match in re.finditer(actor_pattern, text):
+            conflicts.append({'actor': actor, 'claim': match.group(0).lstrip('.; '),
+                              'reason': 'observed_binding_claims_unqualified_absence'})
+        pattern = r'(?:^|[.;]\s*)(?:[Tt]he\s+)?[Pp]erson with\s+([^.;]+?)\s+is\s+(?:not present|not visible|absent)\s*(?=[.;]|$)'
+        for match in re.finditer(pattern, text):
+            description = match.group(1).lower()
+            owners = {a for a, definition in actors.items() if any(anchor in description for anchor in definition['anchors'])}
+            if owners == {actor}:
+                conflicts.append({'actor': actor, 'claim': match.group(0).lstrip('.; '),
+                                  'reason': 'observed_binding_claims_unqualified_absence'})
+    return conflicts
+
+
 def assess(raw, spec):
     """Return per-actor blockers and their dependency closure before scoring."""
     if spec is None:
@@ -165,6 +197,9 @@ def assess(raw, spec):
             if errors:
                 issues[actor] = errors
     claims = explicit_alias_conflicts(raw, actors)
+    presence_conflicts = binding_presence_conflicts(bindings, actors)
+    for claim in presence_conflicts:
+        issues.setdefault(claim['actor'], []).append(claim['reason'])
     for claim in claims:
         # If one response swaps a pair, all judgments involving either actor are unsafe.
         for actor in (claim['actor'], claim['source_actor']):
@@ -173,6 +208,7 @@ def assess(raw, spec):
                if set(deps) & set(issues)}
     return {'version': VERSION, 'status': 'blocked' if blocked else 'bound',
         'actor_issues': issues, 'blocked_criteria': blocked, 'claims': claims,
+        'presence_conflicts': presence_conflicts,
         'bindings': deepcopy(bindings), 'qualification': spec['qualification']}
 
 

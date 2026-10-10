@@ -1,7 +1,7 @@
 """One model judgment per fixed window; deterministic internal projection."""
 from copy import deepcopy
 
-from evovideo_skill.criterion_grounding import grounding_output_contract
+from evovideo_skill.criterion_grounding import grounding_output_contract, SemanticJudgmentError
 
 SCOPED_RESPONSE_PROTOCOL = 'single-window-evidence-refs-v2'
 SCOPED_JUDGE_SYSTEM = """Judge ONLY the supplied fixed temporal window of an
@@ -38,6 +38,10 @@ matched and unmet source requirements. For visible_appearance_only, evaluate
 appearance independently of missing cuts or action coverage and return scope_checks.
 If correction is requested, correct all listed errors against the SAME evidence.
 Never invent facts or improve a judgment to satisfy validation.
+If format_feedback.semantic_reassessment lists a criterion, its prior judgment
+was internally contradictory. Reassess that criterion from the supplied media;
+do not preserve an invalid score, outcome or fact basis. No replacement outcome
+is prescribed. Other criteria still require format-only repair.
 """
 
 
@@ -162,11 +166,13 @@ def project(raw, criteria, manifest=None):
                 raise ValueError(f'{name}: invalid assessment outcome {outcome!r} for {kind}')
             status = 'unobserved' if outcome == 'unknown' else 'observed'
             if 'status' in row and row['status'] != status:
-                raise ValueError(f'{name}: redundant status contradicts assessment.outcome')
+                error = SemanticJudgmentError if row['status'] in ('observed', 'unobserved') else ValueError
+                raise error(f'{name}: redundant status contradicts assessment.outcome')
             if outcome in fixed[kind]:
                 value = fixed[kind][outcome]
                 if 'score' in row and (type(row['score']) is bool or row['score'] != value):
-                    raise ValueError(f'{name}: redundant score contradicts assessment.outcome')
+                    error = SemanticJudgmentError if type(row['score']) in (int, float) or row['score'] is None else ValueError
+                    raise error(f'{name}: redundant score contradicts assessment.outcome')
                 row['score'] = value
             elif 'score' not in row:
                 raise ValueError(f'{name}: {outcome} requires a graded score')
