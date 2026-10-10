@@ -181,6 +181,7 @@ def main(argv=None):
     from evovideo_skill.verifier_facts import mark_conflicts
     conflicts = mark_conflicts({k: [v] for k, v in result.items()})
     summary = {'purpose': plan['purpose'], 'format_valid': True, 'fact_conflicts': conflicts,
+        'identity_gates': {k: v['identity_gate'] for k, v in result.items() if 'identity_gate' in v},
         'criteria': {k: {'status': v['status'], 'score': v['score']} for k, v in result.items()},
         'qualification': 'One diagnostic repeat only; no admission, full-video aggregation or independent verification.'}
     write_json(root / 'summary.json', summary)

@@ -343,6 +343,11 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
     for name, initial in rows.items():
         if not uncertain(initial, owner.profile['disagreement_threshold']):
             continue
+        if any(row.get('identity_gate', {}).get('status') == 'blocked' for row in initial):
+            audit[name] = {'status': 'abstained', 'observations': [],
+                'errors': ['shared identity reassessment unresolved; no per-criterion retry or score assigned'],
+                'review_scope': 'shared_identity', 'additional_model_calls': 0}
+            continue
         key = stable_hash([group, name])[:16]
         root = folder / 'auto_review' / key
         saved = root / 'decision.json'

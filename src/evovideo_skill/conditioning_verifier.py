@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "source-fact-consistency-v22.2"
+VERIFIER_PROTOCOL_VERSION = "source-actor-binding-v23"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -778,6 +778,9 @@ class ConditioningVideoVerifier:
         if any(rule.get('fact_contract') for rule in text_payload.get('criteria', {}).values()):
             from evovideo_skill.verifier_facts import INSTRUCTIONS
             system += INSTRUCTIONS
+        if text_payload.get('identity_contract'):
+            from evovideo_skill.verifier_identity import INSTRUCTIONS as IDENTITY_INSTRUCTIONS
+            system += IDENTITY_INSTRUCTIONS
         system += self.response_contract_instructions
         key = os.environ.get(p["api_key_env"])
         if not key:
@@ -1045,6 +1048,7 @@ class ConditioningVideoVerifier:
             return parsed
 
     def _observe_scoped(self, path, payload, evidence, operation, subset, spans):
+        from evovideo_skill.verifier_identity import contract as identity_contract, assess as assess_identity, withheld
         payload = deepcopy(payload)
         initial_manifest = payload.get('evidence_manifest', {})
         if (initial_manifest.get('evaluation_view', {}).get('sampled_media_file')
@@ -1062,6 +1066,9 @@ class ConditioningVideoVerifier:
                     'label against these definitions. If the visible person cannot be bound, use unknown; '
                     'never swap the source labels to explain a state judgment.'}
         manifest = payload.get('evidence_manifest', {})
+        identity = identity_contract(payload.get('original_task', {}), subset, manifest)
+        if identity:
+            payload['identity_contract'] = identity
         if self.cache_enabled and path.exists():
             return parse_judgment(json.loads(path.read_text()), subset, spans, manifest)
         feedback = None
@@ -1069,6 +1076,7 @@ class ConditioningVideoVerifier:
         accepted = {}
         accepted_raw = {}
         original_rows = {}
+        identity_rechecks = set()
         for attempt in range(2):
             prompt = deepcopy(payload)
             prompt['criteria'] = pending
@@ -1081,26 +1089,50 @@ class ConditioningVideoVerifier:
                 raw = json.loads(raw_path.read_text())
             else:
                 raw = self.request(json.dumps(prompt, ensure_ascii=False), evidence,
-                    operation + ('/format-correction-1' if attempt else ''))
+                    operation + ('/identity-recheck-1' if attempt and identity_rechecks
+                                 else '/format-correction-1' if attempt else ''))
                 write_json(raw_path, raw)
             errors, failed = [], {}
+            identity_audit = assess_identity(raw, identity)
+            if identity:
+                write_json(path.with_suffix(f'.identity-{attempt}.json'), identity_audit)
+            blocked = identity_audit['blocked_criteria']
+            for name in blocked:
+                accepted.pop(name, None)
+                accepted_raw.pop(name, None)
+                if attempt:
+                    item = project_scoped({'criteria': {name: withheld(subset[name])}},
+                                          {name: subset[name]}, manifest)['criteria'][name]
+                    item.update(identity_gate=deepcopy(identity_audit), observation_source='host_identity_dependency')
+                    accepted[name] = item
+                else:
+                    failed[name] = subset[name]
+                    errors.append({'criterion': name, 'category': 'identity_dependency',
+                                   'error': 'source identity unresolved; shared binding reassessment required'})
+            remaining = {name: rule for name, rule in pending.items() if name not in blocked}
+            clean_raw = deepcopy(raw)
+            if isinstance(clean_raw, dict):
+                if identity:
+                    clean_raw.pop('identity_bindings', None)
+                if isinstance(clean_raw.get('criteria'), dict) and set(clean_raw['criteria']) == set(pending):
+                    clean_raw['criteria'] = {k: v for k, v in clean_raw['criteria'].items() if k in remaining}
             try:
-                checked_raw = self.validate_response_contract(raw, pending)
+                checked_raw = self.validate_response_contract(clean_raw, remaining)
             except (ValueError, KeyError, TypeError) as issue:
                 checked_raw = None
-                errors = [{'error': str(issue)}]
-                failed = dict(pending)
+                errors.append({'error': str(issue)})
+                failed.update(remaining)
             rows = checked_raw.get('criteria') if isinstance(checked_raw, dict) else None
-            if errors:
+            if checked_raw is None:
                 pass
-            elif not isinstance(rows, dict) or set(rows) != set(pending) or set(checked_raw) != {'criteria'}:
-                errors = [{'error': 'Return exactly the currently requested criterion keys; do not rewrite accepted criteria.'}]
-                failed = dict(pending)
+            elif not isinstance(rows, dict) or set(rows) != set(remaining) or set(checked_raw) != {'criteria'}:
+                errors.append({'error': 'Return exactly the currently requested criterion keys; do not rewrite accepted criteria.'})
+                failed.update(remaining)
             else:
-                for name, rule in pending.items():
+                for name, rule in remaining.items():
                     try:
                         canonical = {name: subset[name]}
-                        if attempt and rule.get('fact_contract'):
+                        if attempt and name not in identity_rechecks and rule.get('fact_contract'):
                             from evovideo_skill.verifier_facts import correction_semantic_changes
                             current_raw_row = raw.get('criteria', {}).get(name) if isinstance(raw, dict) else None
                             changes = correction_semantic_changes(original_rows.get(name), current_raw_row)
@@ -1110,6 +1142,9 @@ class ConditioningVideoVerifier:
                         item = project_scoped({'criteria': {name: rows[name]}}, canonical, manifest)
                         parse_judgment(item, canonical, spans, manifest)
                         accepted[name] = item['criteria'][name]
+                        if identity and identity['dependencies'][name]:
+                            accepted[name]['identity_gate'] = {**deepcopy(identity_audit), 'status': 'bound',
+                                'checked_actors': identity['dependencies'][name]}
                         accepted_raw[name] = deepcopy(rows[name])
                     except (ValueError, KeyError, TypeError) as issue:
                         errors.append({'criterion': name, 'error': str(issue)})
@@ -1142,8 +1177,26 @@ class ConditioningVideoVerifier:
                         'do not rewrite observations while keeping the same verdict enum. '
                         'If these judgments cannot be reconciled with the contract, report the uncertainty honestly; '
                         'changed judgments will be retained for audit but require a separate bounded review, not acceptance.')
+                identity_rechecks = set(blocked)
+                if identity_rechecks:
+                    feedback['instruction'] = ('Return only the requested criteria. Criteria listed in '
+                        'identity_reassessment need a fresh evidence-based judgment, not preservation of an '
+                        'invalid verdict. For OTHER criteria, repair format only and preserve existing '
+                        'observations and judgments. Do not infer a desired score from any validation error.')
+                    # Binding failure invalidates the affected judgments, not the
+                    # video. One fresh assessment replaces per-criterion review.
+                    feedback['identity_reassessment'] = {'criteria': sorted(identity_rechecks),
+                        'actor_issues': identity_audit['actor_issues'],
+                        'instruction': 'For these criteria ONLY, the original judgment is invalid due to identity. '
+                            'Independently re-identify actors from supplied evidence using source appearance definitions, '
+                            'then judge these criteria afresh. This is NOT format repair and no outcome is prescribed. '
+                            'Unknown identities must remain unknown. Do not invert scores or swap labels mechanically.'}
+                    if 'previous_response' in feedback:
+                        feedback['previous_response']['criteria'] = {k: v for k, v in
+                            feedback['previous_response']['criteria'].items() if k not in identity_rechecks}
                 pending = failed
-                print(f'[conditioning verifier] format correction=1/1 job={operation}: {errors}', flush=True)
+                mode = 'identity reassessment' if identity_rechecks else 'format correction'
+                print(f'[conditioning verifier] {mode}=1/1 job={operation}: {errors}', flush=True)
                 continue
             write_json(path.with_suffix(f'.format-{attempt}.json'), {'status': 'valid_response_format',
                 'response_protocol': SCOPED_RESPONSE_PROTOCOL, 'correction_attempt': attempt,
@@ -1236,6 +1289,8 @@ class ConditioningVideoVerifier:
                 observations[name] = rows[name]
         fact_conflicts_after = mark_conflicts(observations)
         conjunction_audit = combine_obligations(task, observations)
+        from evovideo_skill.verifier_identity import quarantine_source_conflicts
+        source_identity_audit = quarantine_source_conflicts(public, criteria, observations)
         # Conjunctions can rewrite a parent's score; factual conflicts still block
         # it and its components from rewards and repair instructions.
         fact_conflicts_after = mark_conflicts(observations)
@@ -1287,6 +1342,7 @@ class ConditioningVideoVerifier:
             verification_metadata={**manifest, "unobserved_criteria": unobserved, "disagreement_criteria": review,
                 "verifier_protocol": VERIFIER_PROTOCOL_VERSION, "scope_issues": scope_issues,
                 "auto_review": review_audits, "response_format_failures": format_failures,
+                'source_identity': source_identity_audit,
                 'fact_consistency': {'before_review': fact_conflicts_before, 'unresolved': fact_conflicts_after,
                     'qualification': 'Structured same-proposition consistency, not independent visual ground truth.'},
                 "global_fixed_window_criteria": sorted(window_observations),

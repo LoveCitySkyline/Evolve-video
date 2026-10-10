@@ -151,7 +151,10 @@ class FactContractTests(unittest.TestCase):
             self.assertTrue(correction_semantic_changes(initial['judgment'], corrected['judgment']))
             with TemporaryDirectory() as tmp:
                 verifier = ConditioningVideoVerifier(profile(), tmp)
-                with patch.object(verifier, 'request', return_value={'criteria': {name: initial['judgment']}}) as req:
+                # This archived fixture isolates citation/format behavior. Identity
+                # safety of old responses is tested by test_verifier_identity.
+                with patch('evovideo_skill.verifier_identity.contract', return_value=None), patch.object(
+                        verifier, 'request', return_value={'criteria': {name: initial['judgment']}}) as req:
                     result = verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
                         'criteria': rules, 'evidence_manifest': manifest}, [], 'replay', rules, SPANS)
                 self.assertEqual(req.call_count, 1)  # No unnecessary correction of the supplied valid citation.
