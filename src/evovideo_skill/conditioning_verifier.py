@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "source-fact-consistency-v21.1"
+VERIFIER_PROTOCOL_VERSION = "source-fact-consistency-v22"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -1064,6 +1064,7 @@ class ConditioningVideoVerifier:
         pending = deepcopy(payload['criteria']) if physical_motion_only(subset) else dict(subset)
         accepted = {}
         accepted_raw = {}
+        original_rows = {}
         for attempt in range(2):
             prompt = deepcopy(payload)
             prompt['criteria'] = pending
@@ -1095,6 +1096,12 @@ class ConditioningVideoVerifier:
                 for name, rule in pending.items():
                     try:
                         canonical = {name: subset[name]}
+                        if attempt and rule.get('fact_contract'):
+                            from evovideo_skill.verifier_facts import correction_semantic_changes
+                            changes = correction_semantic_changes(original_rows.get(name), rows[name])
+                            if changes:
+                                raise ValueError(f'{name}: format correction changed semantic judgments: {changes}; '
+                                    'neither response is accepted as truth; bounded evidence review is required')
                         item = project_scoped({'criteria': {name: rows[name]}}, canonical, manifest)
                         parse_judgment(item, canonical, spans, manifest)
                         accepted[name] = item['criteria'][name]
@@ -1118,6 +1125,16 @@ class ConditioningVideoVerifier:
                 feedback = {'validation_errors': errors,
                     'instruction': 'Return ONLY the requested invalid criteria, one judgment each. Correct all listed fields '
                                    'from the same evidence. Do not invent facts or upgrade scores to pass.'}
+                raw_rows = raw.get('criteria') if isinstance(raw, dict) else None
+                original_rows = deepcopy(raw_rows) if isinstance(raw_rows, dict) else {}
+                guarded = {name: original_rows[name] for name in failed
+                           if failed[name].get('fact_contract') and name in original_rows}
+                if guarded:
+                    feedback['previous_response'] = {'criteria': guarded}
+                    feedback['instruction'] += (' This is FORMAT REPAIR ONLY: preserve existing recognized statuses, '
+                        'scores, assessment outcomes and fact values/bases. Repair citations or missing fields only. '
+                        'If these judgments cannot be reconciled with the contract, report the uncertainty honestly; '
+                        'changed judgments will be retained for audit but require a separate bounded review, not acceptance.')
                 pending = failed
                 print(f'[conditioning verifier] format correction=1/1 job={operation}: {errors}', flush=True)
                 continue

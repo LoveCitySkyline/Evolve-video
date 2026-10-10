@@ -5,10 +5,11 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from evovideo_skill.verifier_facts import with_fact_contract, validate_facts, fact_conflicts, mark_conflicts
+from evovideo_skill.verifier_facts import (with_fact_contract, validate_facts, fact_conflicts,
+                                         mark_conflicts, correction_semantic_changes)
 from evovideo_skill.scoped_judgment import project, output_contract
 from evovideo_skill.verifier_review import uncertain
-from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, GENERIC, parse_judgment
+from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, GENERIC, parse_judgment, VerifierFormatError
 from evovideo_skill.models import VideoTask, VideoArtifact
 from evovideo_skill.story_contracts import acceptance_report
 from test_scoped_judgment import citation_manifest, STATE, SPANS
@@ -55,6 +56,108 @@ def raw_row(rule, event=False):
 
 
 class FactContractTests(unittest.TestCase):
+    def test_same_timestamp_sample_supplements_but_never_replaces_full_boundary(self):
+        public, _ = fixture()
+        name = 'story.s2.pre.token.location'
+        rule = with_fact_contract({name: {**STATE, 'description': 'Token in A hand'}}, public)[name]
+        row = raw_row(rule)
+        key = 's2:pre:token.location'
+        row['evidence_refs'] = ['s2:first', 's2:f000']
+        row['fact_observations'][key]['evidence_refs'] = row['evidence_refs'][:]
+        before = deepcopy(row)
+        result = project({'criteria': {name: row}}, {name: rule}, citation_manifest())
+        self.assertEqual(result['criteria'][name]['score'], 1)
+        self.assertEqual(row, before)
+        for refs in (['s2:f000'], ['s2:first', 's2:f001'], ['s2:first', 's1:last']):
+            row['fact_observations'][key]['evidence_refs'] = refs
+            with self.assertRaises(ValueError):
+                project({'criteria': {name: row}}, {name: rule}, citation_manifest())
+
+    def test_server_responses_replay_without_format_induced_verdict_flip(self):
+        records = json.loads((Path(__file__).parent / 'fixtures/verifier_v21_correction_drift.json').read_text())['responses']
+        from test_story_semantics import StorySemanticsTests
+        from evovideo_skill.conditioning_memory import task_payload
+        from evovideo_skill.criterion_grounding import grounded_criteria
+        task = StorySemanticsTests().task('market_change')
+        public = task_payload(task)
+        for initial, corrected in ((records[0], records[1]), (records[2], records[3])):
+            name = initial['criterion']
+            rules = grounded_criteria(task, {name: task.metadata['evaluation'][name]})
+            index = rules[name]['story_shot_index']
+            manifest = citation_manifest()
+            view = manifest['evaluation_view']
+            view['segment_id'] = index
+            for frame in view['boundary_frames']:
+                frame['segment_id'] = index
+                frame['source_timestamp_seconds'] += (index-2)*6
+            view['previous_boundary_context']['segment_id'] = index-1
+            view['previous_boundary_context']['source_timestamp_seconds'] += (index-2)*6
+            view['sampled_frames'] = [{'sample_index': i, 'source_timestamp_seconds': index*6 + i/4,
+                'media_label': f'fixture sample {i}', 'image_hash': f'fixture-{index}-{i}'} for i in range(24)]
+            self.assertTrue(correction_semantic_changes(initial['judgment'], corrected['judgment']))
+            with TemporaryDirectory() as tmp:
+                verifier = ConditioningVideoVerifier(profile(), tmp)
+                with patch.object(verifier, 'request', return_value={'criteria': {name: initial['judgment']}}) as req:
+                    result = verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
+                        'criteria': rules, 'evidence_manifest': manifest}, [], 'replay', rules, SPANS)
+                self.assertEqual(req.call_count, 1)  # No unnecessary correction of the supplied valid citation.
+                self.assertEqual(result[name]['score'], 0)
+                self.assertEqual(result[name]['fact_observations'], initial['judgment']['fact_observations'])
+
+    def test_format_correction_flip_is_not_accepted_even_when_corrected_json_is_valid(self):
+        public, rules = fixture()
+        initial = raw_row(rules[POST])
+        initial['evidence_refs'] = ['invalid-id']
+        corrected = raw_row(rules[POST])
+        corrected['assessment']['outcome'] = 'violated'
+        corrected['fact_observations'][POST_FACT] = negative(corrected['fact_observations'][POST_FACT])
+        with TemporaryDirectory() as tmp:
+            verifier = ConditioningVideoVerifier(profile(), tmp)
+            with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: initial}}, {'criteria': {POST: corrected}}]) as req:
+                with self.assertRaisesRegex(VerifierFormatError, 'format correction changed semantic judgments') as error:
+                    verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
+                        'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()}, [], 'replay', {POST: rules[POST]}, SPANS)
+            self.assertEqual(error.exception.valid_observations, {})
+            self.assertEqual(req.call_count, 2)
+            self.assertFalse((Path(tmp)/'g.json').exists())
+            prompt = json.loads(req.call_args.args[0])
+            self.assertEqual(prompt['format_feedback']['previous_response']['criteria'][POST], initial)
+            self.assertTrue((Path(tmp)/'g.raw.json').exists())
+            self.assertTrue((Path(tmp)/'g.correction-1.raw.json').exists())
+
+    def test_format_only_citation_repair_is_accepted_without_changing_judgments(self):
+        public, rules = fixture()
+        row = raw_row(rules[POST])
+        initial = deepcopy(row)
+        initial['evidence_refs'] = ['invalid-id']
+        self.assertFalse(correction_semantic_changes(initial, row))
+        with TemporaryDirectory() as tmp:
+            verifier = ConditioningVideoVerifier(profile(), tmp)
+            with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: initial}}, {'criteria': {POST: row}}]):
+                result = verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
+                    'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()}, [], 'replay', {POST: rules[POST]}, SPANS)
+            self.assertEqual(result[POST]['score'], 1)
+
+    def test_offline_audit_reports_drift_without_modifying_saved_claims(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('correction_audit',
+            Path(__file__).parents[1]/'scripts/audit_verifier_corrections.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        public, rules = fixture()
+        manifest = {**citation_manifest(), 'windows': SPANS}
+        request = {'original_task': public, 'criteria': {POST: rules[POST]}, 'evidence_manifest': manifest}
+        raw = {'criteria': {POST: raw_row(rules[POST])}}
+        corrected = deepcopy(raw)
+        corrected['criteria'][POST]['assessment']['outcome'] = 'violated'
+        before = deepcopy(raw)
+        with patch.object(ConditioningVideoVerifier, 'request', side_effect=AssertionError('offline audit must not call model')):
+            result = module.audit_response(request, raw, corrected)
+        self.assertEqual(raw, before)
+        self.assertTrue(result['original_valid'])
+        self.assertEqual(result['original_scores'][POST], 1)
+        self.assertEqual(result['correction_semantic_changes'][POST][0]['path'], 'assessment.outcome')
+
     def test_source_defined_ids_and_latent_state_exclusion(self):
         public, rules = fixture()
         shot = public['metadata']['story_contract']['shots'][0]

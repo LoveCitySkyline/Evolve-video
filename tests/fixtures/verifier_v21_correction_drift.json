@@ -1,0 +1,247 @@
+{
+  "qualification": "User-supplied model responses; not verified visual ground truth.",
+  "responses": [
+    {
+      "file": "group-001-repeat-0.raw.json",
+      "criterion": "story.s0.pre.token.location",
+      "judgment": {
+        "confidence": 0.99,
+        "evidence": "At the beginning of the shot (boundary frame s0:first and sample s0:f000), the large brass token is clearly held in B's hands, not in A's hand as required. This directly contradicts the precondition.",
+        "evidence_refs": [
+          "s0:first",
+          "s0:f000"
+        ],
+        "assessment": {
+          "outcome": "violated"
+        },
+        "fact_observations": {
+          "s0:pre:token.location": {
+            "value": "contradicted",
+            "basis": "visible_counterexample",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000"
+            ],
+            "evidence": "Token is visibly held by B at timestamp 0.0s, not by A.",
+            "counterexample": "Token is in B's hands, not A's hand."
+          }
+        }
+      }
+    },
+    {
+      "file": "group-001-repeat-0.correction-1.raw.json",
+      "criterion": "story.s0.pre.token.location",
+      "judgment": {
+        "confidence": 1.0,
+        "evidence": "The first boundary frame (s0:first) and early samples (s0:f000–s0:f003) show the large brass token held in A's hand. The token is clearly visible in A's right hand at timestamp 0.0s.",
+        "evidence_refs": [
+          "s0:first"
+        ],
+        "assessment": {
+          "outcome": "satisfied"
+        },
+        "fact_observations": {
+          "s0:pre:token.location": {
+            "value": "supported",
+            "basis": "visible_support",
+            "evidence_refs": [
+              "s0:first"
+            ],
+            "evidence": "In the first boundary frame (0.0s), A (auburn hair, navy apron) holds the large brass token in her right hand."
+          }
+        }
+      }
+    },
+    {
+      "file": "group-002-repeat-0.raw.json",
+      "criterion": "story.s1.state_flow",
+      "judgment": {
+        "confidence": 0.4,
+        "evidence": "State flow fails because the required action (sliding tray toward till) is absent, and the post-state ('tray beside till') is contradicted. The token remains in the tray on the counter throughout, violating continuity of the narrative progression. The previous boundary (s0:last) shows the token in the tray, which is consistent with the pre-condition, but the shot fails to advance the state as required.",
+        "evidence_refs": [
+          "s0:last",
+          "s1:first",
+          "s1:last"
+        ],
+        "status": "observed",
+        "score": 0.0,
+        "observation_basis": "visible_mismatch",
+        "fact_observations": {
+          "s1:pre:token.location": {
+            "value": "supported",
+            "basis": "visible_support",
+            "evidence_refs": [
+              "s1:first"
+            ],
+            "evidence": "Token in tray at shot 1 start, matching s0:last."
+          },
+          "s1:post:token.location": {
+            "value": "contradicted",
+            "basis": "visible_counterexample",
+            "evidence_refs": [
+              "s1:last"
+            ],
+            "evidence": "Token still in tray on counter, not beside till.",
+            "counterexample": "Tray not beside till"
+          },
+          "s1:event:market_change_1": {
+            "value": "contradicted",
+            "basis": "visible_counterexample",
+            "evidence_refs": [
+              "s1:f000",
+              "s1:f023"
+            ],
+            "evidence": "No sliding action occurs.",
+            "counterexample": "Tray remains stationary"
+          },
+          "s1:obligation:market_change_1.0": {
+            "value": "contradicted",
+            "basis": "visible_counterexample",
+            "evidence_refs": [
+              "s1:f000",
+              "s1:f023"
+            ],
+            "evidence": "Required sliding motion is absent.",
+            "counterexample": "B does not slide the tray"
+          },
+          "s0:post:token.location": {
+            "value": "supported",
+            "basis": "visible_support",
+            "evidence_refs": [
+              "s0:last"
+            ],
+            "evidence": "Token is in tray at end of shot 0, establishing correct pre-state for shot 1."
+          },
+          "s1:state_flow:whole": {
+            "value": "contradicted",
+            "basis": "visible_counterexample",
+            "evidence_refs": [
+              "s0:last",
+              "s1:first",
+              "s1:last"
+            ],
+            "evidence": "State does not progress from 'tray' to 'tray beside till'; required action missing and final state incorrect.",
+            "counterexample": "Tray remains on counter; no till visible; no sliding"
+          }
+        }
+      }
+    },
+    {
+      "file": "group-002-repeat-0.correction-1.raw.json",
+      "criterion": "story.s1.state_flow",
+      "judgment": {
+        "confidence": 0.0,
+        "evidence": "State continuity fails because the pre-condition (token in tray) is satisfied, but the required action (sliding the tray) is absent, and the post-condition (tray beside till) appears without visible transition. The token remains in the tray throughout, but the tray’s position changes from central counter (s1:first) to beside till (s1:last) with no intermediate motion shown, violating state flow. The previous boundary (s0:last) confirms token was in tray at end of shot 0, so entry state is correct, but the intra-shot evolution is missing the mandated action.",
+        "evidence_refs": [
+          "s0:last",
+          "s1:first",
+          "s1:last"
+        ],
+        "status": "observed",
+        "score": 0.0,
+        "observation_basis": "visible_mismatch",
+        "fact_observations": {
+          "s1:pre:token.location": {
+            "value": "supported",
+            "basis": "visible_support",
+            "evidence_refs": [
+              "s1:first"
+            ],
+            "evidence": "Token in tray at shot 1 start (s1:first)."
+          },
+          "s1:post:token.location": {
+            "value": "supported",
+            "basis": "visible_support",
+            "evidence_refs": [
+              "s1:last"
+            ],
+            "evidence": "Token in tray beside till at shot 1 end (s1:last)."
+          },
+          "s1:event:market_change_1": {
+            "value": "contradicted",
+            "basis": "visible_counterexample",
+            "evidence_refs": [
+              "s1:f000",
+              "s1:f001",
+              "s1:f002",
+              "s1:f003",
+              "s1:f004",
+              "s1:f005",
+              "s1:f006",
+              "s1:f007",
+              "s1:f008",
+              "s1:f009",
+              "s1:f010",
+              "s1:f011",
+              "s1:f012",
+              "s1:f013",
+              "s1:f014",
+              "s1:f015",
+              "s1:f016",
+              "s1:f017",
+              "s1:f018",
+              "s1:f019",
+              "s1:f020",
+              "s1:f021",
+              "s1:f022",
+              "s1:f023"
+            ],
+            "evidence": "No sliding action occurs; tray position changes without visible motion, breaking state flow.",
+            "counterexample": "Tray stationary in all samples; no movement toward till observed."
+          },
+          "s1:obligation:market_change_1.0": {
+            "value": "contradicted",
+            "basis": "visible_counterexample",
+            "evidence_refs": [
+              "s1:f000",
+              "s1:f001",
+              "s1:f002",
+              "s1:f003",
+              "s1:f004",
+              "s1:f005",
+              "s1:f006",
+              "s1:f007",
+              "s1:f008",
+              "s1:f009",
+              "s1:f010",
+              "s1:f011",
+              "s1:f012",
+              "s1:f013",
+              "s1:f014",
+              "s1:f015",
+              "s1:f016",
+              "s1:f017",
+              "s1:f018",
+              "s1:f019",
+              "s1:f020",
+              "s1:f021",
+              "s1:f022",
+              "s1:f023"
+            ],
+            "evidence": "The obligation to slide the tray is unfulfilled; the tray’s final position is achieved without the required action.",
+            "counterexample": "All frames show no sliding; tray remains fixed."
+          },
+          "s0:post:token.location": {
+            "value": "supported",
+            "basis": "visible_support",
+            "evidence_refs": [
+              "s0:last"
+            ],
+            "evidence": "In s0:last (5.958s), the token is in the tray, satisfying the entry state for shot 1."
+          },
+          "s1:state_flow:whole": {
+            "value": "contradicted",
+            "basis": "visible_counterexample",
+            "evidence_refs": [
+              "s0:last",
+              "s1:first",
+              "s1:last"
+            ],
+            "evidence": "The state flow requires the tray to be slid toward the till during shot 1. While the token remains in the tray (preserving custody), the mandated motion is absent, and the tray’s position changes without visible cause, violating continuity.",
+            "counterexample": "Tray moves from central counter (s1:first) to beside till (s1:last) with no intermediate sliding motion shown in any sample."
+          }
+        }
+      }
+    }
+  ]
+}

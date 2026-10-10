@@ -1,7 +1,7 @@
 """Source-defined visual propositions, separate from desired state and quality scores."""
 from copy import deepcopy
 
-VERSION = 'source-fact-consistency-v2'
+VERSION = 'source-fact-consistency-v3'
 INSTRUCTIONS = '''
 For criteria with fact_contract, return fact_observations using exactly its IDs.
 These are questions about the actual candidate, NOT statements of desired truth.
@@ -18,8 +18,9 @@ For graded setup/invariant/state-flow criteria, supported means the complete
 proposition holds (score 1); a lower observed score needs a visible counterexample.
 Unknown never receives a score. An acceptance threshold does not redefine truth.
 Follow EACH fact's citation_contract, not the union of the group's evidence IDs.
-For a known pre/post fact cite the required full boundary and optionally its crops;
-do not add other time samples. Unknown facts use no evidence_refs. State-flow
+For a known pre/post fact cite the required full boundary and optionally its crops
+or catalog samples with the exact same source timestamp; do not add other time
+samples. The full boundary is still required. Unknown facts use no evidence_refs. State-flow
 may additionally cite an attached previous boundary only when explicitly listed.
 '''
 
@@ -76,6 +77,14 @@ def citation_contract(definition, rule, catalog):
     if phase in {'pre', 'post'}:
         boundary = f"s{index}:{'first' if phase == 'pre' else 'last'}"
         allowed = [r for r in catalog if r == boundary or r.startswith(boundary + ':crop')]
+        # The boundary remains mandatory. A sample at the same host-recorded
+        # timestamp is supplementary evidence, not a substituted boundary image.
+        boundary_frames = catalog.get(boundary, {}).get('frames', [])
+        timestamp = boundary_frames[0].get('source_timestamp_seconds') if len(boundary_frames) == 1 else None
+        if type(timestamp) in (int, float):
+            allowed.extend(ref for ref, item in catalog.items() if item.get('kind') == 'sample'
+                and ref.startswith(f's{index}:') and len(item.get('frames', [])) == 1
+                and item['frames'][0].get('source_timestamp_seconds') == timestamp)
         required = [boundary]
     else:
         allowed = [r for r in catalog if r.startswith(f's{index}:') or r == f'window:{index}:samples']
@@ -108,6 +117,44 @@ def output_fields(rule, manifest):
             'Event/invariant cites current-window samples. State-flow may include the listed previous boundary. '
             'Use each fact citation_contract; the group-wide allowed_evidence_refs is only a union. '
             'Missing views never prove a negative.'}
+
+
+def correction_semantic_changes(previous, current):
+    """Recognized judgment changes are re-evaluation, not format repair.
+
+    Neither response is treated as ground truth. Missing/invalid enum fields may
+    be completed, but two different explicit meanings cannot be silently swapped.
+    """
+    if not isinstance(previous, dict) or not isinstance(current, dict):
+        return []
+    changes = []
+
+    def compare(path, before, after, allowed=None):
+        if allowed is not None:
+            if not isinstance(before, str) or not isinstance(after, str) or before not in allowed or after not in allowed:
+                return
+        elif type(before) not in (int, float) or type(after) not in (int, float) or not (0 <= before <= 1 and 0 <= after <= 1):
+            return
+        if before != after:
+            changes.append({'path': path, 'before': before, 'after': after})
+
+    compare('status', previous.get('status'), current.get('status'), {'observed', 'unobserved', 'not_applicable'})
+    compare('score', previous.get('score'), current.get('score'))
+    before_assessment, after_assessment = previous.get('assessment'), current.get('assessment')
+    if isinstance(before_assessment, dict) and isinstance(after_assessment, dict):
+        compare('assessment.outcome', before_assessment.get('outcome'), after_assessment.get('outcome'),
+            {'satisfied', 'violated', 'complete', 'absent', 'partial', 'unknown', 'coherent', 'defective'})
+    before_facts, after_facts = previous.get('fact_observations'), current.get('fact_observations')
+    if isinstance(before_facts, dict) and isinstance(after_facts, dict):
+        for key in sorted(before_facts.keys() & after_facts.keys()):
+            a, b = before_facts[key], after_facts[key]
+            if not isinstance(a, dict) or not isinstance(b, dict):
+                continue
+            compare(f'fact_observations.{key}.value', a.get('value'), b.get('value'),
+                {'supported', 'contradicted', 'unknown'})
+            compare(f'fact_observations.{key}.basis', a.get('basis'), b.get('basis'),
+                {'visible_support', 'visible_counterexample', 'not_visible', 'occluded', 'ambiguous', 'sampling_gap'})
+    return changes
 
 
 def validate_facts(name, rule, row, manifest):

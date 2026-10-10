@@ -672,3 +672,47 @@ v20 的判断不能当作 v21 缓存续跑；v21 同一目录中断后可使用�
 已经同步 v21 时，运行文件只需再更新 `verifier_facts.py`、
 `conditioning_verifier.py`、`verifier_review.py`（均在 `src/evovideo_skill/`）。
 评估协议变更需要新输出目录，不能把 v21 的判断当作 v21.1 缓存。
+
+### v22：同时间采样引用与格式纠正中的判断翻转
+
+服务器保存的原始响应进一步确认：前置状态同时引用完整首帧 `s0:first`
+和同为 0 秒的 `s0:f000`，被 v21 边界白名单误拒；格式纠正随后把
+“B 持有、violated”改成“A 持有、satisfied”。另一条 state_flow 虽然保持 0 分，
+纠正却把后置事实从 contradicted 改成 supported。两种变更都涉及实质判断，
+不能仅因新的 JSON 合法就当作一次成功的格式修复。
+
+`source-fact-consistency-v22` / `source-fact-consistency-v3` 允许完整边界帧
+与宿主证据目录中同一窗口、完全相同原视频时间戳的采样帧同时引用。
+完整边界仍必须存在，采样帧不能替代它；其他时间点、未知 ID 和跨窗口样本
+仍被拒绝。不会自动删引用、改时间戳或改模型分数，也不声称两种编码的图像
+字节相同。v21.1 的 state_flow 前一末帧范围修复保留。
+
+带事实协议的固定窗口格式纠正会收到待纠正的原始响应，并明确要求只改
+引用或缺失字段。宿主比较纠正前后已有的合法 status、score、assessment.outcome、
+fact value/basis。发生变化则保存两份响应并报
+`format correction changed semantic judgments`，该指标不产生有效分数。
+原始判断同样不会被当作真值强制保留；若启用自动复核，则交由原有有预算
+的独立调用处理，预算耗尽仍保持未知。既有合法兄弟指标继续保留。
+这不检测任意自然语言的所有语义变化，也不能证明模型视觉判断正确。
+复核协议升级 `bounded-evidence-review-v6`，预算未增加。
+
+新增离线脚本，仅使用已保存请求、原始响应和证据目录，不读取图片、不调用
+API、不改旧结果。先同步三个运行模块及该脚本：
+
+- `src/evovideo_skill/verifier_facts.py`
+- `src/evovideo_skill/conditioning_verifier.py`
+- `src/evovideo_skill/verifier_review.py`
+- `scripts/audit_verifier_corrections.py`
+
+```bash
+PYTHONPATH=src python scripts/audit_verifier_corrections.py \
+  --judgment-dir outputs/h3_verifier_v21_recheck_PFANKn/verifier/final/judgments/5f4feeeb88556df6e4a73dd0c423f6898c8f40cb256d2a04f37e67bf6738b06a \
+  --group 1 --group 2 \
+  | tee outputs/verifier_v22_correction_audit.json
+```
+
+每组、每个 repeat 报告 `original_valid`、`errors` 和
+`correction_semantic_changes`。原始响应合法时旧格式纠正本就不应发生；
+报告中的 original_scores 只是旧模型分数的解析，不是新视觉评估或方法收益。
+不要把审计输出写回旧 result.json。还有其他格式错误时先查报告，避免反复
+完整付费复评。后续真实 v22 复评需要新输出目录，不能续用 v21 的评估缓存。
