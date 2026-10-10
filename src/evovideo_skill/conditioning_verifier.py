@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "bounded-semantic-reassessment-v24"
+VERIFIER_PROTOCOL_VERSION = "shared-fact-reassessment-v25"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -1049,6 +1049,7 @@ class ConditioningVideoVerifier:
 
     def _observe_scoped(self, path, payload, evidence, operation, subset, spans):
         from evovideo_skill.verifier_identity import contract as identity_contract, assess as assess_identity, withheld
+        from evovideo_skill.verifier_facts import fact_conflicts, reassessment_closure
         payload = deepcopy(payload)
         initial_manifest = payload.get('evidence_manifest', {})
         if (initial_manifest.get('evaluation_view', {}).get('sampled_media_file')
@@ -1156,6 +1157,27 @@ class ConditioningVideoVerifier:
                         errors.append({'criterion': name, 'category': getattr(issue, 'category', 'response_format'),
                                        'error': str(issue)})
                         failed[name] = rule
+            # Check the combined group before accepting a cache entry. A later
+            # judgment must not be mixed with retained old claims about the same
+            # source fact. Reassess the connected component within the SAME cap.
+            conflicts = fact_conflicts({name: [row] for name, row in accepted.items()})
+            conflict_names = {claim['criterion'] for claims in conflicts.values() for claim in claims}
+            semantic_seeds = {error['criterion'] for error in errors
+                              if error.get('category') == 'semantic_conflict' and 'criterion' in error}
+            affected = reassessment_closure(subset, semantic_seeds | conflict_names)
+            if affected:
+                write_json(path.with_suffix(f'.shared-facts-{attempt}.json'), {
+                    'conflicts': conflicts, 'semantic_seeds': sorted(semantic_seeds),
+                    'reassessment_criteria': sorted(affected), 'attempt': attempt,
+                    'qualification': 'Dependency invalidation only; no fact value or replacement score is prescribed.'})
+                existing_errors = {error.get('criterion') for error in errors}
+                for name in sorted(affected):
+                    accepted.pop(name, None)
+                    accepted_raw.pop(name, None)
+                    failed[name] = subset[name]
+                    if name not in existing_errors:
+                        errors.append({'criterion': name, 'category': 'shared_fact_dependency',
+                            'error': 'Reassess jointly with the same source-fact component; do not retain an older judgment.'})
             write_json(path.with_suffix(f'.accepted-{attempt}.json'), {
                 'criteria': accepted_raw, 'qualification': 'Valid responses retained; no scores inferred for failed criteria.'})
             if errors:
@@ -1163,6 +1185,7 @@ class ConditioningVideoVerifier:
                 write_json(audit, {'status': 'invalid_response_format', 'failure_category': 'response_format',
                     'response_protocol': SCOPED_RESPONSE_PROTOCOL, 'validation_errors': errors,
                     'accepted_criteria': list(accepted), 'pending_criteria': list(failed),
+                    'shared_fact_conflicts': conflicts, 'dependency_invalidated_criteria': sorted(affected),
                     'raw_response_path': str(raw_path), 'correction_attempt': attempt})
                 if attempt:
                     failure = VerifierFormatError(f'single-window response invalid after one correction: {errors}; see {audit}')
@@ -1175,7 +1198,8 @@ class ConditioningVideoVerifier:
                 raw_rows = raw.get('criteria') if isinstance(raw, dict) else None
                 original_rows = deepcopy(raw_rows) if isinstance(raw_rows, dict) else {}
                 semantic_rechecks = {error['criterion'] for error in errors
-                                     if error.get('category') == 'semantic_conflict' and 'criterion' in error}
+                                     if error.get('category') in {'semantic_conflict', 'shared_fact_dependency'}
+                                     and 'criterion' in error}
                 guarded = {name: original_rows[name] for name in failed
                            if name not in semantic_rechecks | set(blocked) and name in original_rows}
                 if guarded:
@@ -1194,9 +1218,13 @@ class ConditioningVideoVerifier:
                         'observations and judgments. Do not infer a desired score from any validation error.')
                 if semantic_rechecks:
                     feedback['semantic_reassessment'] = {'criteria': sorted(semantic_rechecks),
+                        'shared_fact_ids': sorted(conflicts),
                         'instruction': 'The prior response contains incompatible semantic fields and cannot be '
                             'repaired by freezing its verdict. Reassess these criteria from the SAME original '
-                            'task and actual media. Decide visibility first, then source facts and action '
+                            'task and actual media. This includes dependent criteria previously valid in isolation. '
+                            'Judge shared source facts consistently across the whole requested component; '
+                            'do not retain older judgments or select whichever gives the higher score. '
+                            'Decide visibility first, then source facts and action '
                             'components, then one consistent assessment. Genuine uncertainty stays unknown. '
                             'Do not change a basis, delete matched actions, or award partial credit merely '
                             'to pass validation. The host supplies no desired score. This uses the one remaining '

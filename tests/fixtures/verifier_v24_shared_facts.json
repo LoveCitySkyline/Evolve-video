@@ -1,0 +1,1207 @@
+{
+  "provenance": "User-supplied v24 canary diagnostics, 2026-10-10. Unchanged selected model responses; text-only request subset, not visual truth labels.",
+  "cases": [
+    {
+      "case": 1,
+      "request": {
+        "criteria": {
+          "action_alignment_score": {
+            "description": "Coverage, order and correctness of requested visible actions.",
+            "fixed_window_coverage": true,
+            "temporal_grounding": "original-timestamps-v1",
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "window_component_of_global": true
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean",
+            "story_shot_index": 0,
+            "window_component_of_global": true
+          }
+        },
+        "original_task": {
+          "prompt": "A faces a shallow drawer blocked by a visible cloth caught at its edge. Unless clothing is specified in the setup, A is an adult with curly brown hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A pulls gently and the drawer stops. Then A pushes it slightly inward. Then A pulls the cloth free. Then A opens the drawer fully.",
+          "mode": "generation",
+          "duration_seconds": 24,
+          "metadata": {
+            "h3_global_constraints": "A faces a shallow drawer blocked by a visible cloth caught at its edge. Unless clothing is specified in the setup, A is an adult with curly brown hair and a ochre overshirt. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+            "story_contract": {
+              "version": 1,
+              "initial_state": {
+                "drawer.state": "blocked by cloth"
+              },
+              "final_state": {
+                "drawer.state": "fully open"
+              },
+              "shots": [
+                {
+                  "shot_index": 0,
+                  "preconditions": {
+                    "drawer.state": "blocked by cloth"
+                  },
+                  "postconditions": {
+                    "drawer.state": "blocked by cloth"
+                  },
+                  "observable_pre": [
+                    "drawer.state"
+                  ],
+                  "observable_post": [
+                    "drawer.state"
+                  ],
+                  "events": [
+                    {
+                      "id": "stuck_drawer_0",
+                      "description": "A pulls gently and the drawer stops",
+                      "obligations": [
+                        {
+                          "start": 0,
+                          "end": 14,
+                          "quote": "A pulls gently",
+                          "relation": "whole"
+                        },
+                        {
+                          "start": 15,
+                          "end": 35,
+                          "quote": "and the drawer stops",
+                          "relation": "and"
+                        }
+                      ]
+                    }
+                  ],
+                  "threshold": 0.9
+                },
+                {
+                  "shot_index": 1,
+                  "preconditions": {
+                    "drawer.state": "blocked by cloth"
+                  },
+                  "postconditions": {
+                    "drawer.state": "ajar with slack cloth"
+                  },
+                  "observable_pre": [
+                    "drawer.state"
+                  ],
+                  "observable_post": [
+                    "drawer.state"
+                  ],
+                  "events": [
+                    {
+                      "id": "stuck_drawer_1",
+                      "description": "A pushes it slightly inward",
+                      "obligations": [
+                        {
+                          "start": 0,
+                          "end": 27,
+                          "quote": "A pushes it slightly inward",
+                          "relation": "whole"
+                        }
+                      ]
+                    }
+                  ],
+                  "threshold": 0.9
+                },
+                {
+                  "shot_index": 2,
+                  "preconditions": {
+                    "drawer.state": "ajar with slack cloth"
+                  },
+                  "postconditions": {
+                    "drawer.state": "unblocked ajar"
+                  },
+                  "observable_pre": [
+                    "drawer.state"
+                  ],
+                  "observable_post": [
+                    "drawer.state"
+                  ],
+                  "events": [
+                    {
+                      "id": "stuck_drawer_2",
+                      "description": "A pulls the cloth free",
+                      "obligations": [
+                        {
+                          "start": 0,
+                          "end": 22,
+                          "quote": "A pulls the cloth free",
+                          "relation": "whole"
+                        }
+                      ]
+                    }
+                  ],
+                  "threshold": 0.9
+                },
+                {
+                  "shot_index": 3,
+                  "preconditions": {
+                    "drawer.state": "unblocked ajar"
+                  },
+                  "postconditions": {
+                    "drawer.state": "fully open"
+                  },
+                  "observable_pre": [
+                    "drawer.state"
+                  ],
+                  "observable_post": [
+                    "drawer.state"
+                  ],
+                  "events": [
+                    {
+                      "id": "stuck_drawer_3",
+                      "description": "A opens the drawer fully",
+                      "obligations": [
+                        {
+                          "start": 0,
+                          "end": 24,
+                          "quote": "A opens the drawer fully",
+                          "relation": "whole"
+                        }
+                      ]
+                    }
+                  ],
+                  "threshold": 0.9
+                }
+              ],
+              "semantics": {
+                "version": "source-backed-obligations-v1",
+                "initial_setup": "A faces a shallow drawer blocked by a visible cloth caught at its edge.",
+                "inference_policy": "explicit_source_only"
+              }
+            }
+          }
+        },
+        "evidence_manifest": {
+          "evaluation_view": {
+            "kind": "fixed_window_clip",
+            "segment_id": 0,
+            "start_seconds": 0.0,
+            "end_seconds": 6.0,
+            "clip_duration_seconds": 6.0,
+            "sampled_frame_count": 24,
+            "source_time_offset_seconds": 0.0,
+            "clip_time_origin_seconds": 0,
+            "media_label": "ANONYMOUS CANDIDATE FIXED WINDOW segment_id=0; clip-local 0..6.0s = original-video 0.0..6.0s; every frame belongs to this segment_id",
+            "boundary_frames": [
+              {
+                "boundary": "first",
+                "segment_id": 0,
+                "source_timestamp_seconds": 0.0,
+                "clip_timestamp_seconds": 0.0,
+                "media_label": "CANDIDATE BOUNDARY FRAME FIRST, segment_id=0; original-video timestamp=0.000000s; clip-local timestamp=0.000000s; extracted from generated output, NOT a target reference"
+              },
+              {
+                "boundary": "last",
+                "segment_id": 0,
+                "source_timestamp_seconds": 5.958333,
+                "clip_timestamp_seconds": 5.958333,
+                "media_label": "CANDIDATE BOUNDARY FRAME LAST, segment_id=0; original-video timestamp=5.958333s; clip-local timestamp=5.958333s; extracted from generated output, NOT a target reference"
+              }
+            ],
+            "time_mapping": "original_video_seconds = clip_local_seconds + source_time_offset_seconds",
+            "input_representation": "timestamped_images",
+            "native_candidate_video_attached": false,
+            "sampled_frames": [
+              {
+                "sample_index": 0,
+                "clip_timestamp_seconds": 0.0,
+                "source_timestamp_seconds": 0.0,
+                "media_label": "CANDIDATE SAMPLE 1/24, segment_id=0; clip-local timestamp=0.000000s; original-video timestamp=0.000000s"
+              },
+              {
+                "sample_index": 1,
+                "clip_timestamp_seconds": 0.25,
+                "source_timestamp_seconds": 0.25,
+                "media_label": "CANDIDATE SAMPLE 2/24, segment_id=0; clip-local timestamp=0.250000s; original-video timestamp=0.250000s"
+              },
+              {
+                "sample_index": 2,
+                "clip_timestamp_seconds": 0.5,
+                "source_timestamp_seconds": 0.5,
+                "media_label": "CANDIDATE SAMPLE 3/24, segment_id=0; clip-local timestamp=0.500000s; original-video timestamp=0.500000s"
+              },
+              {
+                "sample_index": 3,
+                "clip_timestamp_seconds": 0.75,
+                "source_timestamp_seconds": 0.75,
+                "media_label": "CANDIDATE SAMPLE 4/24, segment_id=0; clip-local timestamp=0.750000s; original-video timestamp=0.750000s"
+              },
+              {
+                "sample_index": 4,
+                "clip_timestamp_seconds": 1.0,
+                "source_timestamp_seconds": 1.0,
+                "media_label": "CANDIDATE SAMPLE 5/24, segment_id=0; clip-local timestamp=1.000000s; original-video timestamp=1.000000s"
+              },
+              {
+                "sample_index": 5,
+                "clip_timestamp_seconds": 1.25,
+                "source_timestamp_seconds": 1.25,
+                "media_label": "CANDIDATE SAMPLE 6/24, segment_id=0; clip-local timestamp=1.250000s; original-video timestamp=1.250000s"
+              },
+              {
+                "sample_index": 6,
+                "clip_timestamp_seconds": 1.5,
+                "source_timestamp_seconds": 1.5,
+                "media_label": "CANDIDATE SAMPLE 7/24, segment_id=0; clip-local timestamp=1.500000s; original-video timestamp=1.500000s"
+              },
+              {
+                "sample_index": 7,
+                "clip_timestamp_seconds": 1.75,
+                "source_timestamp_seconds": 1.75,
+                "media_label": "CANDIDATE SAMPLE 8/24, segment_id=0; clip-local timestamp=1.750000s; original-video timestamp=1.750000s"
+              },
+              {
+                "sample_index": 8,
+                "clip_timestamp_seconds": 2.0,
+                "source_timestamp_seconds": 2.0,
+                "media_label": "CANDIDATE SAMPLE 9/24, segment_id=0; clip-local timestamp=2.000000s; original-video timestamp=2.000000s"
+              },
+              {
+                "sample_index": 9,
+                "clip_timestamp_seconds": 2.25,
+                "source_timestamp_seconds": 2.25,
+                "media_label": "CANDIDATE SAMPLE 10/24, segment_id=0; clip-local timestamp=2.250000s; original-video timestamp=2.250000s"
+              },
+              {
+                "sample_index": 10,
+                "clip_timestamp_seconds": 2.5,
+                "source_timestamp_seconds": 2.5,
+                "media_label": "CANDIDATE SAMPLE 11/24, segment_id=0; clip-local timestamp=2.500000s; original-video timestamp=2.500000s"
+              },
+              {
+                "sample_index": 11,
+                "clip_timestamp_seconds": 2.75,
+                "source_timestamp_seconds": 2.75,
+                "media_label": "CANDIDATE SAMPLE 12/24, segment_id=0; clip-local timestamp=2.750000s; original-video timestamp=2.750000s"
+              },
+              {
+                "sample_index": 12,
+                "clip_timestamp_seconds": 3.0,
+                "source_timestamp_seconds": 3.0,
+                "media_label": "CANDIDATE SAMPLE 13/24, segment_id=0; clip-local timestamp=3.000000s; original-video timestamp=3.000000s"
+              },
+              {
+                "sample_index": 13,
+                "clip_timestamp_seconds": 3.25,
+                "source_timestamp_seconds": 3.25,
+                "media_label": "CANDIDATE SAMPLE 14/24, segment_id=0; clip-local timestamp=3.250000s; original-video timestamp=3.250000s"
+              },
+              {
+                "sample_index": 14,
+                "clip_timestamp_seconds": 3.5,
+                "source_timestamp_seconds": 3.5,
+                "media_label": "CANDIDATE SAMPLE 15/24, segment_id=0; clip-local timestamp=3.500000s; original-video timestamp=3.500000s"
+              },
+              {
+                "sample_index": 15,
+                "clip_timestamp_seconds": 3.75,
+                "source_timestamp_seconds": 3.75,
+                "media_label": "CANDIDATE SAMPLE 16/24, segment_id=0; clip-local timestamp=3.750000s; original-video timestamp=3.750000s"
+              },
+              {
+                "sample_index": 16,
+                "clip_timestamp_seconds": 4.0,
+                "source_timestamp_seconds": 4.0,
+                "media_label": "CANDIDATE SAMPLE 17/24, segment_id=0; clip-local timestamp=4.000000s; original-video timestamp=4.000000s"
+              },
+              {
+                "sample_index": 17,
+                "clip_timestamp_seconds": 4.25,
+                "source_timestamp_seconds": 4.25,
+                "media_label": "CANDIDATE SAMPLE 18/24, segment_id=0; clip-local timestamp=4.250000s; original-video timestamp=4.250000s"
+              },
+              {
+                "sample_index": 18,
+                "clip_timestamp_seconds": 4.5,
+                "source_timestamp_seconds": 4.5,
+                "media_label": "CANDIDATE SAMPLE 19/24, segment_id=0; clip-local timestamp=4.500000s; original-video timestamp=4.500000s"
+              },
+              {
+                "sample_index": 19,
+                "clip_timestamp_seconds": 4.75,
+                "source_timestamp_seconds": 4.75,
+                "media_label": "CANDIDATE SAMPLE 20/24, segment_id=0; clip-local timestamp=4.750000s; original-video timestamp=4.750000s"
+              },
+              {
+                "sample_index": 20,
+                "clip_timestamp_seconds": 5.0,
+                "source_timestamp_seconds": 5.0,
+                "media_label": "CANDIDATE SAMPLE 21/24, segment_id=0; clip-local timestamp=5.000000s; original-video timestamp=5.000000s"
+              },
+              {
+                "sample_index": 21,
+                "clip_timestamp_seconds": 5.25,
+                "source_timestamp_seconds": 5.25,
+                "media_label": "CANDIDATE SAMPLE 22/24, segment_id=0; clip-local timestamp=5.250000s; original-video timestamp=5.250000s"
+              },
+              {
+                "sample_index": 22,
+                "clip_timestamp_seconds": 5.5,
+                "source_timestamp_seconds": 5.5,
+                "media_label": "CANDIDATE SAMPLE 23/24, segment_id=0; clip-local timestamp=5.500000s; original-video timestamp=5.500000s"
+              },
+              {
+                "sample_index": 23,
+                "clip_timestamp_seconds": 5.75,
+                "source_timestamp_seconds": 5.75,
+                "media_label": "CANDIDATE SAMPLE 24/24, segment_id=0; clip-local timestamp=5.750000s; original-video timestamp=5.750000s"
+              }
+            ]
+          },
+          "windows": [
+            {
+              "segment_id": 0,
+              "start_seconds": 0.0,
+              "end_seconds": 6.0
+            },
+            {
+              "segment_id": 1,
+              "start_seconds": 6.0,
+              "end_seconds": 12.0
+            },
+            {
+              "segment_id": 2,
+              "start_seconds": 12.0,
+              "end_seconds": 18.0
+            },
+            {
+              "segment_id": 3,
+              "start_seconds": 18.0,
+              "end_seconds": 24.0
+            }
+          ]
+        }
+      },
+      "responses": [
+        {
+          "identity_bindings": {
+            "A": {
+              "status": "observed",
+              "appearance_id": "appearance_62ae551b7ec7",
+              "evidence_refs": [
+                "s0:first",
+                "s0:f000",
+                "s0:f001",
+                "s0:f002",
+                "s0:f003",
+                "s0:f004",
+                "s0:f005",
+                "s0:f006",
+                "s0:f007",
+                "s0:f008",
+                "s0:f009",
+                "s0:f010",
+                "s0:f011",
+                "s0:f012",
+                "s0:f013",
+                "s0:f014",
+                "s0:f015",
+                "s0:f016",
+                "s0:f017",
+                "s0:f018",
+                "s0:f019",
+                "s0:f020",
+                "s0:f021",
+                "s0:f022",
+                "s0:f023",
+                "s0:last"
+              ],
+              "evidence": "Person with curly brown hair and an ochre overshirt is visible throughout the segment, positioned facing the drawer as required for actor A."
+            }
+          },
+          "criteria": {
+            "action_alignment_score": {
+              "confidence": 0.0,
+              "evidence": "The required action 'A pulls gently and the drawer stops' is not performed by A in the observed window. The drawer remains fully open throughout, and A does not interact with it. Another person is present but performs no actions matching the requirement.",
+              "evidence_refs": [
+                "window:0:samples"
+              ],
+              "status": "unobserved",
+              "score": null
+            },
+            "scene_geometry": {
+              "confidence": 1.0,
+              "evidence": "The desk, drawer, and objects inside (black case, tools, blue cloth, white cloth) maintain consistent spatial relationships and appearance across all samples and boundaries. No teleportation or geometry changes are observed.",
+              "status": "observed",
+              "score": 1.0
+            }
+          }
+        },
+        {
+          "criteria": {
+            "action_alignment_score": {
+              "confidence": 0.0,
+              "evidence": "The required action 'A pulls gently and the drawer stops' is not performed by A in the observed window. The drawer is already open throughout the segment, and A does not pull it. Another person (in light shirt) interacts with the drawer contents but does not perform the specified pulling action. The state remains 'drawer open' from first to last frame, contradicting the required 'blocked by cloth' initial state and 'blocked by cloth' end state for Shot 0.",
+              "evidence_refs": [
+                "window:0:samples"
+              ],
+              "status": "unobserved",
+              "score": null
+            }
+          },
+          "identity_bindings": {
+            "A": {
+              "status": "observed",
+              "appearance_id": "appearance_62ae551b7ec7",
+              "evidence_refs": [
+                "s0:f000",
+                "s0:f001",
+                "s0:f002",
+                "s0:f003",
+                "s0:f004",
+                "s0:f005",
+                "s0:f006",
+                "s0:f007",
+                "s0:f008",
+                "s0:f009",
+                "s0:f010",
+                "s0:f011",
+                "s0:f012",
+                "s0:f013",
+                "s0:f014",
+                "s0:f015",
+                "s0:f016",
+                "s0:f017",
+                "s0:f018",
+                "s0:f019",
+                "s0:f020",
+                "s0:f021",
+                "s0:f022",
+                "s0:f023",
+                "s0:first",
+                "s0:last"
+              ],
+              "evidence": "Person with curly brown hair and ochre overshirt visible in all samples and boundary frames; matches source description of A."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case": 2,
+      "request": {
+        "criteria": {
+          "action_alignment_score": {
+            "description": "Coverage, order and correctness of requested visible actions.",
+            "fixed_window_coverage": true,
+            "temporal_grounding": "original-timestamps-v1",
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "window_component_of_global": true
+          },
+          "story.s0.event.gallery_loop_0": {
+            "description": "Shot 0, 0..6s: A walks clockwise around the sculpture Evaluate ALL requirements in this event, including explicit direction, contents and temporal relations. Use the weakest supported component, not their average. Correct endpoints do not prove the action; a visible reverse action fails, while an unresolvable sampling gap is unknown.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "required-action-v1"
+          },
+          "story.s0.state_flow": {
+            "description": "Shot 0, 0..6s: State continuity within this shot and across its entry boundary. Original setup (historical context, not a reset target): 'A carries a sketchpad in a gallery with a central sculpture and one rear doorway.'. Earlier required events (do not replay): []. Current events: ['A walks clockwise around the sculpture']. Track the same relevant objects, their explicitly established contents, custody and physical condition. Preserve an established property unless a declared action changes it; respect legitimate transfers, transformations, additions and removals. A carried container must not silently refill or empty, a repaired object must not reset, and occlusion does not authorize an identity swap. Check only properties supported by the quoted story, never invent a count, hidden content, exact distance or grip. Visible contradictions fail even if the final location is correct. A gap between samples does not prove disappearance or spontaneous creation; unresolved evidence stays unknown. An earlier failed action does not prove a later action succeeded: judge the candidate's visible state against the required narrative, and explain the mismatch locally.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1"
+          },
+          "scene_geometry": {
+            "description": "Room layout, fixed objects and spatial relationships remain coherent across views. No teleportation or rebuilt backgrounds.",
+            "threshold": 0.85,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean",
+            "story_shot_index": 0,
+            "window_component_of_global": true
+          }
+        },
+        "original_task": {
+          "prompt": "A carries a sketchpad in a gallery with a central sculpture and one rear doorway. Unless clothing is specified in the setup, A is an adult with short gray hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events. Required shots: A walks clockwise around the sculpture. Then A continues behind the sculpture. Then A exits through the rear doorway.",
+          "mode": "generation",
+          "duration_seconds": 18,
+          "metadata": {
+            "h3_global_constraints": "A carries a sketchpad in a gallery with a central sculpture and one rear doorway. Unless clothing is specified in the setup, A is an adult with short gray hair and a cream cardigan. Keep the same people, prop identities and scene geometry across every cut. Follow the declared events in order. Reference images define appearance and layout only; they do not require later shots to reset to the reference pose, visibility or state. Use natural live-action appearance. Do not add subtitles, explanatory diagrams or extra plot events.",
+            "story_contract": {
+              "version": 1,
+              "initial_state": {
+                "A.location": "front of sculpture"
+              },
+              "final_state": {
+                "A.location": "rear doorway"
+              },
+              "shots": [
+                {
+                  "shot_index": 0,
+                  "preconditions": {
+                    "A.location": "front of sculpture"
+                  },
+                  "postconditions": {
+                    "A.location": "right of sculpture"
+                  },
+                  "observable_pre": [
+                    "A.location"
+                  ],
+                  "observable_post": [
+                    "A.location"
+                  ],
+                  "events": [
+                    {
+                      "id": "gallery_loop_0",
+                      "description": "A walks clockwise around the sculpture",
+                      "obligations": [
+                        {
+                          "start": 0,
+                          "end": 38,
+                          "quote": "A walks clockwise around the sculpture",
+                          "relation": "whole"
+                        }
+                      ]
+                    }
+                  ],
+                  "threshold": 0.9
+                },
+                {
+                  "shot_index": 1,
+                  "preconditions": {
+                    "A.location": "right of sculpture"
+                  },
+                  "postconditions": {
+                    "A.location": "behind sculpture"
+                  },
+                  "observable_pre": [
+                    "A.location"
+                  ],
+                  "observable_post": [],
+                  "events": [
+                    {
+                      "id": "gallery_loop_1",
+                      "description": "A continues behind the sculpture",
+                      "obligations": [
+                        {
+                          "start": 0,
+                          "end": 32,
+                          "quote": "A continues behind the sculpture",
+                          "relation": "whole"
+                        }
+                      ]
+                    }
+                  ],
+                  "threshold": 0.9
+                },
+                {
+                  "shot_index": 2,
+                  "preconditions": {
+                    "A.location": "behind sculpture"
+                  },
+                  "postconditions": {
+                    "A.location": "rear doorway"
+                  },
+                  "observable_pre": [],
+                  "observable_post": [
+                    "A.location"
+                  ],
+                  "events": [
+                    {
+                      "id": "gallery_loop_2",
+                      "description": "A exits through the rear doorway",
+                      "obligations": [
+                        {
+                          "start": 0,
+                          "end": 32,
+                          "quote": "A exits through the rear doorway",
+                          "relation": "whole"
+                        }
+                      ]
+                    }
+                  ],
+                  "threshold": 0.9
+                }
+              ],
+              "semantics": {
+                "version": "source-backed-obligations-v1",
+                "initial_setup": "A carries a sketchpad in a gallery with a central sculpture and one rear doorway.",
+                "inference_policy": "explicit_source_only"
+              }
+            }
+          }
+        },
+        "evidence_manifest": {
+          "evaluation_view": {
+            "kind": "fixed_window_clip",
+            "segment_id": 0,
+            "start_seconds": 0.0,
+            "end_seconds": 6.0,
+            "clip_duration_seconds": 6.0,
+            "sampled_frame_count": 24,
+            "source_time_offset_seconds": 0.0,
+            "clip_time_origin_seconds": 0,
+            "media_label": "ANONYMOUS CANDIDATE FIXED WINDOW segment_id=0; clip-local 0..6.0s = original-video 0.0..6.0s; every frame belongs to this segment_id",
+            "boundary_frames": [
+              {
+                "boundary": "first",
+                "segment_id": 0,
+                "source_timestamp_seconds": 0.0,
+                "clip_timestamp_seconds": 0.0,
+                "media_label": "CANDIDATE BOUNDARY FRAME FIRST, segment_id=0; original-video timestamp=0.000000s; clip-local timestamp=0.000000s; extracted from generated output, NOT a target reference"
+              },
+              {
+                "boundary": "last",
+                "segment_id": 0,
+                "source_timestamp_seconds": 5.958333,
+                "clip_timestamp_seconds": 5.958333,
+                "media_label": "CANDIDATE BOUNDARY FRAME LAST, segment_id=0; original-video timestamp=5.958333s; clip-local timestamp=5.958333s; extracted from generated output, NOT a target reference"
+              }
+            ],
+            "time_mapping": "original_video_seconds = clip_local_seconds + source_time_offset_seconds",
+            "input_representation": "timestamped_images",
+            "native_candidate_video_attached": false,
+            "sampled_frames": [
+              {
+                "sample_index": 0,
+                "clip_timestamp_seconds": 0.0,
+                "source_timestamp_seconds": 0.0,
+                "media_label": "CANDIDATE SAMPLE 1/24, segment_id=0; clip-local timestamp=0.000000s; original-video timestamp=0.000000s"
+              },
+              {
+                "sample_index": 1,
+                "clip_timestamp_seconds": 0.25,
+                "source_timestamp_seconds": 0.25,
+                "media_label": "CANDIDATE SAMPLE 2/24, segment_id=0; clip-local timestamp=0.250000s; original-video timestamp=0.250000s"
+              },
+              {
+                "sample_index": 2,
+                "clip_timestamp_seconds": 0.5,
+                "source_timestamp_seconds": 0.5,
+                "media_label": "CANDIDATE SAMPLE 3/24, segment_id=0; clip-local timestamp=0.500000s; original-video timestamp=0.500000s"
+              },
+              {
+                "sample_index": 3,
+                "clip_timestamp_seconds": 0.75,
+                "source_timestamp_seconds": 0.75,
+                "media_label": "CANDIDATE SAMPLE 4/24, segment_id=0; clip-local timestamp=0.750000s; original-video timestamp=0.750000s"
+              },
+              {
+                "sample_index": 4,
+                "clip_timestamp_seconds": 1.0,
+                "source_timestamp_seconds": 1.0,
+                "media_label": "CANDIDATE SAMPLE 5/24, segment_id=0; clip-local timestamp=1.000000s; original-video timestamp=1.000000s"
+              },
+              {
+                "sample_index": 5,
+                "clip_timestamp_seconds": 1.25,
+                "source_timestamp_seconds": 1.25,
+                "media_label": "CANDIDATE SAMPLE 6/24, segment_id=0; clip-local timestamp=1.250000s; original-video timestamp=1.250000s"
+              },
+              {
+                "sample_index": 6,
+                "clip_timestamp_seconds": 1.5,
+                "source_timestamp_seconds": 1.5,
+                "media_label": "CANDIDATE SAMPLE 7/24, segment_id=0; clip-local timestamp=1.500000s; original-video timestamp=1.500000s"
+              },
+              {
+                "sample_index": 7,
+                "clip_timestamp_seconds": 1.75,
+                "source_timestamp_seconds": 1.75,
+                "media_label": "CANDIDATE SAMPLE 8/24, segment_id=0; clip-local timestamp=1.750000s; original-video timestamp=1.750000s"
+              },
+              {
+                "sample_index": 8,
+                "clip_timestamp_seconds": 2.0,
+                "source_timestamp_seconds": 2.0,
+                "media_label": "CANDIDATE SAMPLE 9/24, segment_id=0; clip-local timestamp=2.000000s; original-video timestamp=2.000000s"
+              },
+              {
+                "sample_index": 9,
+                "clip_timestamp_seconds": 2.25,
+                "source_timestamp_seconds": 2.25,
+                "media_label": "CANDIDATE SAMPLE 10/24, segment_id=0; clip-local timestamp=2.250000s; original-video timestamp=2.250000s"
+              },
+              {
+                "sample_index": 10,
+                "clip_timestamp_seconds": 2.5,
+                "source_timestamp_seconds": 2.5,
+                "media_label": "CANDIDATE SAMPLE 11/24, segment_id=0; clip-local timestamp=2.500000s; original-video timestamp=2.500000s"
+              },
+              {
+                "sample_index": 11,
+                "clip_timestamp_seconds": 2.75,
+                "source_timestamp_seconds": 2.75,
+                "media_label": "CANDIDATE SAMPLE 12/24, segment_id=0; clip-local timestamp=2.750000s; original-video timestamp=2.750000s"
+              },
+              {
+                "sample_index": 12,
+                "clip_timestamp_seconds": 3.0,
+                "source_timestamp_seconds": 3.0,
+                "media_label": "CANDIDATE SAMPLE 13/24, segment_id=0; clip-local timestamp=3.000000s; original-video timestamp=3.000000s"
+              },
+              {
+                "sample_index": 13,
+                "clip_timestamp_seconds": 3.25,
+                "source_timestamp_seconds": 3.25,
+                "media_label": "CANDIDATE SAMPLE 14/24, segment_id=0; clip-local timestamp=3.250000s; original-video timestamp=3.250000s"
+              },
+              {
+                "sample_index": 14,
+                "clip_timestamp_seconds": 3.5,
+                "source_timestamp_seconds": 3.5,
+                "media_label": "CANDIDATE SAMPLE 15/24, segment_id=0; clip-local timestamp=3.500000s; original-video timestamp=3.500000s"
+              },
+              {
+                "sample_index": 15,
+                "clip_timestamp_seconds": 3.75,
+                "source_timestamp_seconds": 3.75,
+                "media_label": "CANDIDATE SAMPLE 16/24, segment_id=0; clip-local timestamp=3.750000s; original-video timestamp=3.750000s"
+              },
+              {
+                "sample_index": 16,
+                "clip_timestamp_seconds": 4.0,
+                "source_timestamp_seconds": 4.0,
+                "media_label": "CANDIDATE SAMPLE 17/24, segment_id=0; clip-local timestamp=4.000000s; original-video timestamp=4.000000s"
+              },
+              {
+                "sample_index": 17,
+                "clip_timestamp_seconds": 4.25,
+                "source_timestamp_seconds": 4.25,
+                "media_label": "CANDIDATE SAMPLE 18/24, segment_id=0; clip-local timestamp=4.250000s; original-video timestamp=4.250000s"
+              },
+              {
+                "sample_index": 18,
+                "clip_timestamp_seconds": 4.5,
+                "source_timestamp_seconds": 4.5,
+                "media_label": "CANDIDATE SAMPLE 19/24, segment_id=0; clip-local timestamp=4.500000s; original-video timestamp=4.500000s"
+              },
+              {
+                "sample_index": 19,
+                "clip_timestamp_seconds": 4.75,
+                "source_timestamp_seconds": 4.75,
+                "media_label": "CANDIDATE SAMPLE 20/24, segment_id=0; clip-local timestamp=4.750000s; original-video timestamp=4.750000s"
+              },
+              {
+                "sample_index": 20,
+                "clip_timestamp_seconds": 5.0,
+                "source_timestamp_seconds": 5.0,
+                "media_label": "CANDIDATE SAMPLE 21/24, segment_id=0; clip-local timestamp=5.000000s; original-video timestamp=5.000000s"
+              },
+              {
+                "sample_index": 21,
+                "clip_timestamp_seconds": 5.25,
+                "source_timestamp_seconds": 5.25,
+                "media_label": "CANDIDATE SAMPLE 22/24, segment_id=0; clip-local timestamp=5.250000s; original-video timestamp=5.250000s"
+              },
+              {
+                "sample_index": 22,
+                "clip_timestamp_seconds": 5.5,
+                "source_timestamp_seconds": 5.5,
+                "media_label": "CANDIDATE SAMPLE 23/24, segment_id=0; clip-local timestamp=5.500000s; original-video timestamp=5.500000s"
+              },
+              {
+                "sample_index": 23,
+                "clip_timestamp_seconds": 5.75,
+                "source_timestamp_seconds": 5.75,
+                "media_label": "CANDIDATE SAMPLE 24/24, segment_id=0; clip-local timestamp=5.750000s; original-video timestamp=5.750000s"
+              }
+            ]
+          },
+          "windows": [
+            {
+              "segment_id": 0,
+              "start_seconds": 0.0,
+              "end_seconds": 6.0
+            },
+            {
+              "segment_id": 1,
+              "start_seconds": 6.0,
+              "end_seconds": 12.0
+            },
+            {
+              "segment_id": 2,
+              "start_seconds": 12.0,
+              "end_seconds": 18.0
+            }
+          ]
+        }
+      },
+      "responses": [
+        {
+          "identity_bindings": {
+            "A": {
+              "status": "observed",
+              "appearance_id": "appearance_8ab8fd85664d",
+              "evidence_refs": [
+                "s0:first",
+                "s0:f000",
+                "s0:f001",
+                "s0:f002",
+                "s0:f003",
+                "s0:f004",
+                "s0:f005",
+                "s0:f006",
+                "s0:f007",
+                "s0:f008",
+                "s0:f009",
+                "s0:f010",
+                "s0:f011",
+                "s0:f012",
+                "s0:f013",
+                "s0:f014",
+                "s0:f015",
+                "s0:f016",
+                "s0:f017",
+                "s0:f018",
+                "s0:f019",
+                "s0:f020",
+                "s0:f021",
+                "s0:f022",
+                "s0:f023",
+                "s0:last"
+              ],
+              "evidence": "The person visible throughout the segment has short gray hair and wears a cream cardigan over a green shirt, matching the source description for A. This appearance is consistent across all sampled frames and both boundary frames."
+            }
+          },
+          "criteria": {
+            "action_alignment_score": {
+              "confidence": 0.95,
+              "evidence": "A begins at the front of the sculpture (0.0s), walks leftward (counter-clockwise) around the sculpture, passing its left side by ~2.0s, and ends at the right side of the sculpture by 5.96s. The required action is 'clockwise', but the observed motion is counter-clockwise. The start and end locations are correct, but the direction is reversed.",
+              "evidence_refs": [
+                "s0:first",
+                "s0:f000",
+                "s0:f008",
+                "s0:f012",
+                "s0:f016",
+                "s0:f020",
+                "s0:f023",
+                "s0:last"
+              ],
+              "status": "observed",
+              "score": 0.0
+            },
+            "scene_geometry": {
+              "confidence": 1.0,
+              "evidence": "The gallery layout, including the pink walls, checkered floor, central sculpture on a pedestal, red rope barrier, and the arrangement of four framed paintings (two on each side), remains consistent and coherent across all frames. No teleportation or background changes occur.",
+              "status": "observed",
+              "score": 1.0
+            },
+            "story.s0.event.gallery_loop_0": {
+              "confidence": 0.95,
+              "evidence": "A walks around the sculpture, starting at the front and ending at the right side. However, the movement is counter-clockwise (leftward), not clockwise as required. All other requirements (actor, object, continuity) are met, but the explicit direction is violated.",
+              "evidence_refs": [
+                "s0:first",
+                "s0:f000",
+                "s0:f008",
+                "s0:f012",
+                "s0:f016",
+                "s0:f020",
+                "s0:f023",
+                "s0:last"
+              ],
+              "assessment": {
+                "outcome": "absent",
+                "matched": [
+                  "A walks around the sculpture",
+                  "A starts at front of sculpture",
+                  "A ends at right of sculpture"
+                ],
+                "unmet": [
+                  "A walks clockwise around the sculpture"
+                ]
+              },
+              "fact_observations": {
+                "s0:pre:A.location": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:first"
+                  ],
+                  "evidence": "A is at front of sculpture at start."
+                },
+                "s0:post:A.location": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:last"
+                  ],
+                  "evidence": "A is at right of sculpture at end."
+                },
+                "s0:event:gallery_loop_0": {
+                  "value": "contradicted",
+                  "basis": "visible_counterexample",
+                  "evidence_refs": [
+                    "s0:f008",
+                    "s0:f012"
+                  ],
+                  "evidence": "From sample 8 (2.0s) to sample 12 (3.0s), A moves from the front to the left side of the sculpture, establishing a counter-clockwise path, which directly contradicts the required clockwise direction.",
+                  "counterexample": "A moves leftward (counter-clockwise) around the sculpture, as seen when A passes the left side of the sculpture between 2.0s and 3.0s."
+                },
+                "s0:obligation:gallery_loop_0.0": {
+                  "value": "contradicted",
+                  "basis": "visible_counterexample",
+                  "evidence_refs": [
+                    "s0:f008",
+                    "s0:f012"
+                  ],
+                  "evidence": "The obligation 'A walks clockwise around the sculpture' is violated; the visible motion is counter-clockwise.",
+                  "counterexample": "A walks counter-clockwise around the sculpture."
+                },
+                "s0:pre:initial_setup": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:first"
+                  ],
+                  "evidence": "At the first frame, A carries a sketchpad, the central sculpture is present, and the rear doorway is visible behind it."
+                }
+              }
+            },
+            "story.s0.state_flow": {
+              "confidence": 0.95,
+              "evidence": "State continuity is preserved: A consistently carries the sketchpad, the sculpture and gallery geometry remain unchanged, and A’s appearance is stable. The only violation is the direction of movement (counter-clockwise instead of clockwise), which is a failure of the required action, not a state-flow break per se. However, the state-flow criterion explicitly includes tracking the action, and a visible contradiction in the action fails the state-flow requirement.",
+              "evidence_refs": [
+                "s0:first",
+                "s0:f000",
+                "s0:f012",
+                "s0:f023",
+                "s0:last"
+              ],
+              "status": "observed",
+              "score": 0.0,
+              "observation_basis": "visible_mismatch",
+              "fact_observations": {
+                "s0:pre:A.location": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:first"
+                  ],
+                  "evidence": "A starts at front of sculpture."
+                },
+                "s0:post:A.location": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:last"
+                  ],
+                  "evidence": "A ends at right of sculpture."
+                },
+                "s0:event:gallery_loop_0": {
+                  "value": "contradicted",
+                  "basis": "visible_counterexample",
+                  "evidence_refs": [
+                    "s0:f008",
+                    "s0:f012"
+                  ],
+                  "evidence": "The required clockwise walk is contradicted by the observed counter-clockwise motion.",
+                  "counterexample": "A walks counter-clockwise around the sculpture."
+                },
+                "s0:obligation:gallery_loop_0.0": {
+                  "value": "contradicted",
+                  "basis": "visible_counterexample",
+                  "evidence_refs": [
+                    "s0:f008",
+                    "s0:f012"
+                  ],
+                  "evidence": "The obligation specifies clockwise motion, which is not fulfilled.",
+                  "counterexample": "A walks counter-clockwise."
+                },
+                "s0:pre:initial_setup": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:first"
+                  ],
+                  "evidence": "Initial setup is correctly established."
+                },
+                "s0:state_flow:whole": {
+                  "value": "contradicted",
+                  "basis": "visible_counterexample",
+                  "evidence_refs": [
+                    "s0:f008",
+                    "s0:f012"
+                  ],
+                  "evidence": "The state-flow requirement includes respecting the declared action; the visible counter-clockwise walk contradicts the required clockwise action, failing the state continuity for this event.",
+                  "counterexample": "A walks counter-clockwise around the sculpture, violating the required direction."
+                }
+              }
+            }
+          }
+        },
+        {
+          "identity_bindings": {
+            "A": {
+              "status": "observed",
+              "appearance_id": "appearance_8ab8fd85664d",
+              "evidence_refs": [
+                "s0:first",
+                "s0:f000",
+                "s0:f001",
+                "s0:f002",
+                "s0:f003",
+                "s0:f004",
+                "s0:f005",
+                "s0:f006",
+                "s0:f007",
+                "s0:f008",
+                "s0:f009",
+                "s0:f010",
+                "s0:f011",
+                "s0:f012",
+                "s0:f013",
+                "s0:f014",
+                "s0:f015",
+                "s0:f016",
+                "s0:f017",
+                "s0:f018",
+                "s0:f019",
+                "s0:f020",
+                "s0:f021",
+                "s0:f022",
+                "s0:f023",
+                "s0:last"
+              ],
+              "evidence": "Person with short gray hair and a cream cardigan, holding a sketchpad, visible in all frames from first to last boundary. Matches source description exactly."
+            }
+          },
+          "criteria": {
+            "story.s0.event.gallery_loop_0": {
+              "confidence": 0.95,
+              "evidence": "A is consistently visible with short gray hair and cream cardigan, carrying a sketchpad. A starts at front of sculpture (first boundary), moves rightward around the sculpture across samples 1–12, and ends at the right side of the sculpture (last boundary). The motion path is clearly clockwise: from front, to right-front, to right side, with continuous forward progression relative to the sculpture's orientation. No occlusion hides the trajectory.",
+              "evidence_refs": [
+                "s0:first",
+                "s0:f000",
+                "s0:f001",
+                "s0:f002",
+                "s0:f003",
+                "s0:f004",
+                "s0:f005",
+                "s0:f006",
+                "s0:f007",
+                "s0:f008",
+                "s0:f009",
+                "s0:f010",
+                "s0:f011",
+                "s0:f012",
+                "s0:f013",
+                "s0:f014",
+                "s0:f015",
+                "s0:f016",
+                "s0:f017",
+                "s0:f018",
+                "s0:f019",
+                "s0:f020",
+                "s0:f021",
+                "s0:f022",
+                "s0:f023",
+                "s0:last"
+              ],
+              "assessment": {
+                "outcome": "complete",
+                "matched": [
+                  "A walks clockwise around the sculpture",
+                  "A starts at front of sculpture",
+                  "A ends at right of sculpture",
+                  "A carries a sketchpad",
+                  "Scene contains central sculpture and rear doorway"
+                ],
+                "unmet": []
+              },
+              "fact_observations": {
+                "s0:pre:A.location": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:first"
+                  ],
+                  "evidence": "At timestamp 0.0s, A stands directly in front of the sculpture, centered on its frontal axis, matching 'front of sculpture'."
+                },
+                "s0:post:A.location": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:last"
+                  ],
+                  "evidence": "At timestamp 5.958s, A stands to the right side of the sculpture, with the sculpture’s right profile visible between A and the camera, matching 'right of sculpture'."
+                },
+                "s0:event:gallery_loop_0": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:f000",
+                    "s0:f001",
+                    "s0:f002",
+                    "s0:f003",
+                    "s0:f004",
+                    "s0:f005",
+                    "s0:f006",
+                    "s0:f007",
+                    "s0:f008",
+                    "s0:f009",
+                    "s0:f010",
+                    "s0:f011",
+                    "s0:f012",
+                    "s0:f013",
+                    "s0:f014",
+                    "s0:f015",
+                    "s0:f016",
+                    "s0:f017",
+                    "s0:f018",
+                    "s0:f019",
+                    "s0:f020",
+                    "s0:f021",
+                    "s0:f022",
+                    "s0:f023"
+                  ],
+                  "evidence": "Sequence shows continuous movement from front → right-front → right side of sculpture, with A’s body orientation and position relative to the sculpture confirming clockwise traversal. No reversal or pause observed."
+                },
+                "s0:obligation:gallery_loop_0.0": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:f000",
+                    "s0:f001",
+                    "s0:f002",
+                    "s0:f003",
+                    "s0:f004",
+                    "s0:f005",
+                    "s0:f006",
+                    "s0:f007",
+                    "s0:f008",
+                    "s0:f009",
+                    "s0:f010",
+                    "s0:f011",
+                    "s0:f012",
+                    "s0:f013",
+                    "s0:f014",
+                    "s0:f015",
+                    "s0:f016",
+                    "s0:f017",
+                    "s0:f018",
+                    "s0:f019",
+                    "s0:f020",
+                    "s0:f021",
+                    "s0:f022",
+                    "s0:f023"
+                  ],
+                  "evidence": "The full event 'A walks clockwise around the sculpture' is visually confirmed by the progressive angular displacement of A around the sculpture’s base, consistent with a clockwise path when viewed from above."
+                },
+                "s0:pre:initial_setup": {
+                  "value": "supported",
+                  "basis": "visible_support",
+                  "evidence_refs": [
+                    "s0:first"
+                  ],
+                  "evidence": "First frame shows A carrying a sketchpad, a central bust sculpture on a pedestal, and a rear doorway behind it; gallery walls with paintings confirm setting."
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

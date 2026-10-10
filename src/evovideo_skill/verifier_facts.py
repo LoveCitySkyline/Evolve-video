@@ -286,6 +286,27 @@ def fact_conflicts(observations):
     return {key: rows for key, rows in claims.items() if {r['value'] for r in rows} == {'supported', 'contradicted'}}
 
 
+def reassessment_closure(criteria, seeds):
+    """Invalidate the connected source-fact component, not just one score.
+
+    Only explicit fact IDs define edges. The current-window action aggregate
+    additionally depends on its source events. No prose/score similarity is used.
+    """
+    selected = set(seeds) & set(criteria)
+    facts = {name: set(rule.get('fact_contract', {}).get('facts', {})) for name, rule in criteria.items()}
+    events = {name for name, keys in facts.items() if any(':event:' in k or ':obligation:' in k for k in keys)}
+    while True:
+        shared = set().union(*(facts[name] for name in selected)) if selected else set()
+        expanded = selected | {name for name, keys in facts.items() if keys & shared}
+        if 'action_alignment_score' in selected:
+            expanded |= events
+        if selected & events and 'action_alignment_score' in criteria:
+            expanded.add('action_alignment_score')
+        if expanded == selected:
+            return selected
+        selected = expanded
+
+
 def mark_conflicts(observations):
     for rows in observations.values():
         for row in rows:

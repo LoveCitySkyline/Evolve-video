@@ -189,6 +189,12 @@ class EvidenceReferenceTests(unittest.TestCase):
         del row['evidence_times_seconds']
         self.assertIsNone(self.parse(row, STATE)['score'])
         row['evidence_refs'] = ['s2:last']
+        result = self.parse(row, STATE)
+        self.assertIsNone(result['score'])
+        self.assertEqual(result['evidence_refs'], [])
+        self.assertEqual(result['evidence_times_seconds'], [])
+        self.assertEqual(result['uncertainty_context']['evidence_refs'], ['s2:last'])
+        row['evidence_refs'] = ['invented']
         with self.assertRaises(ValueError):
             self.parse(row, STATE)
 

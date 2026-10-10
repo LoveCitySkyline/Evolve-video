@@ -1,5 +1,42 @@
 # Verifier regression workflow
 
+## v25: shared-fact dependency handling and uncertainty context
+
+`shared-fact-reassessment-v25` invalidates and re-evaluates the connected
+source-fact component within a scoped group. Previously valid sibling judgments
+that mention the same fact cannot be retained while only an event is re-evaluated.
+The current-window action aggregate is included when source events are affected.
+Edges come from source-defined fact IDs, not prose similarity or score matching.
+Independent criteria such as geometry remain retained. If fact conflicts already
+exist in the first response they trigger the same bounded joint reassessment.
+If the second response remains contradictory, affected observations are excluded
+from partial results and no valid group cache is written. The limit remains two
+model calls per group. Cross-group/repeat review retains its existing budget.
+
+Scoped response v3 permits valid criterion-level image references on an
+`unobserved` judgment. The host stores them separately as `uncertainty_context`,
+with empty affirmative evidence refs/timestamps and unchanged null score and
+evidence text. This is context for an abstention, not proof of failure or success.
+Invalid, duplicate, or out-of-scope refs remain rejected. Fact-level unknown
+citations retain their existing contract. This avoids spending a rewrite call
+on an abstention just because it points to the images the model could not resolve.
+It does not establish that the model's explanation for uncertainty is correct.
+
+`summary.json` now lists `unobserved_judgments` explicitly. Protocol validity does
+not imply usable observations for every criterion. `diagnostics.json` includes
+`group.shared-facts-N.json` audits: conflicts, source dependencies, and affected
+criteria, alongside original/corrected responses. The saved v24 replay tests cover
+both reported failures without API calls or video generation. Visual direction
+judgments (toward/away, clockwise/counter-clockwise) still need fixed-video labels;
+mutually consistent responses are not independent visual verification.
+
+From v24, synchronize `conditioning_verifier.py`, `scoped_judgment.py`, and
+`verifier_facts.py` under `src/evovideo_skill/`, plus
+`scripts/verifier_regression_suite.py`. Reuse the same three-task canary command
+below with a new `outputs/h3_verifier_v25_suite_XXXXXX` directory. Inspect the
+summary and keep the automatically generated diagnostics; do not regenerate H3
+videos or advance to a full experiment merely because JSON now parses.
+
 ## v24: separate format repair from semantic reassessment
 
 `bounded-semantic-reassessment-v24` retains the two-call fixed-window limit.

@@ -79,6 +79,9 @@ def summarize(results, selected):
         'binding_coverage': observed / required if required else None,
         'binding_coverage_scope': 'Returned identity gates only; excludes cases without a parsed summary. Not whole-cohort coverage.',
         'cases_without_parsed_summary': sum('summary' not in r for r in results),
+        'unobserved_judgments': [{'case': case.get('case'), 'criterion': name}
+            for case in results for name, row in case.get('summary', {}).get('criteria', {}).items()
+            if row.get('status') == 'unobserved'],
         'all_cases_contract_valid': bool(results) and len(results) == len(selected) and all(
             r.get('summary', {}).get('format_valid') is True and not r['summary'].get('fact_conflicts') for r in results),
         'visual_regression': {'labeled_cases': len(labeled), 'passed_cases': sum(c['passed'] for c in labeled),
@@ -145,7 +148,7 @@ def collect_suite(root):
                 entry['request'] = {key: request[key] for key in
                     ('criteria', 'original_task', 'evidence_manifest', 'output_contract',
                      'identity_contract', 'frozen_identity_context', 'format_feedback') if key in request}
-            for kind in ('identity', 'accepted'):
+            for kind in ('identity', 'accepted', 'shared-facts'):
                 name = f'group.{kind}-{attempt}.json'
                 if (folder / name).is_file():
                     entry[kind] = read(name)
