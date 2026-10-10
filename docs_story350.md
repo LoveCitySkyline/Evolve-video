@@ -590,3 +590,62 @@ PYTHONPATH=src python scripts/recheck_verifier_group.py \
 已经同步 v19 单指标脚本的服务器，只需更新 `conditioning_verifier.py` 和
 `verifier_review.py`，新建 `outputs/h3_verifier_v20_autoreview_XXXXXX` 输出目录，
 沿用上节的单指标命令。`--judgment-dir` 仍指原始 v17 来源，不能覆盖旧输出。
+
+### v21：原始任务事实一致性
+
+`source-fact-consistency-v21` / `bounded-evidence-review-v5` 在故事指标中加入
+`fact_observations`。宿主从原始 `story_contract` 的可观察前置、后置、不变量、
+事件和原文子句生成事实 ID；不从某个任务名称、模型分数或关键词补写物理事实。
+已有 prepared 任务无需重新生成。普通状态指标只回答自己的事实；事件、子句、
+state_flow 同时回答所在窗口的关联事实，以便发现不同指标的证据矛盾。
+
+每条事实声明 supported / contradicted / unknown，并引用实际提供的证据 ID。
+前置、后置分别要求对应首、末完整边界帧。contradicted 必须声明可见反例；
+not_visible / occluded / ambiguous / sampling_gap 只能支持 unknown。
+例如收银箱不可见，不能据此认定托盘不在其旁边；若代币清楚地握在手中，
+则可作为“代币在容器内”的可见反例。原始视觉文本及原始响应均保留。
+
+对同一视频、同一精确时间范围、同一事实 ID，重复判断或不同指标同时给出
+supported 与 contradicted，即使数值分数相同，也触发有预算的自动复核。
+前一镜头末帧与下一镜头首帧使用不同 ID，不强制合并为同一观察。
+unknown 与已观察值不会凭空构成逻辑矛盾，但原来的未知检查仍有效。
+
+各组评估结束后增加一次跨指标一致性检查；复核共享原有调用和时间账本，
+不增加每指标、每视频或每运行预算，不无限重试。两次复核的数值和结构化事实
+都需一致；复核后仍存在跨指标矛盾则继续未决。未决指标不会产生质量分数、
+失败修复指令或通过准入检查，有争议子句也不能被汇总成有效父事件。
+诊断查看 `verification_metadata.fact_consistency` 的 `before_review`、`unresolved`，
+以及 `criterion_observations` 中的 `fact_conflicts`；单组诊断 `summary.json`
+也报告同组事实冲突。`format_valid` 仅表示格式合法。
+
+这是一层结构化自洽检查，不是独立视觉真值验证：模型仍可能一致地看错，
+或把“不可见”错误标成“可见反例”。本地测试验证控制流、来源和分数隔离，
+不证明真实模型准确率。所有阈值、48 MB 请求上限与 v20 图片传输策略保持不变。
+
+服务器同步以下运行文件（或在干净工作树中更新整个仓库）：
+
+- `src/evovideo_skill/verifier_facts.py`（新增，不能漏掉）
+- `src/evovideo_skill/conditioning_verifier.py`
+- `src/evovideo_skill/scoped_judgment.py`
+- `src/evovideo_skill/verifier_review.py`
+- `src/evovideo_skill/story_contracts.py`
+- `src/evovideo_skill/story_semantics.py`
+- `scripts/recheck_verifier_group.py`
+
+沿用已配置的评估服务环境，在服务器仓库根目录新建复评目录。此命令只重评
+已保存的视频，不调用 H3，不重新生成数据，也不修改旧策略选择：
+
+```bash
+review_dir="$(mktemp -d outputs/h3_verifier_v21_recheck_XXXXXX)"
+set -o pipefail
+PYTHONPATH=src python scripts/recheck_conditioning_outputs.py \
+  --run-dir outputs/h3_story350_semantics_v2_RowaH0 \
+  --config configs/h3_story350_debug.json \
+  --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json \
+  --task-id story350-market_change --seed 42 \
+  --output-dir "$review_dir" \
+  2>&1 | tee "${review_dir}.log"
+```
+
+v20 的判断不能当作 v21 缓存续跑；v21 同一目录中断后可使用已有 `--resume`
+流程。复评仍仅用于开发回归，不能作为未见测试集上的方法收益。

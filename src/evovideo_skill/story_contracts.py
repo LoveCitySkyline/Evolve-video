@@ -170,7 +170,7 @@ def acceptance_report(task, artifact):
             values, texts = [], []
             for row in rows:
                 matches = [s for s in row.get("segments", []) if s.get("segment_id") == rule["story_shot_index"]]
-                if (row.get("status") != "observed" or len(matches) != 1
+                if (row.get("status") != "observed" or row.get('fact_conflicts') or len(matches) != 1
                         or matches[0].get("status") != "observed"
                         or not matches[0].get("evidence")
                         or type(matches[0].get("score")) not in (int, float)

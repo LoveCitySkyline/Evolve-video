@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "bounded-evidence-review-v20"
+VERIFIER_PROTOCOL_VERSION = "source-fact-consistency-v21"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -245,6 +245,8 @@ def parse_judgment(raw, rubric, spans, evidence_manifest=None):
         item = deepcopy(raw["criteria"][name])
         if not isinstance(item, dict):
             raise ValueError("criterion judgment must be an object")
+        if 'fact_observations' in item and not (isinstance(definition, dict) and definition.get('fact_contract')):
+            raise ValueError(f'{name}: unrequested fact_observations')
         def check(row, allow_na):
             if row.get("status") not in {"observed", "unobserved", "not_applicable"}:
                 raise ValueError("missing/invalid evidence status")
@@ -316,6 +318,9 @@ def parse_judgment(raw, rubric, spans, evidence_manifest=None):
                 # Contradictions request review; never choose a more flattering score.
                 item.update(status="unobserved", score=None, scope_issues=issues)
         validate_grounding(name, definition, item, spans, evidence_manifest)
+        if isinstance(definition, dict) and definition.get('fact_contract'):
+            from evovideo_skill.verifier_facts import validate_facts
+            validate_facts(name, definition, item, evidence_manifest)
         aggregation = definition.get("aggregation") if isinstance(definition, dict) else None
         if aggregation == "minimum_over_segments" and item["status"] == "observed":
             applicable = [r for r in segments if r["status"] != "not_applicable"]
@@ -770,6 +775,9 @@ class ConditioningVideoVerifier:
                 system += '\nDesired story withheld. Judge only physical motion, not inferred story requirements.\n'
         if fixed:
             system += FRAME_INPUT_INSTRUCTIONS
+        if any(rule.get('fact_contract') for rule in text_payload.get('criteria', {}).values()):
+            from evovideo_skill.verifier_facts import INSTRUCTIONS
+            system += INSTRUCTIONS
         system += self.response_contract_instructions
         key = os.environ.get(p["api_key_env"])
         if not key:
@@ -896,6 +904,9 @@ class ConditioningVideoVerifier:
 
     def _observe_group(self, path, payload, evidence, operation, subset, spans):
         """Correct malformed contracts once; never retry a valid low/unknown score."""
+        from evovideo_skill.verifier_facts import with_fact_contract
+        subset = with_fact_contract(subset, payload.get('original_task', {}))
+        payload = {**payload, 'criteria': subset}
         if is_scoped(subset):
             return self._observe_scoped(path, payload, evidence, operation, subset, spans)
         return self._observe_legacy_group(path, payload, evidence, operation, subset, spans)
@@ -1183,7 +1194,27 @@ class ConditioningVideoVerifier:
                     aggregation=criteria[name].get('aggregation', 'mean') if criteria[name].get('fixed_window_coverage')
                     else 'minimum_over_segments')
         from evovideo_skill.story_semantics import combine_obligations
+        from evovideo_skill.verifier_facts import mark_conflicts
+        fact_conflicts_before = mark_conflicts(observations)
+        if fact_conflicts_before and auto_options['enabled'] and artifact is not None:
+            # A single bounded pass over affected criteria. Shared ledgers also
+            # account for any earlier numeric/unknown review of the same criterion.
+            affected = sorted({c['criterion'] for claims in fact_conflicts_before.values() for c in claims})
+            for name in affected:
+                subset = {name: criteria[name]}
+                rows = {name: observations[name]}
+                audit_key = 'facts-' + stable_hash(name)[:12]
+                review_audits[audit_key] = review_group(self, task, artifact, public, subset,
+                    rows, folder, audit_key, digest, manifest['candidate_hash'])
+                if len(rows[name]) != len(observations[name]):
+                    conservative = min(rows[name], key=lambda r: r.get('score') if r.get('score') is not None else -1)
+                    rows[name] = [deepcopy(conservative) for _ in observations[name]]
+                observations[name] = rows[name]
+        fact_conflicts_after = mark_conflicts(observations)
         conjunction_audit = combine_obligations(task, observations)
+        # Conjunctions can rewrite a parent's score; factual conflicts still block
+        # it and its components from rewards and repair instructions.
+        fact_conflicts_after = mark_conflicts(observations)
         scores, texts, unobserved, disagreements, failed = {}, {}, [], {}, []
         disputed = []
         scope_issues = {}
@@ -1232,6 +1263,8 @@ class ConditioningVideoVerifier:
             verification_metadata={**manifest, "unobserved_criteria": unobserved, "disagreement_criteria": review,
                 "verifier_protocol": VERIFIER_PROTOCOL_VERSION, "scope_issues": scope_issues,
                 "auto_review": review_audits, "response_format_failures": format_failures,
+                'fact_consistency': {'before_review': fact_conflicts_before, 'unresolved': fact_conflicts_after,
+                    'qualification': 'Structured same-proposition consistency, not independent visual ground truth.'},
                 "global_fixed_window_criteria": sorted(window_observations),
                 "event_conjunctions": conjunction_audit,
                 "abstention_policy": "continue-without-quality-estimate" if auto_options["enabled"] else "stop",

@@ -12,7 +12,7 @@ from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'bounded-evidence-review-v4'
+VERSION = 'bounded-evidence-review-v5'
 DEFAULTS = dict(enabled=False, max_calls_per_criterion=4, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
                 secondary_model=None)
@@ -78,6 +78,9 @@ def options(value=None):
 
 
 def uncertain(rows, threshold):
+    from evovideo_skill.verifier_facts import fact_conflicts
+    if any(r.get('fact_conflicts') for r in rows) or fact_conflicts({'criterion': rows}):
+        return True
     if not rows or any(r.get('status') == 'unobserved' or r.get('scope_issues') for r in rows):
         return True
     if len({r.get('status') for r in rows}) != 1:

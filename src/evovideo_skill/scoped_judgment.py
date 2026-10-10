@@ -116,6 +116,10 @@ def output_contract(criteria, spans, manifest):
             entry['scope_checks'] = {'appearance_status': 'stable|changed|unobservable',
                                     'structure_status': 'present|absent|unobservable',
                                     'score_basis': 'appearance|structure|insufficient_evidence'}
+        if rule.get('fact_contract'):
+            from evovideo_skill.verifier_facts import output_fields
+            entry['required'].append('fact_observations')
+            entry['fact_observations'] = output_fields(rule, manifest)
         fields[name] = entry
     return {'response_protocol': SCOPED_RESPONSE_PROTOCOL, 'criterion_keys': list(criteria),
             'segment_id': next(iter(criteria.values()))['story_shot_index'],
@@ -134,9 +138,11 @@ def project(raw, criteria, manifest=None):
         if not isinstance(row, dict) or 'segments' in row or 'segment_id' in row:
             raise ValueError(f'{name}: return ONE criterion judgment, without segments/segment_id')
         allowed = {'confidence', 'evidence', 'evidence_times_seconds', 'assessment', 'score', 'status',
-                   'observation_basis', 'scope_checks', 'evidence_refs'}
+                   'observation_basis', 'scope_checks', 'evidence_refs', 'fact_observations'}
         if set(row) - allowed:
             raise ValueError(f'{name}: unexpected judgment fields {sorted(set(row) - allowed)}')
+        if 'fact_observations' in row and not rule.get('fact_contract'):
+            raise ValueError(f'{name}: unrequested fact_observations')
         kind = rule.get('judgment_contract')
         if kind:
             assessment = row.get('assessment')
@@ -184,6 +190,8 @@ def project(raw, criteria, manifest=None):
             row['evidence_reference_resolution'] = {ref: deepcopy(catalog[ref]) for ref in refs}
         elif 'evidence_refs' in row:
             raise ValueError(f'{name}: evidence_refs require a host-backed catalog')
+        from evovideo_skill.verifier_facts import validate_facts
+        validate_facts(name, rule, row, manifest)
         segment = deepcopy(row)
         segment.pop('confidence', None)
         segment['segment_id'] = rule['story_shot_index']

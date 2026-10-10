@@ -132,7 +132,9 @@ def main(argv=None):
         write_json(root / 'stopped.json', {'failure_category': failure_category(exc),
             'error_type': type(exc).__name__, 'reason': str(exc), 'no_score_assigned': True})
         raise
-    summary = {'purpose': plan['purpose'], 'format_valid': True,
+    from evovideo_skill.verifier_facts import mark_conflicts
+    conflicts = mark_conflicts({k: [v] for k, v in result.items()})
+    summary = {'purpose': plan['purpose'], 'format_valid': True, 'fact_conflicts': conflicts,
         'criteria': {k: {'status': v['status'], 'score': v['score']} for k, v in result.items()},
         'qualification': 'One diagnostic repeat only; no admission, full-video aggregation or independent verification.'}
     write_json(root / 'summary.json', summary)

@@ -113,7 +113,7 @@ def combine_obligations(task, observations):
                 target = next(s for s in combined["segments"] if s["segment_id"] == index)
                 segments = [next(s for s in c["segments"] if s["segment_id"] == index)
                             for c in components]
-                known = all(c["status"] == "observed" for c in components + segments)
+                known = all(c["status"] == "observed" and not c.get('fact_conflicts') for c in components + segments)
                 score = min(c["score"] for c in components + segments) if known else None
                 status = "observed" if known else "unobserved"
                 evidence = "Host conjunction of independent source requirements: " + " | ".join(
