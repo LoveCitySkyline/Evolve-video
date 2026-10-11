@@ -144,7 +144,7 @@ class GroundingTests(unittest.TestCase):
                     verifier._observe_legacy_group(Path(tmp) / 'conflicts.json', {}, [], 'unit', rules, SPANS)
                 payload = json.loads(request.call_args.args[0])
                 self.assertNotIn('response_mode', payload['output_contract'])
-                issues = payload['format_feedback']['validation_errors'][0]['issues']
+                issues = json.loads((Path(tmp)/'conflicts.format-0.json').read_text())['validation_errors'][0]['issues']
                 self.assertEqual({i['code'] for i in issues}, {'missing_assessment_object', 'assessment_conflict'})
 
     @staticmethod
@@ -211,6 +211,37 @@ class GroundingTests(unittest.TestCase):
                 self.assertEqual(request.call_count, 1)
                 self.assertEqual(again, first)
 
+    def test_global_physics_uses_only_attached_prior_last_boundary_for_each_segment(self):
+        raw, rules, assessment = self.missing_top_motion_fixture()
+        raw['criteria']['motion_coherence']['assessment'] = assessment
+        manifest = {'evaluation_view': {'kind': 'full_video', 'temporal_index': [
+            {**span, 'boundary_frames': [{'boundary': 'last', 'segment_id': span['segment_id'],
+                'source_timestamp_seconds': span['end_seconds'] - 1 / 24,
+                'media_label': f"attached-last-{span['segment_id']}"}]} for span in SPANS]}}
+        segments = raw['criteria']['motion_coherence']['segments']
+        segments[1]['evidence_times_seconds'] = [5.958333, 6.0, 11.958]
+        segments[2]['evidence_times_seconds'] = [12 - 1 / 24, 12.0, 17.958]
+        result = parse_judgment(raw, rules, SPANS, manifest)['motion_coherence']
+        self.assertEqual(result['segments'][1]['context_evidence_citations'][0]['source_segment_id'], 0)
+        self.assertEqual(result['segments'][2]['context_evidence_citations'][0]['source_segment_id'], 1)
+        contract = grounding_output_contract(rules, SPANS, manifest)['motion_coherence']
+        self.assertEqual([c['target_segment_id'] for c in contract['evidence_times_seconds']['allowed_context_evidence']], [1, 2])
+        for bad in (5.5, 5.958334, 0.0, 12.0):
+            altered = deepcopy(raw)
+            altered['criteria']['motion_coherence']['segments'][1]['evidence_times_seconds'][0] = bad
+            with self.subTest(bad=bad), self.assertRaisesRegex(ValueError, 'timestamp_out_of_window'):
+                parse_judgment(altered, rules, SPANS, manifest)
+        for bad_manifest in ({}, {'evaluation_view': {'kind': 'full_video'}},
+                             {'evaluation_view': {**manifest['evaluation_view'], 'kind': 'fixed_window_clip'}}):
+            with self.assertRaisesRegex(ValueError, 'timestamp_out_of_window'):
+                parse_judgment(raw, rules, SPANS, bad_manifest)
+        altered = deepcopy(raw)
+        altered['criteria']['motion_coherence']['segments'][1]['evidence_times_seconds'] = [5.958333]
+        with self.assertRaisesRegex(ValueError, 'context_alone'):
+            parse_judgment(altered, rules, SPANS, manifest)
+        with self.assertRaisesRegex(ValueError, 'timestamp_out_of_window'):
+            parse_judgment(raw, {'motion_coherence': {'temporal_grounding': 'original-timestamps-v1'}}, SPANS, manifest)
+
     def test_single_correction_lists_errors_for_all_criteria(self):
         with TemporaryDirectory() as tmp:
             profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
@@ -222,7 +253,8 @@ class GroundingTests(unittest.TestCase):
                     {'criteria': {'a': judgment(1), 'b': judgment(1)}}]) as request:
                 verifier._observe_legacy_group(Path(tmp) / 'multi.json', {}, [], 'unit', {'a': rule, 'b': rule}, SPANS)
                 feedback = json.loads(request.call_args.args[0])['format_feedback']
-                self.assertEqual({e['criterion'] for e in feedback['validation_errors']}, {'a', 'b'})
+                self.assertEqual({e['criterion'] for e in json.loads((Path(tmp)/'multi.format-0.json').read_text())['validation_errors']}, {'a', 'b'})
+                self.assertEqual(feedback['mode'], 'fresh_evidence_reassessment')
                 self.assertEqual(request.call_count, 2)
 
     def test_request_declares_conditional_fields_and_preserves_scope(self):
@@ -274,8 +306,8 @@ class GroundingTests(unittest.TestCase):
                     payload = json.loads(call.args[0])
                     self.assertIn('grounding_fields', payload['output_contract'])
                     self.assertEqual(payload, json.loads(path.with_suffix(f'.request-{i}.json').read_text()))
-                self.assertIn('missing_field', payload['format_feedback']['error'])
-                self.assertEqual(payload['format_feedback']['previous_response']['criteria']['criterion'], invalid)
+                self.assertIn('missing_field', json.loads(path.with_suffix('.format-0.json').read_text())['error'])
+                self.assertNotIn('previous_response', payload['format_feedback'])
 
     def test_one_contract_correction_keeps_raw_failure_and_does_not_retry_unknown(self):
         with TemporaryDirectory() as tmp:

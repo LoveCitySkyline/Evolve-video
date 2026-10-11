@@ -1,0 +1,1461 @@
+{
+  "purpose": "Saved user responses, not visual truth labels",
+  "records": [
+    {
+      "file": "group-007-repeat-0.correction-1.raw.json",
+      "raw": {
+        "criteria": {
+          "motion_coherence": {
+            "status": "observed",
+            "score": 1.0,
+            "confidence": 0.98,
+            "evidence": "Visible continuous motion across all three segments: the man holds and presents a plate (0.0–0.6s), rotates it for inspection (0.6–1.2s), lowers it (1.2–2.0s), interacts with vendor (2.0–5.0s), re-engages with woman (5.0–7.0s), she touches the plate (7.0–8.0s), he lifts it again (12.0–13.0s), she inspects (13.0–14.0s), they continue interaction, and at ~17.0s he extends the plate toward the vendor while turning—no jumps, impossible contacts, or motion discontinuities observed in sampled frames or boundary transitions.",
+            "assessment": {
+              "basis": "physical_motion",
+              "outcome": "coherent",
+              "defects": []
+            },
+            "segments": [
+              {
+                "segment_id": 0,
+                "status": "observed",
+                "score": 1.0,
+                "evidence": "Frames at 0.0s (first), 0.6s, 1.2s, 2.0s, 3.0s, 4.0s, 5.0s, 5.958333s (last) show smooth hand-and-object motion: man lifts plate, displays it, lowers it, turns to vendor, returns focus to woman; no visible discontinuity. Woman’s gesture at ~5.5s and touch at ~7.0s (within segment 0) are physically plausible and continuous.",
+                "evidence_times_seconds": [
+                  0.0,
+                  0.6,
+                  1.2,
+                  2.0,
+                  3.0,
+                  4.0,
+                  5.0,
+                  5.958333
+                ],
+                "assessment": {
+                  "basis": "physical_motion",
+                  "outcome": "coherent",
+                  "defects": []
+                }
+              },
+              {
+                "segment_id": 1,
+                "status": "observed",
+                "score": 1.0,
+                "evidence": "Frames at 6.0s (first), 6.6s, 7.2s, 8.0s, 9.0s, 10.0s, 11.0s, 11.958333s (last) show consistent continuation: man holds plate, woman re-engages, gestures, they smile, he turns back to vendor, stacks plates, and prepares to hand one over—motion is fluid across cuts and within segment. No occlusion-induced paradoxes or impossible object states.",
+                "evidence_times_seconds": [
+                  6.0,
+                  6.6,
+                  7.2,
+                  8.0,
+                  9.0,
+                  10.0,
+                  11.0,
+                  11.958333
+                ],
+                "assessment": {
+                  "basis": "physical_motion",
+                  "outcome": "coherent",
+                  "defects": []
+                }
+              },
+              {
+                "segment_id": 2,
+                "status": "observed",
+                "score": 1.0,
+                "evidence": "Frames at 12.0s (first), 12.6s, 13.2s, 14.0s, 15.0s, 16.0s, 17.0s, 17.958333s (last) show repeated plate presentation, woman’s touch, shared laughter, and final motion where man extends plate toward vendor while turning—continuous arm trajectory, no teleportation or inconsistent contact. The transition from segment 1 last frame (11.958333s) to segment 2 first frame (12.0s) shows identical pose and plate position, confirming temporal coherence.",
+                "evidence_times_seconds": [
+                  12.0,
+                  12.6,
+                  13.2,
+                  14.0,
+                  15.0,
+                  16.0,
+                  17.0,
+                  17.958333
+                ],
+                "assessment": {
+                  "basis": "physical_motion",
+                  "outcome": "coherent",
+                  "defects": []
+                }
+              }
+            ]
+          }
+        }
+      },
+      "request": {
+        "criteria": {
+          "motion_coherence": {
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "full_video_assessment",
+            "mandatory": true,
+            "fixed_window_coverage": true,
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "physical-motion-v1",
+            "description": "Visible physical continuity of movement and contacts in the rendered video: judge actual motion defects, not conformance to any desired story or object ownership."
+          }
+        },
+        "output_contract": {
+          "criterion_keys": [
+            "motion_coherence"
+          ]
+        }
+      }
+    },
+    {
+      "file": "group-007-repeat-0.raw.json",
+      "raw": {
+        "motion_coherence": {
+          "status": "observed",
+          "score": 1.0,
+          "confidence": 0.95,
+          "evidence": "Visible continuous motion across all three segments: the man holds, rotates, and presents a decorative plate; the woman examines it, gestures, and steps back; a third person handles plates behind the counter. No visible discontinuities, impossible contacts, or motion artifacts. Boundary frames align with expected motion states (e.g., plate held at start of seg0, plate being placed at end of seg0; same pattern repeats at seg1/seg2 boundaries). All observed actions are physically plausible and temporally coherent within each segment and across segment transitions.",
+          "assessment": {
+            "basis": "physical_motion",
+            "outcome": "coherent",
+            "defects": []
+          },
+          "segments": [
+            {
+              "segment_id": 0,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 0.0s to 5.958s: man lifts plate (0.1s), displays it (0.6–2.5s), lowers it (2.6s), turns toward vendor (3.0s), woman reaches for plate (4.5s), takes it (7.0s), returns it (8.0s), steps left (9.0s). Motion is smooth, continuous, and physically consistent. Boundary frames at 0.0s (plate held low) and 5.958s (man turned toward vendor, plate on counter) match expected states.",
+              "evidence_times_seconds": [
+                0.0,
+                0.1,
+                0.6,
+                1.0,
+                2.0,
+                2.5,
+                3.0,
+                4.5,
+                5.0,
+                5.958
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            },
+            {
+              "segment_id": 1,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 6.0s to 11.958s: man picks up same plate again (6.0s), shows it (6.6–7.5s), woman touches it (7.0s), they exchange smiles, man lowers plate (8.0s), woman steps away (9.0s), man turns to vendor (10.0s), vendor handles plates (10.5–11.5s). No jumps or inconsistencies. Boundary frames at 6.0s (man holding plate, same pose as seg0 start) and 11.958s (man facing vendor, plate on counter) confirm continuity.",
+              "evidence_times_seconds": [
+                6.0,
+                6.6,
+                7.0,
+                7.5,
+                8.0,
+                9.0,
+                10.0,
+                10.5,
+                11.0,
+                11.958
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            },
+            {
+              "segment_id": 2,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 12.0s to 17.958s: man again holds plate (12.0s), displays (12.5–13.5s), woman examines (13.0s), man lowers (14.0s), woman steps back (15.0s), man turns to vendor (16.0s), places plate into box (17.5s). Motion remains smooth and physically plausible. Boundary frames at 12.0s (identical pose to prior starts) and 17.958s (man placing plate in box, woman’s back visible) confirm coherent progression.",
+              "evidence_times_seconds": [
+                12.0,
+                12.5,
+                13.0,
+                13.5,
+                14.0,
+                15.0,
+                16.0,
+                17.0,
+                17.5,
+                17.958
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            }
+          ]
+        }
+      },
+      "request": {
+        "criteria": {
+          "motion_coherence": {
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "full_video_assessment",
+            "mandatory": true,
+            "fixed_window_coverage": true,
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "physical-motion-v1",
+            "description": "Visible physical continuity of movement and contacts in the rendered video: judge actual motion defects, not conformance to any desired story or object ownership."
+          }
+        },
+        "output_contract": {
+          "criterion_keys": [
+            "motion_coherence"
+          ]
+        }
+      }
+    },
+    {
+      "file": "group-007-repeat-1.correction-1.raw.json",
+      "raw": {
+        "motion_coherence": {
+          "status": "observed",
+          "score": 1.0,
+          "confidence": 0.98,
+          "evidence": "Visible continuous motion across all three segments: the man holds, rotates, and presents a brass plate; the woman observes, touches, and reacts; a third person handles plates behind the counter; all movements are smooth, physically plausible, and maintain consistent object positions and contacts across frame boundaries. No discontinuities, impossible contacts, or motion artifacts observed in any sampled frames or transitions.",
+          "assessment": {
+            "basis": "physical_motion",
+            "outcome": "coherent",
+            "defects": []
+          },
+          "segments": [
+            {
+              "segment_id": 0,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 0.0s to 5.958s: Man lifts plate (0.1s), displays it (0.6–1.1s), lowers it (2.6s), turns toward vendor (3.1s), woman gestures (5.6s), man re-lifts plate (6.1s). All motions are continuous and physically consistent; no jumps or impossible hand/object states.",
+              "evidence_times_seconds": [
+                0.0,
+                0.1,
+                0.6,
+                1.1,
+                2.6,
+                3.1,
+                5.6,
+                5.958333
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            },
+            {
+              "segment_id": 1,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 6.0s to 11.958s: Man holds plate (6.0s), woman touches plate (7.1s), man lowers plate (8.1s), woman steps away (9.1s), man interacts with vendor (10.0–11.1s), re-presents plate (12.0s). Motion flows smoothly across segment boundary at 6.0s; no visible discontinuity between last frame of seg0 (5.958s) and first frame of seg1 (6.0s).",
+              "evidence_times_seconds": [
+                6.0,
+                7.1,
+                8.1,
+                9.1,
+                10.0,
+                11.1,
+                11.958333
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            },
+            {
+              "segment_id": 2,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 12.0s to 17.958s: Man holds plate (12.0s), woman examines it (13.1s), man lowers it (14.1s), woman walks away (15.1s), man turns to vendor (16.1s), extends arm to place plate (17.1s), final frame shows plate being placed (17.958s). Continuous, plausible motion; no occlusion-induced ambiguity or physical impossibility.",
+              "evidence_times_seconds": [
+                12.0,
+                13.1,
+                14.1,
+                15.1,
+                16.1,
+                17.1,
+                17.958333
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            }
+          ]
+        }
+      },
+      "request": {
+        "criteria": {
+          "motion_coherence": {
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "full_video_assessment",
+            "mandatory": true,
+            "fixed_window_coverage": true,
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "physical-motion-v1",
+            "description": "Visible physical continuity of movement and contacts in the rendered video: judge actual motion defects, not conformance to any desired story or object ownership."
+          }
+        },
+        "output_contract": {
+          "criterion_keys": [
+            "motion_coherence"
+          ]
+        }
+      }
+    },
+    {
+      "file": "group-007-repeat-1.raw.json",
+      "raw": {
+        "motion_coherence": {
+          "status": "observed",
+          "score": 1.0,
+          "confidence": 0.98,
+          "evidence": "Visible continuous motion across all three segments: the man holds, rotates, and presents a decorative plate; the woman observes, touches, and reacts; a third person handles plates behind the counter; all movements are smooth, physically plausible, with no discontinuities, impossible contacts, or motion artifacts. Boundary frames align with expected motion states (e.g., plate held at start of seg0, plate being placed at end of seg0; repeated pattern in seg1 and seg2). No cuts or occlusions break physical continuity.",
+          "assessment": {
+            "basis": "physical_motion",
+            "outcome": "coherent",
+            "defects": []
+          },
+          "segments": [
+            {
+              "segment_id": 0,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 0.0s to 5.958s: man lifts plate (0.1s), displays it (0.6–1.1s), lowers it (2.6s), turns toward vendor (3.0s), woman reaches to touch plate (7.0s), then steps back (8.9s). All motions are continuous and consistent with object mass and hand coordination. Boundary frames at 0.0s (plate held low) and 5.958s (man turned, plate still in hand, woman stepping away) match interior motion trajectory.",
+              "evidence_times_seconds": [
+                0.0,
+                0.1,
+                0.6,
+                1.1,
+                2.6,
+                3.0,
+                4.0,
+                5.0,
+                5.958
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            },
+            {
+              "segment_id": 1,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 6.0s to 11.958s: man again holds plate (6.0s), shows it (12.0s is outside this window but 6.6s–7.1s show repeat action), woman re-engages (13.0s is outside; within window: 6.6s, 7.1s, 10.0s show interaction), vendor handles plates (10.0s–11.0s), man turns again (10.5s). Motion flows smoothly without jump or reversal. Boundary frames at 6.0s (identical pose to seg0 start) and 11.958s (man facing vendor, plate in hand) confirm continuity.",
+              "evidence_times_seconds": [
+                6.0,
+                6.6,
+                7.1,
+                10.0,
+                10.5,
+                11.0,
+                11.958
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            },
+            {
+              "segment_id": 2,
+              "status": "observed",
+              "score": 1.0,
+              "evidence": "From 12.0s to 17.958s: man holds plate (12.0s), woman observes (12.0s–13.0s), man gestures (14.0s), woman steps back (15.0s), man turns to vendor (16.0s), places plate into box (17.5s–17.958s). Final boundary frame at 17.958s shows plate being inserted into wooden box—consistent with prior motion. No stutter, teleport, or impossible contact observed.",
+              "evidence_times_seconds": [
+                12.0,
+                12.6,
+                13.0,
+                14.0,
+                15.0,
+                16.0,
+                17.0,
+                17.5,
+                17.958
+              ],
+              "assessment": {
+                "basis": "physical_motion",
+                "outcome": "coherent",
+                "defects": []
+              }
+            }
+          ]
+        }
+      },
+      "request": {
+        "criteria": {
+          "motion_coherence": {
+            "threshold": 0.8,
+            "weight": 1,
+            "aggregation": "full_video_assessment",
+            "mandatory": true,
+            "fixed_window_coverage": true,
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "physical-motion-v1",
+            "description": "Visible physical continuity of movement and contacts in the rendered video: judge actual motion defects, not conformance to any desired story or object ownership."
+          }
+        },
+        "output_contract": {
+          "criterion_keys": [
+            "motion_coherence"
+          ]
+        }
+      }
+    },
+    {
+      "file": "auto_review/529970b2ab30718b/confirmation-0.correction-1.raw.json",
+      "raw": {
+        "facts": {
+          "s0:pre:token.location": {
+            "basis": "not_visible",
+            "confidence": 0.0,
+            "evidence": "The first boundary frame (0.0s) and early samples show the token held by B, not A. The initial setup requires 'A customer holds one large brass token at B's stall', but the visible actor holding the token is B (rust vest, gray hair), not A (auburn hair, navy apron). The required pre-condition 'token.location equals \"A hand\"' is not supported by any visible evidence in the candidate.",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000",
+              "s0:f001"
+            ]
+          },
+          "s0:post:token.location": {
+            "basis": "visible_support",
+            "confidence": 1.0,
+            "evidence": "In the last boundary frame (5.958s) and later samples (e.g., s0:f047), the token is clearly resting in a shallow metal tray on the counter, satisfying the post-condition 'token.location equals \"tray\"'.",
+            "evidence_refs": [
+              "s0:last",
+              "s0:f047"
+            ]
+          },
+          "s0:event:market_change_0": {
+            "basis": "visible_counterexample",
+            "confidence": 0.0,
+            "evidence": "The required event 'A places the token in a shallow payment tray' does not occur. Instead, B (rust vest, gray hair) is seen holding the token from the beginning and placing it into the tray around 3.0-3.5s. A (auburn hair, navy apron) is present but does not perform the action; she only observes and later reaches toward the tray after the token is already inside. This is a direct violation of the actor requirement.",
+            "evidence_refs": [
+              "s0:f000",
+              "s0:f024",
+              "s0:f025",
+              "s0:f026",
+              "s0:f027",
+              "s0:f028",
+              "s0:f029",
+              "s0:f030",
+              "s0:f031",
+              "s0:f032",
+              "s0:f033",
+              "s0:f034",
+              "s0:f035",
+              "s0:f036",
+              "s0:f037",
+              "s0:f038",
+              "s0:f039",
+              "s0:f040",
+              "s0:f041",
+              "s0:f042",
+              "s0:f043",
+              "s0:f044",
+              "s0:f045",
+              "s0:f046",
+              "s0:f047"
+            ],
+            "credit": 0.0,
+            "partial_credit_fields": {
+              "matched": [
+                "places the token in a shallow payment tray"
+              ],
+              "unmet": [
+                "A"
+              ]
+            }
+          },
+          "s0:obligation:market_change_0.0": {
+            "basis": "visible_counterexample",
+            "confidence": 0.0,
+            "evidence": "The obligation 'A places the token in a shallow payment tray' is violated because B, not A, performs the placement. The action of placing the token in the tray occurs, but the specified actor is incorrect.",
+            "evidence_refs": [
+              "s0:f000",
+              "s0:f024",
+              "s0:f025",
+              "s0:f026",
+              "s0:f027",
+              "s0:f028",
+              "s0:f029",
+              "s0:f030",
+              "s0:f031",
+              "s0:f032",
+              "s0:f033",
+              "s0:f034",
+              "s0:f035",
+              "s0:f036",
+              "s0:f037",
+              "s0:f038",
+              "s0:f039",
+              "s0:f040",
+              "s0:f041",
+              "s0:f042",
+              "s0:f043",
+              "s0:f044",
+              "s0:f045",
+              "s0:f046",
+              "s0:f047"
+            ],
+            "credit": 0.0,
+            "partial_credit_fields": {
+              "matched": [
+                "places the token in a shallow payment tray"
+              ],
+              "unmet": [
+                "A"
+              ]
+            }
+          },
+          "s0:pre:initial_setup": {
+            "basis": "visible_counterexample",
+            "confidence": 0.0,
+            "evidence": "The initial setup states 'A customer holds one large brass token at B's stall.' The visible evidence shows B (the stall owner, per appearance definition) holding the token, not a customer. While a customer (A) is present, she is not holding the token at the start. This contradicts the explicit setup requirement.",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000"
+            ],
+            "credit": 0.0
+          },
+          "s0:state_flow:whole": {
+            "basis": "visible_counterexample",
+            "confidence": 0.0,
+            "evidence": "The state flow fails because the initial state (token in A's hand) is not observed, and the required actor for the event (A) is incorrect. The token moves from B's hand to the tray, violating the prescribed custody transfer from A to the tray. The narrative continuity is broken at the entry point and during the event.",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000",
+              "s0:f024",
+              "s0:last"
+            ],
+            "credit": 0.0
+          }
+        },
+        "identity_bindings": {
+          "A": {
+            "status": "observed",
+            "appearance_id": "appearance_642deb4055d5",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000",
+              "s0:f001",
+              "s0:f002",
+              "s0:f003",
+              "s0:f004",
+              "s0:f005",
+              "s0:f006",
+              "s0:f007",
+              "s0:f008",
+              "s0:f009",
+              "s0:f010",
+              "s0:f011",
+              "s0:f012",
+              "s0:f013",
+              "s0:f014",
+              "s0:f015",
+              "s0:f016",
+              "s0:f017",
+              "s0:f018",
+              "s0:f019",
+              "s0:f020",
+              "s0:f021",
+              "s0:f022",
+              "s0:f023",
+              "s0:f024",
+              "s0:f025",
+              "s0:f026",
+              "s0:f027",
+              "s0:f028",
+              "s0:f029",
+              "s0:f030",
+              "s0:f031",
+              "s0:f032",
+              "s0:f033",
+              "s0:f034",
+              "s0:f035",
+              "s0:f036",
+              "s0:f037",
+              "s0:f038",
+              "s0:f039",
+              "s0:f040",
+              "s0:f041",
+              "s0:f042",
+              "s0:f043",
+              "s0:f044",
+              "s0:f045",
+              "s0:f046",
+              "s0:f047"
+            ],
+            "evidence": "The person with tied-back auburn hair and a navy apron (A) is consistently visible throughout the shot, standing opposite B at the stall. Her appearance matches the source definition."
+          },
+          "B": {
+            "status": "observed",
+            "appearance_id": "appearance_f47c07fc43c8",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000",
+              "s0:f001",
+              "s0:f002",
+              "s0:f003",
+              "s0:f004",
+              "s0:f005",
+              "s0:f006",
+              "s0:f007",
+              "s0:f008",
+              "s0:f009",
+              "s0:f010",
+              "s0:f011",
+              "s0:f012",
+              "s0:f013",
+              "s0:f014",
+              "s0:f015",
+              "s0:f016",
+              "s0:f017",
+              "s0:f018",
+              "s0:f019",
+              "s0:f020",
+              "s0:f021",
+              "s0:f022",
+              "s0:f023",
+              "s0:f024",
+              "s0:f025",
+              "s0:f026",
+              "s0:f027",
+              "s0:f028",
+              "s0:f029",
+              "s0:f030",
+              "s0:f031",
+              "s0:f032",
+              "s0:f033",
+              "s0:f034",
+              "s0:f035",
+              "s0:f036",
+              "s0:f037",
+              "s0:f038",
+              "s0:f039",
+              "s0:f040",
+              "s0:f041",
+              "s0:f042",
+              "s0:f043",
+              "s0:f044",
+              "s0:f045",
+              "s0:f046",
+              "s0:f047"
+            ],
+            "evidence": "The person with short gray hair and a rust vest (B) is consistently visible throughout the shot, holding the token and interacting with A. His appearance matches the source definition."
+          }
+        }
+      },
+      "request": {
+        "criteria": {
+          "action_alignment_score": {
+            "description": "Coverage, order and correctness of requested visible actions.",
+            "fixed_window_coverage": true,
+            "temporal_grounding": "original-timestamps-v1",
+            "host_aggregate_from_windows": true,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "window_component_of_global": true,
+            "review_action_requirements": [
+              {
+                "source": "shots[0].events.market_change_0",
+                "quote": "A places the token in a shallow payment tray"
+              }
+            ]
+          },
+          "story.s0.event.market_change_0": {
+            "description": "Shot 0, 0..6s: A places the token in a shallow payment tray Evaluate ALL requirements in this event, including explicit direction, contents and temporal relations. Use the weakest supported component, not their average. Correct endpoints do not prove the action; a visible reverse action fails, while an unresolvable sampling gap is unknown.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "required-action-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:pre:token.location": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "token.location equals 'A hand'",
+                  "source": "shots[0].preconditions.token.location"
+                },
+                "s0:post:token.location": {
+                  "shot_index": 0,
+                  "phase": "post",
+                  "proposition": "token.location equals 'tray'",
+                  "source": "shots[0].postconditions.token.location"
+                },
+                "s0:event:market_change_0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0"
+                },
+                "s0:obligation:market_change_0.0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "context": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0.obligations[0]"
+                },
+                "s0:pre:initial_setup": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "A customer holds one large brass token at B's stall.",
+                  "source": "semantics.initial_setup"
+                }
+              },
+              "primary_fact": "s0:event:market_change_0",
+              "state_flow": false
+            }
+          },
+          "story.s0.post.token.location": {
+            "description": "Shot 0, 0..6s: post: token.location must equal 'tray'. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "state-equality-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:post:token.location": {
+                  "shot_index": 0,
+                  "phase": "post",
+                  "proposition": "token.location equals 'tray'",
+                  "source": "shots[0].postconditions.token.location"
+                }
+              },
+              "primary_fact": "s0:post:token.location",
+              "state_flow": false
+            }
+          },
+          "story.s0.pre.initial_setup": {
+            "description": "Shot 0, 0..6s: Original initial scene: \"A customer holds one large brass token at B's stall.\". At the beginning check the explicitly visible initial objects, contents and arrangement. Do not replace an empty container with a filled one or an unrepaired object with its later result. Explicitly hidden contents are context, not a requirement for direct visual proof. Do not invent additional objects or exact geometry.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:pre:token.location": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "token.location equals 'A hand'",
+                  "source": "shots[0].preconditions.token.location"
+                },
+                "s0:post:token.location": {
+                  "shot_index": 0,
+                  "phase": "post",
+                  "proposition": "token.location equals 'tray'",
+                  "source": "shots[0].postconditions.token.location"
+                },
+                "s0:event:market_change_0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0"
+                },
+                "s0:obligation:market_change_0.0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "context": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0.obligations[0]"
+                },
+                "s0:pre:initial_setup": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "A customer holds one large brass token at B's stall.",
+                  "source": "semantics.initial_setup"
+                }
+              },
+              "primary_fact": "s0:pre:initial_setup",
+              "state_flow": false
+            }
+          },
+          "story.s0.pre.token.location": {
+            "description": "Shot 0, 0..6s: pre: token.location must equal 'A hand'. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "state-equality-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:pre:token.location": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "token.location equals 'A hand'",
+                  "source": "shots[0].preconditions.token.location"
+                }
+              },
+              "primary_fact": "s0:pre:token.location",
+              "state_flow": false
+            }
+          },
+          "story.s0.state_flow": {
+            "description": "Shot 0, 0..6s: State continuity within this shot and across its entry boundary. Original setup (historical context, not a reset target): \"A customer holds one large brass token at B's stall.\". Earlier required events (do not replay): []. Current events: ['A places the token in a shallow payment tray']. Track the same relevant objects, their explicitly established contents, custody and physical condition. Preserve an established property unless a declared action changes it; respect legitimate transfers, transformations, additions and removals. A carried container must not silently refill or empty, a repaired object must not reset, and occlusion does not authorize an identity swap. Check only properties supported by the quoted story, never invent a count, hidden content, exact distance or grip. Visible contradictions fail even if the final location is correct. A gap between samples does not prove disappearance or spontaneous creation; unresolved evidence stays unknown. An earlier failed action does not prove a later action succeeded: judge the candidate's visible state against the required narrative, and explain the mismatch locally.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:pre:token.location": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "token.location equals 'A hand'",
+                  "source": "shots[0].preconditions.token.location"
+                },
+                "s0:post:token.location": {
+                  "shot_index": 0,
+                  "phase": "post",
+                  "proposition": "token.location equals 'tray'",
+                  "source": "shots[0].postconditions.token.location"
+                },
+                "s0:event:market_change_0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0"
+                },
+                "s0:obligation:market_change_0.0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "context": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0.obligations[0]"
+                },
+                "s0:pre:initial_setup": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "A customer holds one large brass token at B's stall.",
+                  "source": "semantics.initial_setup"
+                },
+                "s0:state_flow:whole": {
+                  "shot_index": 0,
+                  "phase": "state_flow",
+                  "proposition": "Shot 0, 0..6s: State continuity within this shot and across its entry boundary. Original setup (historical context, not a reset target): \"A customer holds one large brass token at B's stall.\". Earlier required events (do not replay): []. Current events: ['A places the token in a shallow payment tray']. Track the same relevant objects, their explicitly established contents, custody and physical condition. Preserve an established property unless a declared action changes it; respect legitimate transfers, transformations, additions and removals. A carried container must not silently refill or empty, a repaired object must not reset, and occlusion does not authorize an identity swap. Check only properties supported by the quoted story, never invent a count, hidden content, exact distance or grip. Visible contradictions fail even if the final location is correct. A gap between samples does not prove disappearance or spontaneous creation; unresolved evidence stays unknown. An earlier failed action does not prove a later action succeeded: judge the candidate's visible state against the required narrative, and explain the mismatch locally.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+                  "source": "evaluation.story.s0.state_flow.description"
+                }
+              },
+              "primary_fact": "s0:state_flow:whole",
+              "state_flow": true
+            }
+          }
+        },
+        "output_contract": {
+          "response_shape": {
+            "facts": {
+              "s0:pre:token.location": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample"
+              },
+              "s0:post:token.location": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample"
+              },
+              "s0:event:market_change_0": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample",
+                "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence. Omit credit for all other bases; the host maps visible_support to 1 and unknown to null.",
+                "partial_credit_fields": "When 0<credit<1, matched and unmet are nonempty lists of exact source-proposition substrings. Do not give partial credit for identity, intention or available props."
+              },
+              "s0:obligation:market_change_0.0": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample",
+                "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence. Omit credit for all other bases; the host maps visible_support to 1 and unknown to null.",
+                "partial_credit_fields": "When 0<credit<1, matched and unmet are nonempty lists of exact source-proposition substrings. Do not give partial credit for identity, intention or available props."
+              },
+              "s0:pre:initial_setup": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample",
+                "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence. Omit credit for all other bases; the host maps visible_support to 1 and unknown to null."
+              },
+              "s0:state_flow:whole": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample",
+                "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence. Omit credit for all other bases; the host maps visible_support to 1 and unknown to null."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "file": "auto_review/529970b2ab30718b/confirmation-0.raw.json",
+      "raw": {
+        "facts": {
+          "s0:pre:token.location": {
+            "basis": "not_visible",
+            "confidence": 0.0,
+            "evidence": "The first boundary frame (0.0s) and early samples show the token held by B, not A. The initial setup requires 'A customer holds one large brass token at B's stall', but the visible actor holding the token is B (rust vest, gray hair), not A (auburn hair, navy apron). The required pre-condition 'token.location equals \"A hand\"' is not supported by any visible evidence in the candidate.",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000",
+              "s0:f001"
+            ]
+          },
+          "s0:post:token.location": {
+            "basis": "visible_support",
+            "confidence": 1.0,
+            "evidence": "In the last boundary frame (5.958s) and later samples (e.g., s0:f047, s0:f048), the token is clearly resting in a shallow metal tray on the counter, satisfying the post-condition 'token.location equals \"tray\"'.",
+            "evidence_refs": [
+              "s0:last",
+              "s0:f047",
+              "s0:f048"
+            ]
+          },
+          "s0:event:market_change_0": {
+            "basis": "visible_counterexample",
+            "confidence": 0.0,
+            "evidence": "The required event 'A places the token in a shallow payment tray' does not occur. Instead, B (rust vest, gray hair) is seen holding the token from the beginning and placing it into the tray around 3.0s-3.5s. A (auburn hair, navy apron) is present but does not perform the action; she only interacts with the stack of tokens after they are in the tray. This is a direct violation of the actor requirement.",
+            "evidence_refs": [
+              "s0:f000",
+              "s0:f025",
+              "s0:f026",
+              "s0:f027"
+            ],
+            "counterexample": "B places the token in a shallow payment tray",
+            "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence.",
+            "credit": 0.0,
+            "partial_credit_fields": {
+              "matched": [
+                "places the token in a shallow payment tray"
+              ],
+              "unmet": [
+                "A"
+              ]
+            }
+          },
+          "s0:obligation:market_change_0.0": {
+            "basis": "visible_counterexample",
+            "confidence": 0.0,
+            "evidence": "The obligation 'A places the token in a shallow payment tray' is violated because B, not A, performs the placement. The action of placing the token in the tray occurs, but the actor is incorrect.",
+            "evidence_refs": [
+              "s0:f000",
+              "s0:f025",
+              "s0:f026",
+              "s0:f027"
+            ],
+            "counterexample": "B places the token in a shallow payment tray",
+            "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence.",
+            "credit": 0.0,
+            "partial_credit_fields": {
+              "matched": [
+                "places the token in a shallow payment tray"
+              ],
+              "unmet": [
+                "A"
+              ]
+            }
+          },
+          "s0:pre:initial_setup": {
+            "basis": "visible_counterexample",
+            "confidence": 0.0,
+            "evidence": "The initial setup states 'A customer holds one large brass token at B's stall'. The visual evidence shows B (the stall owner, per appearance definition) holding the token, not a separate customer. A is present as a distinct person but is not holding the token. This contradicts the explicit setup description.",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000"
+            ],
+            "counterexample": "B holds one large brass token at B's stall"
+          },
+          "s0:state_flow:whole": {
+            "basis": "visible_counterexample",
+            "confidence": 0.0,
+            "evidence": "The state flow fails because the initial state (token in A's hand) is not observed, and the required action (A placing the token) is not performed. Instead, the token is held and placed by B, violating the narrative continuity and actor assignment. The final state (token in tray) is correct, but the path to it contradicts the required sequence.",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000",
+              "s0:f025",
+              "s0:last"
+            ]
+          }
+        },
+        "identity_bindings": {
+          "A": {
+            "status": "observed",
+            "appearance_id": "appearance_642deb4055d5",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000",
+              "s0:f048"
+            ],
+            "evidence": "The person with tied-back auburn hair and a navy apron is consistently visible throughout the segment (e.g., s0:first, s0:f000, s0:f048), matching the source appearance definition for A."
+          },
+          "B": {
+            "status": "observed",
+            "appearance_id": "appearance_f47c07fc43c8",
+            "evidence_refs": [
+              "s0:first",
+              "s0:f000",
+              "s0:f048"
+            ],
+            "evidence": "The person with short gray hair and a rust vest is consistently visible throughout the segment (e.g., s0:first, s0:f000, s0:f048), matching the source appearance definition for B."
+          }
+        }
+      },
+      "request": {
+        "criteria": {
+          "action_alignment_score": {
+            "description": "Coverage, order and correctness of requested visible actions.",
+            "fixed_window_coverage": true,
+            "temporal_grounding": "original-timestamps-v1",
+            "host_aggregate_from_windows": true,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "window_component_of_global": true,
+            "review_action_requirements": [
+              {
+                "source": "shots[0].events.market_change_0",
+                "quote": "A places the token in a shallow payment tray"
+              }
+            ]
+          },
+          "story.s0.event.market_change_0": {
+            "description": "Shot 0, 0..6s: A places the token in a shallow payment tray Evaluate ALL requirements in this event, including explicit direction, contents and temporal relations. Use the weakest supported component, not their average. Correct endpoints do not prove the action; a visible reverse action fails, while an unresolvable sampling gap is unknown.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "required-action-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:pre:token.location": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "token.location equals 'A hand'",
+                  "source": "shots[0].preconditions.token.location"
+                },
+                "s0:post:token.location": {
+                  "shot_index": 0,
+                  "phase": "post",
+                  "proposition": "token.location equals 'tray'",
+                  "source": "shots[0].postconditions.token.location"
+                },
+                "s0:event:market_change_0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0"
+                },
+                "s0:obligation:market_change_0.0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "context": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0.obligations[0]"
+                },
+                "s0:pre:initial_setup": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "A customer holds one large brass token at B's stall.",
+                  "source": "semantics.initial_setup"
+                }
+              },
+              "primary_fact": "s0:event:market_change_0",
+              "state_flow": false
+            }
+          },
+          "story.s0.post.token.location": {
+            "description": "Shot 0, 0..6s: post: token.location must equal 'tray'. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "state-equality-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:post:token.location": {
+                  "shot_index": 0,
+                  "phase": "post",
+                  "proposition": "token.location equals 'tray'",
+                  "source": "shots[0].postconditions.token.location"
+                }
+              },
+              "primary_fact": "s0:post:token.location",
+              "state_flow": false
+            }
+          },
+          "story.s0.pre.initial_setup": {
+            "description": "Shot 0, 0..6s: Original initial scene: \"A customer holds one large brass token at B's stall.\". At the beginning check the explicitly visible initial objects, contents and arrangement. Do not replace an empty container with a filled one or an unrepaired object with its later result. Explicitly hidden contents are context, not a requirement for direct visual proof. Do not invent additional objects or exact geometry.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:pre:token.location": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "token.location equals 'A hand'",
+                  "source": "shots[0].preconditions.token.location"
+                },
+                "s0:post:token.location": {
+                  "shot_index": 0,
+                  "phase": "post",
+                  "proposition": "token.location equals 'tray'",
+                  "source": "shots[0].postconditions.token.location"
+                },
+                "s0:event:market_change_0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0"
+                },
+                "s0:obligation:market_change_0.0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "context": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0.obligations[0]"
+                },
+                "s0:pre:initial_setup": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "A customer holds one large brass token at B's stall.",
+                  "source": "semantics.initial_setup"
+                }
+              },
+              "primary_fact": "s0:pre:initial_setup",
+              "state_flow": false
+            }
+          },
+          "story.s0.pre.token.location": {
+            "description": "Shot 0, 0..6s: pre: token.location must equal 'A hand'. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "judgment_contract": "state-equality-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:pre:token.location": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "token.location equals 'A hand'",
+                  "source": "shots[0].preconditions.token.location"
+                }
+              },
+              "primary_fact": "s0:pre:token.location",
+              "state_flow": false
+            }
+          },
+          "story.s0.state_flow": {
+            "description": "Shot 0, 0..6s: State continuity within this shot and across its entry boundary. Original setup (historical context, not a reset target): \"A customer holds one large brass token at B's stall.\". Earlier required events (do not replay): []. Current events: ['A places the token in a shallow payment tray']. Track the same relevant objects, their explicitly established contents, custody and physical condition. Preserve an established property unless a declared action changes it; respect legitimate transfers, transformations, additions and removals. A carried container must not silently refill or empty, a repaired object must not reset, and occlusion does not authorize an identity swap. Check only properties supported by the quoted story, never invent a count, hidden content, exact distance or grip. Visible contradictions fail even if the final location is correct. A gap between samples does not prove disappearance or spontaneous creation; unresolved evidence stays unknown. An earlier failed action does not prove a later action succeeded: judge the candidate's visible state against the required narrative, and explain the mismatch locally.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1.0,
+            "story_shot_index": 0,
+            "aggregation": "mean",
+            "evidence_status_contract": "visible-outcome-v1",
+            "temporal_grounding": "original-timestamps-v1",
+            "fact_contract": {
+              "version": "source-fact-consistency-v5",
+              "facts": {
+                "s0:pre:token.location": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "token.location equals 'A hand'",
+                  "source": "shots[0].preconditions.token.location"
+                },
+                "s0:post:token.location": {
+                  "shot_index": 0,
+                  "phase": "post",
+                  "proposition": "token.location equals 'tray'",
+                  "source": "shots[0].postconditions.token.location"
+                },
+                "s0:event:market_change_0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0"
+                },
+                "s0:obligation:market_change_0.0": {
+                  "shot_index": 0,
+                  "phase": "event",
+                  "proposition": "A places the token in a shallow payment tray",
+                  "context": "A places the token in a shallow payment tray",
+                  "source": "shots[0].events.market_change_0.obligations[0]"
+                },
+                "s0:pre:initial_setup": {
+                  "shot_index": 0,
+                  "phase": "pre",
+                  "proposition": "A customer holds one large brass token at B's stall.",
+                  "source": "semantics.initial_setup"
+                },
+                "s0:state_flow:whole": {
+                  "shot_index": 0,
+                  "phase": "state_flow",
+                  "proposition": "Shot 0, 0..6s: State continuity within this shot and across its entry boundary. Original setup (historical context, not a reset target): \"A customer holds one large brass token at B's stall.\". Earlier required events (do not replay): []. Current events: ['A places the token in a shallow payment tray']. Track the same relevant objects, their explicitly established contents, custody and physical condition. Preserve an established property unless a declared action changes it; respect legitimate transfers, transformations, additions and removals. A carried container must not silently refill or empty, a repaired object must not reset, and occlusion does not authorize an identity swap. Check only properties supported by the quoted story, never invent a count, hidden content, exact distance or grip. Visible contradictions fail even if the final location is correct. A gap between samples does not prove disappearance or spontaneous creation; unresolved evidence stays unknown. An earlier failed action does not prove a later action succeeded: judge the candidate's visible state against the required narrative, and explain the mismatch locally.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+                  "source": "evaluation.story.s0.state_flow.description"
+                }
+              },
+              "primary_fact": "s0:state_flow:whole",
+              "state_flow": true
+            }
+          }
+        },
+        "output_contract": {
+          "response_shape": {
+            "facts": {
+              "s0:pre:token.location": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample"
+              },
+              "s0:post:token.location": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample"
+              },
+              "s0:event:market_change_0": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample",
+                "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence. Omit credit for all other bases; the host maps visible_support to 1 and unknown to null.",
+                "partial_credit_fields": "When 0<credit<1, matched and unmet are nonempty lists of exact source-proposition substrings. Do not give partial credit for identity, intention or available props."
+              },
+              "s0:obligation:market_change_0.0": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample",
+                "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence. Omit credit for all other bases; the host maps visible_support to 1 and unknown to null.",
+                "partial_credit_fields": "When 0<credit<1, matched and unmet are nonempty lists of exact source-proposition substrings. Do not give partial credit for identity, intention or available props."
+              },
+              "s0:pre:initial_setup": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample",
+                "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence. Omit credit for all other bases; the host maps visible_support to 1 and unknown to null."
+              },
+              "s0:state_flow:whole": {
+                "basis": "visible_support|visible_counterexample|not_visible|occluded|ambiguous|sampling_gap",
+                "confidence": "finite number in [0,1]",
+                "evidence": "nonempty visible observation or specific limitation",
+                "evidence_refs": "unique IDs from this fact citation_contract; unknown may use [] or in-scope context refs (not scoring evidence)",
+                "counterexample": "required nonempty visible alternative ONLY for visible_counterexample",
+                "credit_rule": "For visible_counterexample ONLY, credit is required, a finite number 0<=credit<1. It measures actual fulfilled source requirements, not confidence. Omit credit for all other bases; the host maps visible_support to 1 and unknown to null."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "file": "auto_review/8e5a9c95c3ede0a5/confirmation-0.raw.json",
+      "raw": {
+        "criteria": {
+          "identity_continuity": {
+            "status": "observed",
+            "score": 1.0,
+            "confidence": 0.98,
+            "evidence": "All visible appearances of A (auburn hair, navy apron, white blouse, green earrings) and B (gray hair, rust vest, white ruffled shirt) remain consistent across the full video and match the reference image. No identity swaps, prop substitutions, or scene geometry changes are observed. The third person in the background (green sweater, beard) also remains visually consistent. All actors and key props (brass tokens, hanging pans, dried flowers) maintain stable appearance throughout the sampled frames.",
+            "segments": [
+              {
+                "segment_id": 0,
+                "status": "observed",
+                "score": 1.0,
+                "evidence": "From 0.0–6.0s: A (auburn hair, navy apron, white blouse, green earrings) and B (gray hair, rust vest, white ruffled shirt) are clearly visible and match the reference. Their appearances remain unchanged. The brass token is held by B initially, then transferred to A’s hand at ~7.2s (within segment 0), but identity of actors and props is stable. Background elements (hanging pans, dried flowers, counter layout) are consistent with reference.",
+                "evidence_times_seconds": [
+                  0.1,
+                  1.0,
+                  3.0,
+                  5.0
+                ],
+                "atomic_checks": {
+                  "referents": {
+                    "status": "sufficient",
+                    "evidence": "A and B are unambiguously identifiable by hair color, clothing, and facial features throughout segment 0. The third person (green sweater, beard) is also consistently visible behind the counter."
+                  },
+                  "visibility": {
+                    "status": "sufficient",
+                    "evidence": "All required actors and key props are fully visible in multiple frames; no occlusion prevents identity verification."
+                  },
+                  "temporal_scope": {
+                    "status": "sufficient",
+                    "evidence": "The segment covers 0.0–6.0s with uniform sampling at 8 FPS (frames at ~0.0, 0.125, 0.25, ..., 5.875s); all critical identity checks are covered."
+                  },
+                  "predicate": {
+                    "status": "supported",
+                    "evidence": "No visible identity swap or prop substitution occurs. Appearance matches reference and remains stable.",
+                    "components": [
+                      {
+                        "source_quote": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+                        "status": "supported",
+                        "evidence": "A and B maintain consistent appearance from first to last frame of segment 0; reference image matches exactly."
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "segment_id": 1,
+                "status": "observed",
+                "score": 1.0,
+                "evidence": "From 6.0–12.0s: A and B remain visually identical to segment 0 and reference. A moves left and exits frame briefly (~9.0s), but reappears at ~12.0s with same appearance; no identity change. B continues holding token/tray. Background props unchanged. No evidence of swapping or substitution.",
+                "evidence_times_seconds": [
+                  6.1,
+                  7.5,
+                  9.0,
+                  11.0
+                ],
+                "atomic_checks": {
+                  "referents": {
+                    "status": "sufficient",
+                    "evidence": "A and B are identifiable when visible; A’s brief exit does not break continuity as reappearance confirms same identity."
+                  },
+                  "visibility": {
+                    "status": "sufficient",
+                    "evidence": "When actors are on screen, their identities are clear; brief off-screen interval does not constitute an identity ambiguity."
+                  },
+                  "temporal_scope": {
+                    "status": "sufficient",
+                    "evidence": "Segment 1 (6.0–12.0s) is fully covered by sampled frames; boundary frames at 6.0s and 12.0s confirm continuity."
+                  },
+                  "predicate": {
+                    "status": "supported",
+                    "evidence": "Stable identity maintained; no visual contradiction.",
+                    "components": [
+                      {
+                        "source_quote": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+                        "status": "supported",
+                        "evidence": "A reappears at 12.0s with identical hair, clothing, and earrings; B unchanged."
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "segment_id": 2,
+                "status": "observed",
+                "score": 1.0,
+                "evidence": "From 12.0–18.0s: A and B remain consistent with prior segments and reference. A interacts with B and the token/tray; no appearance change. At 17.0–17.8s, B extends arm toward counter while A observes—both retain original attire and features. No new actors or altered props introduced.",
+                "evidence_times_seconds": [
+                  12.2,
+                  13.5,
+                  15.0,
+                  17.5
+                ],
+                "atomic_checks": {
+                  "referents": {
+                    "status": "sufficient",
+                    "evidence": "A and B are continuously identifiable; third person remains in background with same appearance."
+                  },
+                  "visibility": {
+                    "status": "sufficient",
+                    "evidence": "All identity-critical features visible in multiple frames; no occlusion obscures distinguishing traits."
+                  },
+                  "temporal_scope": {
+                    "status": "sufficient",
+                    "evidence": "Segment 2 (12.0–18.0s) covered by sampled frames; final frame at 17.8s confirms state before end."
+                  },
+                  "predicate": {
+                    "status": "supported",
+                    "evidence": "Full identity continuity confirmed across all three segments and against reference image.",
+                    "components": [
+                      {
+                        "source_quote": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+                        "status": "supported",
+                        "evidence": "No visible identity swap; all actors and props match reference and persist unchanged."
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "assessment": {
+              "basis": "physical_motion",
+              "outcome": "coherent",
+              "defects": []
+            }
+          }
+        }
+      },
+      "request": {
+        "criteria": {
+          "identity_continuity": {
+            "description": "Compare all visible appearances of people and props with each other and the fixed reference. Check identity before occlusion and after reappearance across the full video. Fully hidden intervals are not separate identity observations. Any visible identity swap is a failure.",
+            "threshold": 0.9,
+            "mandatory": true,
+            "weight": 1,
+            "aggregation": "mean"
+          }
+        },
+        "output_contract": {
+          "criterion_keys": [
+            "identity_continuity"
+          ]
+        }
+      }
+    }
+  ]
+}

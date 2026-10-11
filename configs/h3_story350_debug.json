@@ -44,32 +44,38 @@
   "verifier": {
     "require_independent_final": false,
     "runtime": {
-      "model": "qwen3-vl-plus",
+      "model": "qwen3.8-max-0902",
       "fps": 2,
       "repeats": 1,
       "auto_review": {
         "enabled": true,
-        "max_calls_per_criterion": 4,
+        "max_calls_per_criterion": 2,
         "max_calls_per_video": 8,
         "max_calls_per_run": 200,
         "max_seconds_per_video": 600,
         "fps": 8,
-        "max_width": 1536
-      }
+        "max_width": 1536,
+        "confirmations": 1
+      },
+      "transport": "dashscope_video",
+      "api_key_env": "DASHSCOPE_API_KEY"
     },
     "final": {
-      "model": "qwen3-vl-plus",
+      "model": "qwen3.8-max-0902",
       "fps": 4,
-      "repeats": 2,
+      "repeats": 1,
       "auto_review": {
         "enabled": true,
-        "max_calls_per_criterion": 4,
+        "max_calls_per_criterion": 2,
         "max_calls_per_video": 8,
         "max_calls_per_run": 200,
         "max_seconds_per_video": 600,
         "fps": 8,
-        "max_width": 1536
-      }
+        "max_width": 1536,
+        "confirmations": 1
+      },
+      "transport": "dashscope_video",
+      "api_key_env": "DASHSCOPE_API_KEY"
     }
   },
   "runtime": {
@@ -80,7 +86,7 @@
     "timeout_seconds": 1800,
     "sample_frames": 12,
     "enable_vlm_eval": true,
-    "vlm_model": "qwen3-vl-plus",
+    "vlm_model": "qwen3.8-max-0902",
     "vlm_max_images": 16,
     "vlm_timeout_seconds": 240,
     "enable_llm_mutation": true,

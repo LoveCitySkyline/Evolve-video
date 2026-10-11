@@ -1,4 +1,63 @@
+质量、成本与校准报告见 [v32 说明](verifier_protocol_v32.md)。
+
+新版运行策略见 [v31 单次初评与按需复核](verifier_protocol_v31.md)。
+
 # Verifier regression workflow
+
+## v30.1: request/parser conformance from captured server responses
+
+See [the v30.1 diagnosis and commands](verifier_protocol_v30_1.md). Instruction
+metadata is no longer presented as returned fact fields. Global output shapes
+show the criteria wrapper and criterion-level atomic checks explicitly. Saved
+review prompts include the actual review extension; batch audits enforce it.
+Recorded response excerpts verify the defects without claiming visual truth.
+
+## v30: unified initial observations and review
+
+See [the complete v30 migration and batch audit](verifier_protocol_v30.md).
+Initial source-backed judgments and automatic review now share one observation
+protocol. Connected fact consumers remain in one group. Story action alignment
+is derived from the scoped source observations instead of a second global vote.
+`audit_verifier_protocol.py --run-dir PATH` replays all saved request/response
+pairs without model calls, including initial and automatic-review attempts.
+Full-pipeline synthetic regression covers routing, review, aggregation and cache;
+visual validation on fixed development videos is still required.
+
+## v29: one shared observation, host-derived review judgments
+
+See [the v29 protocol, scoring policy and server commands](verifier_protocol_v29.md).
+Source-backed fixed-window review now requests one shared fact table instead of
+atomic checks plus repeated fact/status/score decisions per consumer. The host
+derives state outcomes and action aggregates; graded negatives still require
+explicit credit. Unknown, citations, source identities, budgets and two-confirmation
+commit remain guarded. Legacy raw conflicts are not relabeled into new scores.
+
+## v28: evidence sufficiency and non-retryable contradictions
+
+See [the v28 protocol and zero-call saved-response audit](verifier_protocol_v28.md).
+Evidence conditions use sufficient/insufficient/uncertain; predicate truth keeps
+supported/contradicted/unknown. Explicit evidence/verdict conflicts abstain with
+named field-level diagnostics instead of a format rewrite. A first valid unknown
+confirmation also stops without a second request. Reliable negative judgments
+remain usable. The saved v27 user excerpts are regression fixtures, not visual labels.
+
+## v27: shared-fact component review
+
+See [the v27 protocol and bounded server probe](verifier_protocol_v27.md).
+Automatic review compiles action quote sources from the original scoped story,
+reunites same-scope chunks, and reviews connected fact consumers together.
+Two consistent confirmations commit atomically; unresolved components retain the
+initial observations. Calls charge every participating criterion but only one
+video/run request. Final cross-window conflicts remain unresolved without a
+second per-criterion retry pass. Budgets and acceptance thresholds are unchanged.
+
+## v26: bounded reassessment and explicit unresolved outcomes
+
+See [the v26 protocol and server instructions](verifier_protocol_v26.md).
+Malformed responses are reassessed once without an old-answer anchor; state
+assessments derive from validated primary facts. Exhausted response failures
+remain explicitly unscored, preserving valid siblings. Suite execution status
+and model identity are now separate from the visual-regression release gate.
 
 ## v25: shared-fact dependency handling and uncertainty context
 

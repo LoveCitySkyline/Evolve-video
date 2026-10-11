@@ -23,7 +23,8 @@ class SharedFactsTests(unittest.TestCase):
         payload = deepcopy(case['request'])
         verifier = ConditioningVideoVerifier(profile(), root)
         with patch.object(verifier, 'request', side_effect=replies) as request:
-            result = verifier._observe_group(Path(root)/'group.json', payload, [], 'replay',
+            # Replay historical per-criterion wire via its retained adapter.
+            result = verifier._observe_scoped(Path(root)/'group.json', payload, [], 'replay',
                 payload['criteria'], payload['evidence_manifest']['windows'])
         return result, request
 
@@ -92,7 +93,7 @@ class SharedFactsTests(unittest.TestCase):
             verifier = ConditioningVideoVerifier(profile(), root)
             with patch.object(verifier, 'request', side_effect=case['responses']) as req:
                 with self.assertRaises(VerifierFormatError) as error:
-                    verifier._observe_group(Path(root)/'group.json', payload, [], 'replay',
+                    verifier._observe_scoped(Path(root)/'group.json', payload, [], 'replay',
                         payload['criteria'], payload['evidence_manifest']['windows'])
             self.assertEqual(req.call_count, 2)
             self.assertEqual(set(error.exception.valid_observations), {'scene_geometry'})
@@ -123,7 +124,7 @@ class SharedFactsTests(unittest.TestCase):
             replies = [case['responses'][0], self.contradictory_valid_rows(case)]
             with patch.object(verifier, 'request', side_effect=replies) as req:
                 with self.assertRaises(VerifierFormatError) as error:
-                    verifier._observe_group(Path(root)/'group.json', payload, [], 'replay',
+                    verifier._observe_scoped(Path(root)/'group.json', payload, [], 'replay',
                         payload['criteria'], payload['evidence_manifest']['windows'])
             self.assertEqual(req.call_count, 2)
             self.assertEqual(set(error.exception.valid_observations), {'scene_geometry'})

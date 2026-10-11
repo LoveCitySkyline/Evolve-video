@@ -16,6 +16,34 @@ spec.loader.exec_module(script)
 
 
 class HttpDiagnosticsTests(unittest.TestCase):
+    def test_native_request_logs_provider_reason_without_wrapper_and_does_not_retry_400(self):
+        from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier
+        from evovideo_skill.api_tools import VideoApiError
+        verifier = object.__new__(ConditioningVideoVerifier)
+        verifier.model = 'qwen3.8-max-0902'
+        verifier.profile = dict(api_key_env='DIAGNOSTIC_KEY', transport='dashscope_video',
+            model=verifier.model, base_url='https://example.test/v1', fps=4,
+            max_request_bytes=100000, max_attempts=2, timeout_seconds=180)
+        body = {'error': {'code': 'InvalidParameter', 'message': 'bad image fixture-secret https://private.test/'},
+                'request_id': 'request-123', 'payload': 'never-log-this'}
+        error = urllib.error.HTTPError('url', 400, 'bad', {}, io.BytesIO(json.dumps(body).encode()))
+        with TemporaryDirectory() as tmp:
+            verifier.root = Path(tmp)
+            with patch.dict(os.environ, {'DIAGNOSTIC_KEY': 'fixture-secret'}), \
+                    patch('urllib.request.urlopen', side_effect=error) as call:
+                with self.assertRaises(VideoApiError) as caught:
+                    verifier.request('prompt', [], 'job/1/0')
+            self.assertEqual(call.call_count, 1)
+            failed = json.loads((verifier.root / 'calls.jsonl').read_text().splitlines()[-1])
+            self.assertEqual(failed['provider_diagnostic']['provider_error']['code'], 'InvalidParameter')
+            self.assertEqual(failed['provider_diagnostic']['request_id'], 'request-123')
+            self.assertIn('InvalidParameter', str(caught.exception))
+            for secret in ('fixture-secret', 'private.test', 'never-log-this'):
+                self.assertNotIn(secret, json.dumps(failed))
+                self.assertNotIn(secret, str(caught.exception))
+            # Compatibility wrapper can inspect the already-consumed body safely.
+            self.assertEqual(script.error_details(caught.exception), failed['provider_diagnostic'])
+
     def test_http_400_cause_keeps_provider_reason_and_redacts_sensitive_fields(self):
         body = {'error': {'code': 'InvalidParameter', 'message':
             'Video rejected: secret-value https://signed.test/a?token=other data:video/mp4;base64,AAAA',

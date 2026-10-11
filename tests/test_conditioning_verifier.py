@@ -490,7 +490,7 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(calls[1][1], calls[2][1])
         for key in ("original_task", "criteria", "evidence_manifest", "frozen_identity_context"):
             self.assertEqual(calls[1][0][key], calls[2][0][key])
-        self.assertIn("observation_basis", str(calls[2][0]["format_feedback"]["validation_errors"]))
+        self.assertEqual(calls[2][0]["format_feedback"]["mode"], "fresh_evidence_reassessment")
         self.assertEqual(result["evaluation_status"], "needs_review")
         self.assertNotIn(name, result["criterion_scores"])
 
@@ -648,8 +648,8 @@ class VerifierTests(unittest.TestCase):
         for key in ("original_task", "criteria", "evidence_manifest"):
             self.assertEqual(calls[0][0][key], calls[1][0][key])
         feedback = calls[1][0]["format_feedback"]
-        self.assertIn("missing=['identity']", feedback["error"])
-        self.assertIn("unexpected=['renamed_identity']", feedback["error"])
+        self.assertEqual(feedback['mode'], 'fresh_evidence_reassessment')
+        self.assertNotIn('previous_response', feedback)
         self.assertEqual(result["criterion_scores"]["identity"], .2)
         folder = Path(result["verification_metadata"]["judgment_path"])
         self.assertIn("renamed_identity", json.loads((folder / "group-000-repeat-0.raw.json").read_text())["criteria"])
@@ -660,8 +660,10 @@ class VerifierTests(unittest.TestCase):
         with patch.object(verifier, "evidence", return_value=(self.evidence, self.manifest)), patch.object(
                 verifier, "request", return_value={"criteria": {}}) as request:
             for _ in range(2):
-                with self.assertRaisesRegex(VideoApiError, "after one correction"):
-                    verifier.evaluate(self.task, self.artifact)
+                result = verifier.evaluate(self.task, self.artifact)
+                self.assertEqual(result['evaluation_status'], 'needs_review')
+                self.assertEqual(result['criterion_scores'], {})
+                self.assertGreater(result['verification_metadata']['processing_summary']['invalid_response'], 0)
         self.assertEqual(request.call_count, 2)
         self.assertFalse(list(self.root.glob("judgments/*/result.json")))
         self.assertFalse(list(self.root.glob("judgments/*/group-000-repeat-0.json")))

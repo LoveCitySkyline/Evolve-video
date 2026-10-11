@@ -267,7 +267,7 @@ def validate_facts(name, rule, row, manifest):
         expected = facts[primary]['value']
         outcome = row.get('assessment', {}).get('outcome')
         actual = {'satisfied': 'supported', 'complete': 'supported', 'violated': 'contradicted',
-            'absent': 'contradicted', 'partial': 'contradicted', 'unknown': 'unknown'}.get(outcome)
+            'absent': 'contradicted', 'incomplete': 'contradicted', 'partial': 'contradicted', 'unknown': 'unknown'}.get(outcome)
         if actual is None:  # Graded invariant/setup criteria use the existing status/score contract.
             actual = ('unknown' if row.get('status') == 'unobserved' else
                       'supported' if row.get('score') == 1 else 'contradicted')

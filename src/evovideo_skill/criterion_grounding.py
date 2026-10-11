@@ -123,28 +123,39 @@ def apply_assessment_patch(original, response, fields, contracts):
     return result
 
 
-def previous_boundary_evidence(definition, spans, manifest=None):
+def previous_boundary_evidence(definition, spans, manifest=None, segment_id=None):
     """Only host-supplied preceding last-frame media may extend a citation scope.
 
     Never take allowed times from a model response or from task-defined times.
     The media router checks that the corresponding image is in the request.
     """
-    if not definition.get('requires_previous_boundary'):
-        return None
     index = definition.get('story_shot_index')
+    view = (manifest or {}).get('evaluation_view', {})
+    global_motion = (index is None and definition.get('judgment_contract') == 'physical-motion-v1'
+                     and view.get('kind') == 'full_video')
+    if global_motion:
+        index = segment_id
+    elif not definition.get('requires_previous_boundary'):
+        return None
     if type(index) is not int or index <= 0:
         return None
-    view = (manifest or {}).get('evaluation_view', {})
     frame = view.get('previous_boundary_context', {})
+    if global_motion:
+        frames = [f for window in view.get('temporal_index', [])
+                  if window.get('segment_id') == index - 1
+                  for f in window.get('boundary_frames', []) if f.get('boundary') == 'last']
+        if len(frames) != 1:
+            return None
+        frame = frames[0]
     previous = next((s for s in spans if s['segment_id'] == index - 1), None)
     timestamp = frame.get('source_timestamp_seconds')
-    if (view.get('kind') != 'fixed_window_clip' or view.get('segment_id') != index
+    if ((not global_motion and (view.get('kind') != 'fixed_window_clip' or view.get('segment_id') != index))
             or frame.get('boundary') != 'last' or frame.get('segment_id') != index - 1
             or not frame.get('media_label') or previous is None
             or type(timestamp) not in (int, float) or not math.isfinite(timestamp)
             or not previous['start_seconds'] <= timestamp < previous['end_seconds']):
         return None
-    return {'source_segment_id': index - 1, 'source_timestamp_seconds': timestamp,
+    return {'target_segment_id': index, 'source_segment_id': index - 1, 'source_timestamp_seconds': timestamp,
             'display_timestamp_seconds': round(timestamp, 6), 'media_label': frame['media_label'],
             'role': 'previous_boundary_context_only'}
 
@@ -158,6 +169,10 @@ def grounding_output_contract(criteria, spans, manifest=None):
             'basis': 'physical_motion', 'defects': 'array of specific visible physical defects',
             'outcomes': {'coherent': 'observed, score=1, defects=[]',
                          'defective': 'observed, score<1, nonempty defects',
+                         'unknown': 'unobserved, score=null'}},
+        'categorical-action-v2': {
+            'required_fields': ['outcome'],
+            'outcomes': {'complete': 'observed, score=1', 'incomplete': 'observed, score=0; requirement not fully satisfied, not necessarily zero action',
                          'unknown': 'unobserved, score=null'}},
         'state-equality-v1': {
             'required_fields': ['outcome'],
@@ -191,12 +206,15 @@ def grounding_output_contract(criteria, spans, manifest=None):
                     'Keep source boundary timestamps at supplied precision; do not round a last frame to the excluded endpoint. '
                     'Never clamp, invent, or move an out-of-window event to make it fit. '
                     'Include this field even when the same timestamp appears in evidence prose.'}
-            context = previous_boundary_evidence(rule, spans, manifest)
-            if context:
-                contract['evidence_times_seconds']['allowed_context_evidence'] = [context]
+            contexts = [previous_boundary_evidence(rule, spans, manifest, span['segment_id'])
+                        for span in target_spans]
+            contexts = [context for context in contexts if context]
+            if contexts:
+                contract['evidence_times_seconds']['allowed_context_evidence'] = contexts
                 contract['evidence_times_seconds']['instruction'] += (
                     ' This criterion additionally permits the listed previous-boundary image timestamp '
-                    '(exact source precision or its six-decimal displayed value) for entry-state comparison. '
+                    '(exact source precision or its six-decimal displayed value) only in its target_segment_id '
+                    'for entry-state or physical cut-continuity comparison. '
                     'It is context, not an action inside this window. An observed judgment must still cite '
                     'actual current-window evidence. No other earlier timestamps are allowed.')
         kind = rule.get('judgment_contract')
@@ -240,7 +258,8 @@ list and explain the visibility/sampling/decoding limitation. Do not invent a
 timestamp or treat an unexpected action as a missing time window. A full-video
 group also receives actual first/last images for every fixed window; these prove
 the supplied boundary observations, not all intervening actions.
-Exception ONLY for requires_previous_boundary: output_contract lists the actual
+Exception ONLY when output_contract lists allowed_context_evidence (scoped
+requires_previous_boundary or full-video physical cut continuity): it lists the actual
 previous last-frame image as allowed_context_evidence. You may cite that image's
 source timestamp (or its six-decimal displayed timestamp) in evidence_times_seconds
 for entry-state comparison, alongside actual current-window evidence. Describe it
@@ -299,10 +318,10 @@ def validate_grounding(name, definition, item, spans, manifest=None):
     targets = [s for s in item["segments"] if index is None or s["segment_id"] == index]
     if definition.get("temporal_grounding"):
         by_id = {s["segment_id"]: s for s in spans}
-        context = previous_boundary_evidence(definition, spans, manifest)
-        context_times = {context['source_timestamp_seconds'], context['display_timestamp_seconds']} if context else set()
         problems = []
         for row in targets:
+            context = previous_boundary_evidence(definition, spans, manifest, row['segment_id'])
+            context_times = {context['source_timestamp_seconds'], context['display_timestamp_seconds']} if context else set()
             row.pop('context_evidence_citations', None)  # Only the host may supply this audit annotation.
             if row["status"] == "not_applicable":
                 continue
@@ -365,6 +384,9 @@ def validate_grounding(name, definition, item, spans, manifest=None):
         elif kind == "state-equality-v1":
             valid = valid and outcome in {"satisfied", "violated", "unknown"}
             valid = valid and score == {"satisfied": 1, "violated": 0, "unknown": None}.get(outcome)
+        elif kind == "categorical-action-v2":
+            valid = valid and outcome in {"complete", "incomplete", "unknown"}
+            valid = valid and score == {"complete": 1, "incomplete": 0, "unknown": None}.get(outcome)
         elif kind == "required-action-v1":
             matched, unmet = assessment.get("matched"), assessment.get("unmet")
             valid = valid and strings(matched) and strings(unmet)

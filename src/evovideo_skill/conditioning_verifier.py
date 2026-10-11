@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "shared-fact-reassessment-v25"
+VERIFIER_PROTOCOL_VERSION = "owned-fact-evaluation-v35"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -51,6 +51,20 @@ def failure_category(exc):
     if isinstance(exc, VideoApiError):
         return 'transport_or_provider'
     return 'internal_error'
+
+
+def unresolved_response(subset, spans, failure):
+    """Quarantine malformed judgments without claiming that the pixels are missing."""
+    rows = {name: {'status': 'unobserved', 'score': None, 'confidence': 0,
+        'evidence': 'Evaluator response remained invalid after bounded reassessment; video quality is unknown.',
+        'observation_source': 'response_format_failure',
+        'processing_status': 'invalid_response',
+        'segments': [{'segment_id': index, 'status': 'unobserved', 'score': None,
+            'evidence': 'No valid evaluator judgment; this is not a visible video failure.'}
+            for index in required_segment_ids(name, rule, spans)]}
+        for name, rule in subset.items()}
+    rows.update(deepcopy(getattr(failure, 'valid_observations', {})))
+    return rows
 
 FRAME_INPUT_INSTRUCTIONS = """
 This fixed window is supplied as an ordered sequence of individually attached
@@ -83,6 +97,9 @@ infer which method produced it. Ignore production polish unless a criterion asks
 for it. Judge every criterion separately; identity improvements do not excuse
 motion suppression, frozen poses, scene leakage, missing shots or style failures.
 Respect each criterion's definition and scoring_scope, not just its name.
+Apply measurement_boundary where supplied. Do not move a narrative failure into
+appearance, scene geometry or visual quality. Original explicit requirements
+remain authoritative. Unknown identity stays unknown, not a guessed actor label.
 For source-backed action obligations, use the complete original event to resolve
 pronouns, negation and connective scope. Score each required clause independently.
 The parent event is a conjunction: a correct destination cannot compensate for
@@ -337,6 +354,8 @@ def combine_window_judgments(full, components, spans, aggregation="minimum_over_
     result = deepcopy(full)
     result["full_video_judgment"] = deepcopy(full)
     result["fixed_window_judgments"] = deepcopy(components)
+    if any(row.get('processing_status') == 'invalid_response' for row in [full, *components]):
+        result['processing_status'] = 'invalid_response'
     # This is a host-derived score, not the full-view model's assessment.
     result.pop("assessment", None)
     result["aggregation_source"] = "host_full_and_fixed_windows"
@@ -377,6 +396,40 @@ def combine_window_judgments(full, components, spans, aggregation="minimum_over_
             value = min(full["score"], *full_lows, *(row["score"] for row in applicable))
         result.update(status="observed", score=value)
     return result
+
+
+def aggregate_source_windows(components, spans):
+    """One global action score from source-bound windows, never a second vote."""
+    if len(components) != len(spans) or not components:
+        raise ValueError('source aggregation requires every fixed window')
+    segments = []
+    for component, span in zip(components, spans):
+        target = [s for s in component['segments'] if s['segment_id'] == span['segment_id']]
+        if len(target) != 1:
+            raise ValueError('source aggregation window mismatch')
+        segments.append(deepcopy(target[0]))
+    known = all(r.get('status') == 'observed' and not r.get('scope_issues') and not r.get('fact_conflicts')
+                for r in [*components, *segments])
+    result = {'status': 'observed' if known else 'unobserved',
+        'score': statistics.mean(r['score'] for r in components) if known else None,
+        'confidence': min(r['confidence'] for r in components),
+        'evidence': 'Host mean of source-bound action windows: ' + ' | '.join(r['evidence'] for r in components),
+        'segments': segments, 'aggregation_source': 'host_source_window_mean',
+        'scope_issues': sorted({issue for r in components for issue in r.get('scope_issues', [])}),
+        'window_observations': deepcopy(components)}
+    if any(r.get('processing_status') == 'invalid_response' for r in components):
+        result.update(processing_status='invalid_response', observation_source='response_format_failure')
+    result['fact_observations'] = {key: deepcopy(value) for row in components
+                                   for key, value in row.get('fact_observations', {}).items()}
+    return result
+
+
+def normalize_criterion_envelope(raw, criteria):
+    """Lossless wrapper only: exact keys, dictionary rows, no competing envelope."""
+    if (isinstance(raw, dict) and 'criteria' not in raw and raw
+            and set(raw) == set(criteria) and all(isinstance(v, dict) for v in raw.values())):
+        return {'criteria': deepcopy(raw)}
+    return raw
 
 
 def judgment_format_errors(raw, criteria, spans, evidence_manifest=None):
@@ -441,6 +494,7 @@ def resolve_profiles(config, settings, require_keys=True, apply_env=True):
 
 
 class ConditioningVideoVerifier:
+    from evovideo_skill.owned_observations import VERSION as observation_protocol
     response_contract_instructions = ''
 
     def validate_response_contract(self, raw, criteria):
@@ -626,7 +680,8 @@ class ConditioningVideoVerifier:
             index = rule.get("story_shot_index") if isinstance(rule, dict) else None
             if spans is not None and index is None and isinstance(rule, dict) and (
                     rule.get("aggregation") == "minimum_over_segments" or rule.get("fixed_window_coverage")):
-                bucket(None, rule)[name] = {**rule, "aggregation": "full_video_assessment"}
+                if not rule.get('host_aggregate_from_windows'):
+                    bucket(None, rule)[name] = {**rule, "aggregation": "full_video_assessment"}
                 for span in spans:
                     bucket(span['segment_id'], rule)[name] = {**rule,
                         "story_shot_index": span["segment_id"], "aggregation": "mean",
@@ -634,7 +689,18 @@ class ConditioningVideoVerifier:
             else:
                 bucket(index, rule)[name] = rule
         for group in scopes.values():
-            keys = list(group)
+            # A source-fact dependency must never be independently answered in
+            # two chunks. criteria_per_call remains the size for independent
+            # metrics; source components are bounded by transport byte limits.
+            from evovideo_skill.verifier_facts import reassessment_closure
+            remaining = set(group)
+            for name, rule in group.items():
+                if name not in remaining or not rule.get('fact_contract'):
+                    continue
+                members = reassessment_closure(group, {name})
+                yield {key: group[key] for key in group if key in members}
+                remaining -= members
+            keys = [key for key in group if key in remaining]
             for start in range(0, len(keys), self.profile["criteria_per_call"]):
                 yield {name: group[name] for name in keys[start:start + self.profile["criteria_per_call"]]}
 
@@ -775,13 +841,28 @@ class ConditioningVideoVerifier:
                 system += '\nDesired story withheld. Judge only physical motion, not inferred story requirements.\n'
         if fixed:
             system += FRAME_INPUT_INSTRUCTIONS
-        if any(rule.get('fact_contract') for rule in text_payload.get('criteria', {}).values()):
+        from evovideo_skill.review_observations import VERSION as OBSERVATION_PROTOCOL, SYSTEM as OBSERVATION_SYSTEM
+        from evovideo_skill.owned_observations import VERSION as OWNED_PROTOCOL, SYSTEM as OWNED_SYSTEM
+        wire_protocol = text_payload.get('output_contract', {}).get('response_protocol')
+        shared_review = wire_protocol in {OBSERVATION_PROTOCOL, OWNED_PROTOCOL}
+        if wire_protocol == OWNED_PROTOCOL:
+            OBSERVATION_SYSTEM = OWNED_SYSTEM
+        if shared_review:
+            # A distinct wire contract: do not append the legacy criteria/facts
+            # instructions, which would demand duplicate copies of each verdict.
+            system = OBSERVATION_SYSTEM + (FRAME_INPUT_INSTRUCTIONS if fixed else '')
+        elif any(rule.get('fact_contract') for rule in text_payload.get('criteria', {}).values()):
             from evovideo_skill.verifier_facts import INSTRUCTIONS
             system += INSTRUCTIONS
         if text_payload.get('identity_contract'):
             from evovideo_skill.verifier_identity import INSTRUCTIONS as IDENTITY_INSTRUCTIONS
-            system += IDENTITY_INSTRUCTIONS
-        system += self.response_contract_instructions
+            system += (IDENTITY_INSTRUCTIONS.replace('alongside criteria.', 'alongside facts and judgments.')
+                       if shared_review else IDENTITY_INSTRUCTIONS)
+        if not shared_review:
+            system += self.response_contract_instructions
+        if shared_review and text_payload.get('output_contract', {}).get('response_mode') == 'missing_credit_patch':
+            from evovideo_skill.review_observations import PATCH_SYSTEM
+            system = PATCH_SYSTEM + (FRAME_INPUT_INSTRUCTIONS if fixed else '')
         key = os.environ.get(p["api_key_env"])
         if not key:
             raise VideoApiError(f"missing {p['api_key_env']}")
@@ -799,6 +880,11 @@ class ConditioningVideoVerifier:
             headers["x-goog-api-key"] = key
             url = p["base_url"].rstrip("/") + "/models/" + urllib.parse.quote(p["model"], safe="") + ":generateContent"
         else:
+            # JSON mode requires an explicit JSON instruction in messages, even
+            # when a scoped/shared-observation system replaces the default one.
+            # Keep this at the transport boundary so every judging path gets it.
+            if "json" not in system.lower():
+                system += "\nReturn a JSON object matching the supplied output contract.\n"
             content = [{"type": "text", "text": prompt}]
             for label, medium in evidence:
                 content.append({"type": "text", "text": label})
@@ -846,16 +932,35 @@ class ConditioningVideoVerifier:
                     raw = json.loads(response.read())
                 text = ("".join(x.get("text", "") for x in raw["candidates"][0]["content"]["parts"] if not x.get("thought"))
                         if p["transport"] == "gemini_video" else raw["choices"][0]["message"]["content"])
-                parsed = QwenVLEvaluator._parse_json(text)
+                try:
+                    parsed = QwenVLEvaluator._parse_json(text)
+                except ValueError as exc:
+                    failure = VerifierFormatError('model response is not a JSON judgment')
+                    failure.raw_text = text
+                    raise failure from exc
                 append_json(self.root / "calls.jsonl", {**log, "status": "complete", "seconds": time.monotonic() - started,
                             "usage": raw.get("usage", raw.get("usageMetadata", {}))})
                 return parsed
+            except VerifierFormatError:
+                append_json(self.root / 'calls.jsonl', {**log, 'status': 'invalid_response',
+                    'failure_category': 'response_format', 'seconds': time.monotonic() - started})
+                raise
             except (urllib.error.URLError, TimeoutError, ConnectionError, ValueError, KeyError, IndexError) as exc:
                 code = getattr(exc, "code", None)
+                from evovideo_skill.provider_diagnostics import error_details
+                try:
+                    detail = error_details(exc)
+                except Exception:
+                    detail = {'body_status': 'diagnostic_unavailable'}
                 append_json(self.root / "calls.jsonl", {**log, "status": "failed", "http_code": code,
-                    "error_type": type(exc).__name__, "seconds": time.monotonic() - started})
+                    "error_type": type(exc).__name__, "seconds": time.monotonic() - started,
+                    "provider_diagnostic": detail})
+                print('[verifier HTTP diagnostic] ' + json.dumps({
+                    'operation': operation, 'model': self.model, **detail}, ensure_ascii=False), flush=True)
                 if (code and code != 429 and code < 500) or attempt + 1 == p["max_attempts"]:
-                    raise VideoApiError(f"verifier request failed ({type(exc).__name__}, HTTP={code}); see {self.root / 'calls.jsonl'}") from exc
+                    reason = json.dumps(detail.get('provider_error', {}), ensure_ascii=False)
+                    raise VideoApiError(f"verifier request failed ({type(exc).__name__}, HTTP={code}); "
+                        f"provider_error={reason}; see {self.root / 'calls.jsonl'}") from exc
                 time.sleep(min(2 ** attempt, 8))
 
     def evaluate(self, task, artifact):
@@ -891,6 +996,8 @@ class ConditioningVideoVerifier:
                 "Original task mode is generation with no edit_operations; generic edit success "
                 "does not apply. Declared task criteria are evaluated separately.")
         criteria = grounded_criteria(task, criteria)
+        from evovideo_skill.metric_dimensions import apply_boundaries
+        criteria = apply_boundaries(criteria)
         public = task_payload(task)
         # Reference URIs, strategy/graph names and earlier judgments never reach the judge.
         public.pop("reference_video", None)
@@ -910,9 +1017,34 @@ class ConditioningVideoVerifier:
         from evovideo_skill.verifier_facts import with_fact_contract
         subset = with_fact_contract(subset, payload.get('original_task', {}))
         payload = {**payload, 'criteria': subset}
+        from evovideo_skill.review_observations import enabled, observe
+        if enabled(subset):
+            from evovideo_skill.verifier_review import ReviewEvidenceConflict
+            try:
+                return observe(self, path, payload, evidence, operation, subset, spans)
+            except ReviewEvidenceConflict as exc:
+                if any(issue.get('code') != 'identity_dependency' for issue in exc.issues):
+                    raise
+                rows = unresolved_response(subset, spans, exc)
+                for row in rows.values():
+                    row.update(observation_source='host_identity_dependency', processing_status='identity_unresolved',
+                        identity_gate={'status': 'blocked', 'issues': deepcopy(exc.issues)})
+                return rows
         if is_scoped(subset):
             return self._observe_scoped(path, payload, evidence, operation, subset, spans)
         return self._observe_legacy_group(path, payload, evidence, operation, subset, spans)
+
+    def prepare_request_payload(self, payload):
+        return payload
+
+    def _request_observation(self, prompt, evidence, operation):
+        """A malformed model answer uses the group budget, not transport retries."""
+        try:
+            return self.request(prompt, evidence, operation)
+        except VerifierFormatError as exc:
+            # Deliberately invalid schema, preserved verbatim in the raw audit.
+            # No synthetic unknown/score is presented as a model observation.
+            return {'invalid_model_response': getattr(exc, 'raw_text', ''), 'error': str(exc)}
 
     def _observe_legacy_group(self, path, payload, evidence, operation, subset, spans):
         """Full-video judgments retain distinct overall and per-window assessments."""
@@ -939,6 +1071,25 @@ class ConditioningVideoVerifier:
                                "segment IDs. For story_shot_index, both the top-level and segment judgment refer only "
                                "to that shot; other windows may be omitted. Otherwise return all temporal windows. "
                                "Missing evidence uses unobserved with null score; never omit a required segment."}
+            shape = {}
+            for name, rule in subset.items():
+                fields = {'status': 'observed|unobserved|not_applicable',
+                    'score': 'number in [0,1] when observed; null when unobserved/not_applicable',
+                    'confidence': 'number in [0,1]', 'evidence': 'actual support or limitation',
+                    'segments': [{'segment_id': i, 'status': 'observed|unobserved|not_applicable',
+                        'score': 'number or null consistent with status', 'evidence': 'evidence inside this window'}
+                        for i in required_segment_ids(name, rule, spans)]}
+                if rule.get('temporal_grounding'):
+                    for segment in fields['segments']:
+                        segment['evidence_times_seconds'] = 'array of original timestamps INSIDE this window; [] if unknown'
+                if rule.get('judgment_contract') == 'physical-motion-v1':
+                    assessment = {'basis': 'physical_motion', 'outcome': 'coherent|defective|unknown',
+                                  'defects': 'array of actual physical defects; [] when coherent'}
+                    fields['assessment'] = deepcopy(assessment)
+                    for segment in fields['segments']:
+                        segment['assessment'] = deepcopy(assessment)
+                shape[name] = fields
+            prompt_data['output_contract']['response_shape'] = {'criteria': shape}
             scoped = [name for name, rule in subset.items() if isinstance(rule, dict)
                       and rule.get("evidence_status_contract") == "visible-outcome-v1"]
             grounding_fields = grounding_output_contract(subset, spans, evidence_manifest)
@@ -957,6 +1108,15 @@ class ConditioningVideoVerifier:
                                    "ambiguous, state why; do not invent a mapping."}
             if feedback is not None:
                 prompt_data["format_feedback"] = feedback
+            if correction and not patch_fields:
+                # Preserve valid siblings locally; the invalid response is not a
+                # reference answer for the new judgment.
+                prompt_data['format_feedback'] = {
+                    'mode': 'fresh_evidence_reassessment',
+                    'instruction': 'Judge the requested criteria afresh from the SAME task and media. '
+                        'Follow output_contract completely. No previous verdict is authoritative. '
+                        'Visible failures are valid low scores; insufficient visual evidence stays unknown. '
+                        'Missing response fields do not mean missing video. This is the final group attempt.'}
             if patch_fields:
                 # A small, explicit correction replaces the whole-response rewrite.
                 # Keep the same task, rubric and media, but only authorize missing objects.
@@ -977,18 +1137,23 @@ class ConditioningVideoVerifier:
                         'infer a label from a score, or invent evidence to justify a score. '
                         'If the original evidence is ambiguous or conflicts with its score and no '
                         'truthful assessment fits, return cannot_complete.'}
+            prompt_data = self.prepare_request_payload(prompt_data)
             # Persist the exact text contract (no credentials or media bytes) so
             # server diagnostics can distinguish request omissions from bad output.
             write_json(path.with_suffix(f".request-{correction}.json"), prompt_data)
             if self.cache_enabled and raw_path.exists():
                 raw = json.loads(raw_path.read_text())
             else:
-                raw = self.request(json.dumps(prompt_data, ensure_ascii=False), evidence,
-                                   operation + ("/format-correction-1" if correction else ""))
+                raw = self._request_observation(json.dumps(prompt_data, ensure_ascii=False), evidence,
+                                   operation + (('/assessment-patch-1' if patch_fields else '/semantic-recheck-1')
+                                                if correction else ''))
                 write_json(raw_path, raw)
             response_contract_valid = False
             try:
-                parsed_raw = raw
+                parsed_raw = normalize_criterion_envelope(raw, subset) if not patch_fields else raw
+                if parsed_raw != raw:
+                    write_json(path.with_suffix(f'.envelope-{correction}.json'), {
+                        'normalization': 'exact_requested_key_map_wrapped_in_criteria', 'criteria': parsed_raw['criteria']})
                 if patch_fields:
                     parsed_raw = apply_assessment_patch(feedback['previous_response'], raw, patch_fields, grounding_fields)
                     write_json(path.with_suffix('.correction-1.merged.json'), parsed_raw)
@@ -1012,11 +1177,14 @@ class ConditioningVideoVerifier:
                     write_json(path.with_suffix(f'.accepted-{correction}.json'), {'criteria': accepted_raw})
                 parsed = parse_judgment(parsed_raw, subset, spans, evidence_manifest)
             except (ValueError, KeyError, TypeError) as exc:
+                if getattr(exc, 'nonretryable_evidence_conflict', False):
+                    raise
                 detail = str(exc)
                 errors = judgment_format_errors(parsed_raw, subset, spans, evidence_manifest)
                 write_json(audit_path, {"status": "invalid_response_format", "error": detail,
                     "validation_errors": errors,
-                    'correction_mode': 'assessment_patch_only' if patch_fields else 'full_response',
+                    'correction_mode': ('initial_judgment' if not correction else
+                        'assessment_patch_only' if patch_fields else 'fresh_evidence_reassessment'),
                     "expected_keys": list(subset), "raw_response_path": str(raw_path),
                     "correction_attempt": correction})
                 if correction == 1:
@@ -1024,30 +1192,24 @@ class ConditioningVideoVerifier:
                                      f"see {audit_path}")
                     failure.valid_observations = deepcopy(accepted_parsed)
                     raise failure from exc
-                feedback = {"error": detail, "validation_errors": errors, "previous_response": raw,
-                    "instruction": "Correct ALL listed contract errors using the SAME task, rubric and media. "
-                                   "Do not improve scores to pass validation; unknown evidence remains unobserved."}
-                if physical_only:
-                    # Reassess the full physical judgment, not a label constrained
-                    # by a potentially contaminated old score/evidence narrative.
-                    feedback.pop('previous_response')
-                    feedback['instruction'] = ('Reassess the complete physical-motion criterion from the SAME media. '
-                        'Return all required top-level and segment fields with mutually consistent statuses, '
-                        'scores, evidence and assessments. Do not infer a desired story or preserve a prior '
-                        'score. Occlusion and missing sampled frames alone do not establish a physical defect. '
-                        'Genuine visibility uncertainty must remain unobserved, not be scored as success.')
+                # Only an explicit missing-assessment patch receives a prior response.
+                feedback = {'previous_response': raw}
                 if response_contract_valid and not physical_only and errors and all(e['issues'] and all(i['code'] == 'missing_assessment_object'
                                                      for i in e['issues']) for e in errors):
                     patch_fields = assessment_patch_fields(raw, subset)
-                print(f"[conditioning verifier] format correction=1/1 job={operation}: {detail}", flush=True)
+                mode = 'assessment patch' if patch_fields else 'group reassessment'
+                print(f"[conditioning verifier] {mode}=1/1 job={operation}: {detail}", flush=True)
                 continue
             write_json(audit_path, {"status": "valid_response_format", "correction_attempt": correction,
-                'correction_mode': 'assessment_patch_only' if patch_fields else 'full_response',
+                'correction_mode': ('initial_judgment' if not correction else
+                        'assessment_patch_only' if patch_fields else 'fresh_evidence_reassessment'),
                 'completed_assessment_paths': list(patch_fields or {})})
             write_json(path, parsed_raw)
             return parsed
 
     def _observe_scoped(self, path, payload, evidence, operation, subset, spans):
+        from evovideo_skill.verifier_facts import with_fact_contract
+        subset = with_fact_contract(subset, payload.get('original_task', {}))
         from evovideo_skill.verifier_identity import contract as identity_contract, assess as assess_identity, withheld
         from evovideo_skill.verifier_facts import fact_conflicts, reassessment_closure
         payload = deepcopy(payload)
@@ -1076,7 +1238,6 @@ class ConditioningVideoVerifier:
         pending = deepcopy(payload['criteria']) if physical_motion_only(subset) else dict(subset)
         accepted = {}
         accepted_raw = {}
-        original_rows = {}
         identity_rechecks = set()
         semantic_rechecks = set()
         for attempt in range(2):
@@ -1085,12 +1246,13 @@ class ConditioningVideoVerifier:
             prompt['output_contract'] = scoped_output_contract(pending, spans, manifest)
             if feedback:
                 prompt['format_feedback'] = feedback
+            prompt = self.prepare_request_payload(prompt)
             write_json(path.with_suffix(f'.request-{attempt}.json'), prompt)
             raw_path = path.with_suffix('.raw.json' if attempt == 0 else '.correction-1.raw.json')
             if self.cache_enabled and raw_path.exists():
                 raw = json.loads(raw_path.read_text())
             else:
-                raw = self.request(json.dumps(prompt, ensure_ascii=False), evidence,
+                raw = self._request_observation(json.dumps(prompt, ensure_ascii=False), evidence,
                     operation + ('/identity-recheck-1' if attempt and identity_rechecks
                                  else '/semantic-recheck-1' if attempt and semantic_rechecks
                                  else '/format-correction-1' if attempt else ''))
@@ -1103,7 +1265,7 @@ class ConditioningVideoVerifier:
             for name in blocked:
                 accepted.pop(name, None)
                 accepted_raw.pop(name, None)
-                if attempt:
+                if attempt and isinstance(raw, dict) and isinstance(raw.get('criteria'), dict) and name in raw['criteria']:
                     item = project_scoped({'criteria': {name: withheld(subset[name])}},
                                           {name: subset[name]}, manifest)['criteria'][name]
                     item.update(identity_gate=deepcopy(identity_audit), observation_source='host_identity_dependency')
@@ -1122,6 +1284,8 @@ class ConditioningVideoVerifier:
             try:
                 checked_raw = self.validate_response_contract(clean_raw, remaining)
             except (ValueError, KeyError, TypeError) as issue:
+                if getattr(issue, 'nonretryable_evidence_conflict', False):
+                    raise
                 checked_raw = None
                 errors.append({'error': str(issue)})
                 failed.update(remaining)
@@ -1135,13 +1299,6 @@ class ConditioningVideoVerifier:
                 for name, rule in remaining.items():
                     try:
                         canonical = {name: subset[name]}
-                        if attempt and name not in identity_rechecks | semantic_rechecks:
-                            from evovideo_skill.verifier_facts import correction_semantic_changes
-                            current_raw_row = raw.get('criteria', {}).get(name) if isinstance(raw, dict) else None
-                            changes = correction_semantic_changes(original_rows.get(name), current_raw_row)
-                            if changes:
-                                raise ValueError(f'{name}: format correction changed semantic judgments: {changes}; '
-                                    'neither response is accepted as truth; bounded evidence review is required')
                         item = project_scoped({'criteria': {name: rows[name]}}, canonical, manifest)
                         parse_judgment(item, canonical, spans, manifest)
                         accepted[name] = item['criteria'][name]
@@ -1150,7 +1307,7 @@ class ConditioningVideoVerifier:
                                 'checked_actors': identity['dependencies'][name]}
                         if attempt and name in semantic_rechecks:
                             accepted[name]['semantic_reassessment'] = {
-                                'reason': 'internally_conflicting_prior_judgment', 'attempt': attempt,
+                                'reason': 'invalid_prior_response', 'attempt': attempt,
                                 'qualification': 'Fresh same-evidence judgment; not independent verification or format repair.'}
                         accepted_raw[name] = deepcopy(rows[name])
                     except (ValueError, KeyError, TypeError) as issue:
@@ -1164,7 +1321,8 @@ class ConditioningVideoVerifier:
             conflict_names = {claim['criterion'] for claims in conflicts.values() for claim in claims}
             semantic_seeds = {error['criterion'] for error in errors
                               if error.get('category') == 'semantic_conflict' and 'criterion' in error}
-            affected = reassessment_closure(subset, semantic_seeds | conflict_names)
+            # Invalidate all consumers of an invalid source fact, including format failures.
+            affected = reassessment_closure(subset, set(failed) | semantic_seeds | conflict_names)
             if affected:
                 write_json(path.with_suffix(f'.shared-facts-{attempt}.json'), {
                     'conflicts': conflicts, 'semantic_seeds': sorted(semantic_seeds),
@@ -1192,58 +1350,25 @@ class ConditioningVideoVerifier:
                     failure.valid_observations = {name: parse_judgment({'criteria': {name: row}},
                         {name: subset[name]}, spans, manifest)[name] for name, row in accepted.items()}
                     raise failure
-                feedback = {'validation_errors': errors,
-                    'instruction': 'Return ONLY the requested invalid criteria, one judgment each. Correct all listed fields '
-                                   'from the same evidence. Do not invent facts or upgrade scores to pass.'}
-                raw_rows = raw.get('criteria') if isinstance(raw, dict) else None
-                original_rows = deepcopy(raw_rows) if isinstance(raw_rows, dict) else {}
-                semantic_rechecks = {error['criterion'] for error in errors
-                                     if error.get('category') in {'semantic_conflict', 'shared_fact_dependency'}
-                                     and 'criterion' in error}
-                guarded = {name: original_rows[name] for name in failed
-                           if name not in semantic_rechecks | set(blocked) and name in original_rows}
-                if guarded:
-                    feedback['previous_response'] = {'criteria': guarded}
-                    feedback['instruction'] += (' This is FORMAT REPAIR ONLY: preserve existing recognized statuses, '
-                        'scores, assessment outcomes and fact values/bases. Repair citations or missing fields only. '
-                        'Preserve existing evidence and counterexample text verbatim, including actor identities; '
-                        'do not rewrite observations while keeping the same verdict enum. '
-                        'If these judgments cannot be reconciled with the contract, report the uncertainty honestly; '
-                        'changed judgments will be retained for audit but require a separate bounded review, not acceptance.')
                 identity_rechecks = set(blocked)
-                if identity_rechecks or semantic_rechecks:
-                    feedback['instruction'] = ('Return only the requested criteria. Criteria listed in '
-                        'identity_reassessment or semantic_reassessment need a fresh evidence-based judgment, not preservation of an '
-                        'invalid verdict. For OTHER criteria, repair format only and preserve existing '
-                        'observations and judgments. Do not infer a desired score from any validation error.')
-                if semantic_rechecks:
-                    feedback['semantic_reassessment'] = {'criteria': sorted(semantic_rechecks),
-                        'shared_fact_ids': sorted(conflicts),
-                        'instruction': 'The prior response contains incompatible semantic fields and cannot be '
-                            'repaired by freezing its verdict. Reassess these criteria from the SAME original '
-                            'task and actual media. This includes dependent criteria previously valid in isolation. '
-                            'Judge shared source facts consistently across the whole requested component; '
-                            'do not retain older judgments or select whichever gives the higher score. '
-                            'Decide visibility first, then source facts and action '
-                            'components, then one consistent assessment. Genuine uncertainty stays unknown. '
-                            'Do not change a basis, delete matched actions, or award partial credit merely '
-                            'to pass validation. The host supplies no desired score. This uses the one remaining '
-                            'group call, with no further retries.'}
+                semantic_rechecks = set(failed) - identity_rechecks
+                # Invalid answers stay in the audit, never as anchors in the second prompt.
+                feedback = {
+                    'mode': 'fresh_evidence_reassessment',
+                    'invalid_criteria': sorted(failed),
+                    'semantic_reassessment': {'criteria': sorted(semantic_rechecks)},
+                    'instruction': 'The first response could not be accepted. Judge all requested criteria '
+                        'afresh from the SAME original requirements and attached media using output_contract. '
+                        'No prior answer, desired score or verdict is supplied. Re-identify actors using '
+                        'source appearance definitions. Judge shared facts consistently across this group. '
+                        'A visible violation is a valid low score; genuine uncertainty stays unknown. '
+                        'Missing JSON fields do not mean missing video. This is the final group attempt; '
+                        'unresolved judgments will remain unscored, not retried until they pass.'}
                 if identity_rechecks:
-                    # Binding failure invalidates the affected judgments, not the
-                    # video. One fresh assessment replaces per-criterion review.
-                    feedback['identity_reassessment'] = {'criteria': sorted(identity_rechecks),
-                        'actor_issues': identity_audit['actor_issues'],
-                        'instruction': 'For these criteria ONLY, the original judgment is invalid due to identity. '
-                            'Independently re-identify actors from supplied evidence using source appearance definitions, '
-                            'then judge these criteria afresh. This is NOT format repair and no outcome is prescribed. '
-                            'Unknown identities must remain unknown. Do not invert scores or swap labels mechanically.'}
-                    if 'previous_response' in feedback:
-                        feedback['previous_response']['criteria'] = {k: v for k, v in
-                            feedback['previous_response']['criteria'].items() if k not in identity_rechecks}
+                    feedback['identity_reassessment'] = {'criteria': sorted(identity_rechecks)}
                 pending = failed
                 mode = ('identity reassessment' if identity_rechecks else
-                        'semantic reassessment' if semantic_rechecks else 'format correction')
+                        'semantic reassessment' if semantic_rechecks else 'group reassessment')
                 print(f'[conditioning verifier] {mode}=1/1 job={operation}: {errors}', flush=True)
                 continue
             write_json(path.with_suffix(f'.format-{attempt}.json'), {'status': 'valid_response_format',
@@ -1256,6 +1381,16 @@ class ConditioningVideoVerifier:
             return parsed
 
     def _judge(self, task, evidence, manifest, rubric, criteria, public, digest, artifact=None):
+        # Keep the canonical source contract through initial grouping, review,
+        # aggregation and cache records, not just inside _observe_group.
+        from evovideo_skill.verifier_facts import with_fact_contract
+        criteria = with_fact_contract(criteria, public)
+        shots = public.get('metadata', {}).get('story_contract', {}).get('shots', [])
+        if (shots and 'action_alignment_score' in criteria
+                and {s.get('shot_index') for s in shots} == {w['segment_id'] for w in manifest['windows']}
+                and all(s.get('events') for s in shots)):
+            criteria['action_alignment_score'] = {**criteria['action_alignment_score'],
+                'fixed_window_coverage': True, 'host_aggregate_from_windows': True}
         folder = self.root / "judgments" / digest
         final = folder / "result.json"
         if self.cache_enabled and final.exists():
@@ -1267,6 +1402,7 @@ class ConditioningVideoVerifier:
         format_failures = []
         observations = {k: [] for k in criteria}
         window_observations = {}
+        review_batches = {}
         host_na = {k: v["host_not_applicable"] for k, v in criteria.items()
                    if isinstance(v, dict) and v.get("host_not_applicable")}
         for name, reason in host_na.items():
@@ -1286,24 +1422,32 @@ class ConditioningVideoVerifier:
                     parsed = self._observe_group(path, payload, group_media, f"{digest[:12]}/{group}/{repeat}",
                                                  subset, manifest["windows"])
                 except VerifierFormatError as exc:
-                    if not auto_options['enabled']:
-                        raise
                     format_failures.append({'group': group, 'repeat': repeat, 'error': str(exc)})
-                    parsed = {k: {'status': 'unobserved', 'score': None, 'confidence': 0,
-                        'evidence': 'No valid structured response; no quality score inferred.',
-                        'observation_source': 'response_format_failure',
-                        'segments': [{'segment_id': i, 'status': 'unobserved', 'score': None,
-                            'evidence': 'No valid structured response.'}
-                            for i in required_segment_ids(k, rule, manifest['windows'])]}
-                        for k, rule in subset.items()}
-                    parsed.update(getattr(exc, 'valid_observations', {}))
+                    parsed = unresolved_response(subset, manifest['windows'], exc)
                 for k, v in parsed.items():
                     group_rows[k].append(v)
+            scope = next(iter(subset.values())).get('story_shot_index')
+            domain = 'physical_motion' if physical_motion_only(subset) else 'task_alignment'
+            batch = review_batches.setdefault((scope, domain), {'criteria': {}, 'rows': {}})
+            batch['criteria'].update(subset)
+            batch['rows'].update(group_rows)
+        # All initial groups complete before spending the review budget. Reunite
+        # chunks of the same scope so shared consumers cannot be reviewed alone.
+        def review_priority(item):
+            (scope, domain), batch = item
+            mandatory = any(rule.get('mandatory') for rule in batch['criteria'].values())
+            facts = any(rule.get('fact_contract') for rule in batch['criteria'].values())
+            return (not mandatory, not facts, scope is None, scope or 0, domain)
+        from evovideo_skill.verifier_facts import mark_conflicts
+        for (scope, domain), batch in sorted(review_batches.items(), key=review_priority):
+            subset, group_rows = batch['criteria'], batch['rows']
+            mark_conflicts(group_rows)
             if auto_options['enabled'] and artifact is not None:
-                review_audits[str(group)] = review_group(self, task, artifact, public, subset,
-                                                       group_rows, folder, group, digest, manifest["candidate_hash"])
+                key = f'scope-{scope}-{domain}'
+                review_audits[key] = review_group(self, task, artifact, public, subset,
+                    group_rows, folder, key, digest, manifest['candidate_hash'])
             for k, rows in group_rows.items():
-                # Both confirmation calls are retained in the audit, not counted as independent samples.
+                # Review assessments stay in the audit; reconciliation does not add independent samples.
                 if len(rows) != self.profile['repeats']:
                     conservative = deepcopy(min(rows, key=lambda r: r.get('score') if r.get('score') is not None else -1))
                     rows = [deepcopy(conservative) for _ in range(self.profile['repeats'])]
@@ -1313,6 +1457,11 @@ class ConditioningVideoVerifier:
                 else:
                     observations[k].extend(rows)
         for name, by_window in window_observations.items():
+            if criteria[name].get('host_aggregate_from_windows'):
+                observations[name] = [aggregate_source_windows(
+                    [by_window[span['segment_id']][repeat] for span in manifest['windows']], manifest['windows'])
+                    for repeat in range(self.profile['repeats'])]
+                continue
             for repeat, full in enumerate(observations[name]):
                 components = [by_window[span["segment_id"]][repeat] for span in manifest["windows"]]
                 observations[name][repeat] = combine_window_judgments(full, components, manifest["windows"],
@@ -1321,20 +1470,9 @@ class ConditioningVideoVerifier:
         from evovideo_skill.story_semantics import combine_obligations
         from evovideo_skill.verifier_facts import mark_conflicts
         fact_conflicts_before = mark_conflicts(observations)
-        if fact_conflicts_before and auto_options['enabled'] and artifact is not None:
-            # A single bounded pass over affected criteria. Shared ledgers also
-            # account for any earlier numeric/unknown review of the same criterion.
-            affected = sorted({c['criterion'] for claims in fact_conflicts_before.values() for c in claims})
-            for name in affected:
-                subset = {name: criteria[name]}
-                rows = {name: observations[name]}
-                audit_key = 'facts-' + stable_hash(name)[:12]
-                review_audits[audit_key] = review_group(self, task, artifact, public, subset,
-                    rows, folder, audit_key, digest, manifest['candidate_hash'])
-                if len(rows[name]) != len(observations[name]):
-                    conservative = min(rows[name], key=lambda r: r.get('score') if r.get('score') is not None else -1)
-                    rows[name] = [deepcopy(conservative) for _ in observations[name]]
-                observations[name] = rows[name]
+        # Cross-window conflicts remain explicitly unresolved. Do not start a
+        # second per-criterion pass after component commits: it can create new
+        # contradictions and consume the same review budget repeatedly.
         fact_conflicts_after = mark_conflicts(observations)
         conjunction_audit = combine_obligations(task, observations)
         from evovideo_skill.verifier_identity import quarantine_source_conflicts
@@ -1342,6 +1480,9 @@ class ConditioningVideoVerifier:
         # Conjunctions can rewrite a parent's score; factual conflicts still block
         # it and its components from rewards and repair instructions.
         fact_conflicts_after = mark_conflicts(observations)
+        from evovideo_skill.owned_observations import reconcile_owned_facts
+        ownership_audit = reconcile_owned_facts(observations)
+        write_json(folder / 'owned_facts.json', ownership_audit)
         scores, texts, unobserved, disagreements, failed = {}, {}, [], {}, []
         disputed = []
         scope_issues = {}
@@ -1383,19 +1524,49 @@ class ConditioningVideoVerifier:
                         merged[field] += " " + span[field]
         failed = sorted(grouped.values(), key=lambda span: span["start_ratio"])
         review = sorted(set(disputed) | {k for k, v in disagreements.items() if v > self.profile["disagreement_threshold"]})
+        # Separate evaluator processing failures from visual uncertainty and
+        # valid negative observations. Downstream rewards still require completeness.
+        criterion_states = {}
+        for name, rows in observations.items():
+            if name in review:
+                state = 'disputed'
+            elif name in unobserved:
+                state = ('invalid_response' if any(r.get('observation_source') == 'response_format_failure'
+                         or r.get('processing_status') == 'invalid_response' for r in rows)
+                         else 'identity_unresolved' if any(r.get('processing_status') == 'identity_unresolved' for r in rows)
+                         else 'score_unresolved' if any(r.get('processing_status') == 'score_unresolved' for r in rows)
+                         else 'insufficient_evidence')
+            else:
+                state = 'not_applicable' if name in host_na else 'measured'
+            criterion_states[name] = state
         result = {k: scores[k] for k in GENERIC if k in scores}
+        from evovideo_skill.evaluation_report import processing_diagnostics
         result.update(model=self.model, criterion_scores={k: scores[k] for k in rubric if k in scores},
             criterion_evidence={k: texts[k] for k in rubric}, failed_segments=failed, failure_types=[],
             evaluation_status="needs_review" if unobserved or review else "complete",
             verification_metadata={**manifest, "unobserved_criteria": unobserved, "disagreement_criteria": review,
                 "verifier_protocol": VERIFIER_PROTOCOL_VERSION, "scope_issues": scope_issues,
+                "criterion_processing_states": criterion_states,
+                "processing_diagnostics": processing_diagnostics(criterion_states, review_audits),
+                "processing_summary": {state: sum(s == state for s in criterion_states.values())
+                    for state in ('measured', 'not_applicable', 'insufficient_evidence', 'score_unresolved', 'identity_unresolved', 'disputed', 'invalid_response')},
                 "auto_review": review_audits, "response_format_failures": format_failures,
+                "review_policy": "single_pass_shared_fact_components_atomic_commit",
+                "sampling_policy": {"initial_repeats": self.profile["repeats"],
+                    "initial_repeat_agreement_measured": self.profile["repeats"] > 1,
+                    "review_confirmations": auto_options["confirmations"],
+                    "review_trigger": "unknown_or_conflicting_components_only",
+                    "qualification": "Single observations do not measure repeatability or establish visual truth."},
+                "cross_window_conflict_policy": "single_owner_source_facts_with_explicit_context_bindings",
+                "fact_ownership": ownership_audit,
+                "shared_observation_protocol": self.observation_protocol,
+                "source_fact_scoring": "categorical_requirement_satisfaction" if self.observation_protocol == "shared-observation-review-v2" else "legacy_graded",
                 'source_identity': source_identity_audit,
                 'fact_consistency': {'before_review': fact_conflicts_before, 'unresolved': fact_conflicts_after,
                     'qualification': 'Structured same-proposition consistency, not independent visual ground truth.'},
                 "global_fixed_window_criteria": sorted(window_observations),
                 "event_conjunctions": conjunction_audit,
-                "abstention_policy": "continue-without-quality-estimate" if auto_options["enabled"] else "stop",
+                "abstention_policy": "continue-without-quality-estimate",
                 "criterion_contracts": rubric, "host_not_applicable_criteria": host_na,
                 "effective_criterion_contracts": criteria,
                 'criterion_input_domains': {name: 'physical_motion' if physical_motion_only({name: rule})

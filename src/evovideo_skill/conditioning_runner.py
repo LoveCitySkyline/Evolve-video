@@ -212,6 +212,10 @@ class ConditioningRunner:
                 except ValueError as exc:
                     raise MeasurementUnavailable(str(exc)) from exc
             record["acceptance"] = acceptance_report(sampled, rollout.artifact)
+            from evovideo_skill.evaluation_report import scorecard
+            record['evaluation_scorecard'] = scorecard(
+                rollout.artifact.metadata.get('vlm_evaluation', {}), record['acceptance'],
+                record['generation_cost'], record['process_diagnostics'])
             record["feedback"]["acceptance"] = deepcopy(record["acceptance"])
             workspace.verified(record)
             write_json(path, record)
@@ -229,6 +233,8 @@ class ConditioningRunner:
             workspace.failed(exc, "needs_review" if isinstance(exc, MeasurementUnavailable) else "failed")
             if isinstance(exc, EvidenceIncomplete):
                 exc.details.update(evaluation_id=ident, task_id=task.task_id, seed=seed,
+                    generation_cost=cost_profile(task, graph, cost_options(self.config)),
+                    process_diagnostics=workspace.diagnostics(),
                     graph_id=graph.graph_id, episode=episode, project_state_path=str(workspace.path),
                     reserved_budget_delta={k: self.state["episodes"].get(episode, {}).get(k, 0) - usage_before.get(k, 0)
                                            for k in ("calls", "seconds")},
@@ -1063,6 +1069,9 @@ class ConditioningRunner:
                   "metrics": [asdict(m) for m in report.active_metrics], "assessment": "post_commit_fresh_verifier",
                   "criterion_scores": deepcopy(artifact.metadata.get("vlm_evaluation", {}).get("criterion_scores", {})),
                   "verification": deepcopy(artifact.metadata.get("vlm_evaluation", {}).get("verification_metadata", {}))}
+        from evovideo_skill.evaluation_report import scorecard
+        result['evaluation_scorecard'] = scorecard(artifact.metadata.get('vlm_evaluation', {}),
+            result['acceptance'], record.get('generation_cost'), record.get('process_diagnostics'))
         write_json(path, result)
         return result
 
@@ -1292,6 +1301,14 @@ def main():
                 "reason": str(exc), "ledger": asdict(runner.ledger)})
             print(f"[conditioning] stopped: {exc}; inspect verifier evidence/errors; resume only after resolving the cause", flush=True)
             raise SystemExit(1)
+        finally:
+            from evovideo_skill.evaluation_report import export_report
+            try:
+                export_report(root)
+                print(f'[conditioning] quality/budget report={root / "evaluation_report.html"}', flush=True)
+            except (OSError, ValueError, TypeError, KeyError) as exc:
+                # A reporting failure must not hide the original experiment failure.
+                print(f'[conditioning] report export failed: {exc}; saved raw evidence remains authoritative', flush=True)
 
 
 if __name__ == "__main__":

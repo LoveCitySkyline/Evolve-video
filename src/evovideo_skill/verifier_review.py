@@ -12,46 +12,112 @@ from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'bounded-evidence-review-v6.2'
+VERSION = 'owned-fact-review-v14'
 DEFAULTS = dict(enabled=False, max_calls_per_criterion=4, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
-                secondary_model=None)
+                secondary_model=None, confirmations=2)
 CHECKS = {
-    'referents': 'Can required actors/objects be identified visually, without inferring identity from desired actions?',
-    'visibility': 'Is the predicate observable, rather than occluded or hidden in an unsampled gap?',
-    'predicate': 'Does the EXACT requirement hold? Decompose all explicit clauses into components; add no requirements.',
-    'temporal_scope': 'Does evidence establish this predicate in the required window, using the true pre/post boundary?',
+    'referents': 'Can all actors/objects NEEDED FOR THIS CLAIM be bound to visible evidence? A task definition alone is not visual identification.',
+    'visibility': 'Is the visual evidence sufficient to decide this claim, including a visible counterexample? Not whether the required outcome occurs.',
+    'predicate': 'Does the EXACT requirement hold? Decompose explicit clauses without adding requirements.',
+    'temporal_scope': 'Does the supplied evidence cover the required time/boundary adequately for this claim? Not whether the event happens at that time.',
+}
+PREREQUISITE_STATUS = {
+    'sufficient': True, 'insufficient': False, 'uncertain': False,
+    # Preserve the meaning of saved v27 responses during offline diagnostics.
+    'supported': True, 'contradicted': False, 'unknown': False,
 }
 REVIEW_SYSTEM = '''
-This request is a bounded evidence review. In addition to the ordinary judgment
-fields, EACH requested criterion MUST contain atomic_checks, with exactly these
-four named objects: referents, visibility, predicate, temporal_scope. This is part
-of the output schema, not optional commentary. Each object requires status
-(supported|contradicted|unknown) and evidence. predicate additionally requires a
-nonempty components list; each component has source_quote (an exact substring of
-this criterion's description, or the EXACT complete primary proposition listed
-in predicate_sources), status and evidence. Check all explicit clauses.
-The predicate status is their conjunction: any contradicted => contradicted;
-otherwise any unknown => unknown; otherwise supported. Unknown prerequisites
-(referents, visibility or temporal_scope) require an unknown judgment. Never
-invent observations or improve a score merely to fill missing JSON fields.
-For assessment_patch_only corrections, return ONLY the requested patches instead;
-the host retains and revalidates the previously supplied atomic_checks.
+This is a bounded evidence review. EACH criterion must contain atomic_checks
+with referents, visibility, predicate, temporal_scope. Each object needs evidence.
+For referents/visibility/temporal_scope, status is sufficient|insufficient|uncertain.
+These are EVIDENCE CONDITIONS, never scores for story success:
+- referents: bind necessary people/objects to actual pixels. Being defined in the
+  task does not establish that an object is visible or identifiable.
+- visibility: sufficient means enough evidence to decide the claim. A clearly
+  observed wrong action CAN provide sufficient evidence for a negative verdict.
+  An unseen token does NOT prove its location is wrong; an unseen till does NOT
+  prove the till is absent. Missing views or unresolved sampling gaps are insufficient.
+- temporal_scope: supplied coverage of the correct window/boundary, not occurrence
+  of the desired event. A missing action does not make timestamps incorrect.
+Only predicate uses supported|contradicted|unknown. It needs a nonempty components
+list with source_quote, status and evidence. Quotes must be exact description
+substrings, the complete primary proposition, or a complete host-compiled action
+requirement from predicate_sources. Cover every listed action requirement.
+Predicate is the conjunction of its components. Any failed evidence condition
+requires an unknown final judgment (null score), never absent/violated/zero.
+A negative predicate requires a visible counterexample, not merely unseen objects.
+If all evidence conditions are sufficient, a supported predicate can pass and a
+contradicted predicate can fail. Do not label visibility sufficient merely to
+justify an existing verdict. Re-evaluate the evidence honestly.
+For assessment_patch_only return only requested patches; retain atomic checks.
 '''
 
 
+class ReviewEvidenceConflict(ValueError):
+    """Explicit evidential contradictions are abstentions, not formatting retries."""
+    nonretryable_evidence_conflict = True
+
+    def __init__(self, issues, format_issues=None):
+        self.issues = issues
+        self.format_issues = format_issues or []
+        super().__init__('review evidence conflict: ' + json.dumps(issues, ensure_ascii=False))
+
+
+def review_rules(subset, public):
+    """Compile quote sources from the immutable story, never from model answers."""
+    result = deepcopy(subset)
+    rule = result.get('action_alignment_score')
+    if rule is None:
+        return result
+    shots = public.get('metadata', {}).get('story_contract', {}).get('shots', [])
+    index = rule.get('story_shot_index')
+    requirements = []
+    for shot in shots:
+        if index is not None and shot['shot_index'] != index:
+            continue
+        for event in shot.get('events', []):
+            quote = event.get('description')
+            if isinstance(quote, str) and quote.strip():
+                requirements.append({'source': f"shots[{shot['shot_index']}].events.{event['id']}",
+                                     'quote': quote})
+    rule['review_action_requirements'] = requirements
+    return result
+
+
+def review_components(subset, rows, threshold):
+    """Disjoint dependency closures, including currently valid fact consumers."""
+    from evovideo_skill.verifier_facts import mark_conflicts, reassessment_closure
+    mark_conflicts(rows)
+    remaining = {name for name, values in rows.items() if uncertain(values, threshold)}
+    components = []
+    while remaining:
+        seed = min(remaining)
+        members = reassessment_closure(subset, {seed})
+        components.append(sorted(members))
+        remaining -= members
+    # Mandatory/shared story facts precede independent generic metrics.
+    return sorted(components, key=lambda names: (
+        not any(subset[n].get('mandatory') for n in names),
+        not any(subset[n].get('fact_contract') for n in names),
+        -sum(float(subset[n].get('weight', 1.0)) for n in names
+             if uncertain(rows[n], threshold)), names))
+
+
 def predicate_sources(rule):
-    """Only this criterion and its host-compiled primary proposition are sources."""
+    """Only immutable criterion, primary fact and scoped task actions are quote sources."""
     contract = rule.get('fact_contract', {})
     primary = contract.get('facts', {}).get(contract.get('primary_fact'), {})
     return {'description': rule.get('description', ''),
-            'primary_proposition': primary.get('proposition')}
+            'primary_proposition': primary.get('proposition'),
+            'action_requirements': rule.get('review_action_requirements', [])}
 
 
 def valid_source_quote(quote, rule):
     sources = predicate_sources(rule)
     return isinstance(quote, str) and bool(quote.strip()) and (
-        quote in sources['description'] or quote == sources['primary_proposition'])
+        quote in sources['description'] or quote == sources['primary_proposition']
+        or any(quote == item['quote'] for item in sources['action_requirements']))
 
 
 def add_review_contract(payload):
@@ -60,8 +126,10 @@ def add_review_contract(payload):
     if contract.get('response_mode') == 'assessment_patch_only':
         return
     check_schema = {'status': 'supported|contradicted|unknown', 'evidence': 'visible support or limitation'}
-    schema = {key: deepcopy(check_schema) for key in CHECKS}
-    schema['predicate']['components'] = [{'source_quote': 'exact substring of description OR exact full primary_proposition in predicate_sources',
+    schema = {key: {'status': 'sufficient|insufficient|uncertain', 'evidence': CHECKS[key]}
+              for key in CHECKS if key != 'predicate'}
+    schema['predicate'] = deepcopy(check_schema)
+    schema['predicate']['components'] = [{'source_quote': 'exact substring of description OR exact full primary_proposition or action requirement in predicate_sources',
         **deepcopy(check_schema)}]
     for name in payload['criteria']:
         fields = contract.setdefault('fields', {}).setdefault(name, {})
@@ -69,6 +137,12 @@ def add_review_contract(payload):
         if 'atomic_checks' not in required:
             required.append('atomic_checks')
         fields['atomic_checks'] = deepcopy(schema)
+        fields['atomic_checks_location'] = f'criteria[{name!r}].atomic_checks (criterion TOP LEVEL, required)'
+        shape = contract.get('response_shape', {})
+        if isinstance(shape, dict) and isinstance(shape.get('criteria'), dict) and name in shape['criteria']:
+            shape['criteria'][name]['atomic_checks'] = deepcopy(schema)
+        fields['atomic_checks_instruction'] = ('Assess this whole criterion at the TOP LEVEL. Segment checks cannot '
+            'substitute for cross-window continuity, geometry or full-video assessment. Do not copy segment checks upward.')
         contract.setdefault('predicate_sources', {})[name] = predicate_sources(payload['criteria'][name])
 
 class ReviewBudgetExhausted(RuntimeError):
@@ -86,6 +160,8 @@ def options(value=None):
                 'max_seconds_per_video', 'max_width'):
         if type(out[key]) is not int or out[key] <= 0:
             raise ValueError('invalid auto_review.' + key)
+    if type(out['confirmations']) is not int or out['confirmations'] not in (1, 2):
+        raise ValueError('auto_review.confirmations must be 1 or 2')
     if type(out['fps']) not in (int, float) or not math.isfinite(out['fps']) or not 0 < out['fps'] <= 30:
         raise ValueError('invalid auto_review.fps')
     if out['secondary_model'] is not None and (not isinstance(out['secondary_model'], str) or not out['secondary_model'].strip()):
@@ -121,6 +197,7 @@ class ReviewLedger:
     def __init__(self, root, config, candidate, criterion):
         self.path = Path(root) / 'auto_review_budget.json'
         self.config, self.candidate, self.criterion = config, candidate, criterion
+        self.criteria = tuple(sorted(criterion)) if isinstance(criterion, (list, tuple)) else (criterion,)
 
     def reserve(self, ticket=None):
         ticket = ticket or uuid.uuid4().hex
@@ -129,7 +206,7 @@ class ReviewLedger:
             video = data['videos'].setdefault(self.candidate, {'calls': 0, 'reserved_seconds': 0, 'criteria': {}})
             if ticket in video.get('reservations', {}):
                 raise ValueError('duplicate review reservation')
-            count = video['criteria'].get(self.criterion, 0)
+            count = max(video['criteria'].get(key, 0) for key in self.criteria)
             remaining = self.config['max_seconds_per_video'] - video['reserved_seconds']
             if (data['calls'] >= self.config['max_calls_per_run'] or video['calls'] >= self.config['max_calls_per_video']
                     or count >= self.config['max_calls_per_criterion'] or remaining <= 0):
@@ -137,10 +214,11 @@ class ReviewLedger:
             timeout = min(180, remaining)
             data['calls'] += 1
             video['calls'] += 1
-            video['criteria'][self.criterion] = count + 1
+            for key in self.criteria:
+                video['criteria'][key] = video['criteria'].get(key, 0) + 1
             video['reserved_seconds'] += timeout
             video.setdefault('reservations', {})[ticket] = {'seconds': timeout, 'status': 'pending',
-                'criterion': self.criterion}
+                'criterion': list(self.criteria)}
             write_json(self.path, data)
             return timeout
 
@@ -156,7 +234,7 @@ class ReviewLedger:
             data = json.loads(self.path.read_text())
             video = data['videos'][self.candidate]
             reservation = video.get('reservations', {}).get(ticket)
-            if reservation is None or reservation['criterion'] != self.criterion:
+            if reservation is None or reservation['criterion'] != list(self.criteria):
                 raise ValueError('unknown review reservation')
             if reservation['status'] == 'settled':
                 return
@@ -168,54 +246,81 @@ class ReviewLedger:
             write_json(self.path, data)
 
 
+def _validate_check_row(name, row, rule):
+    from evovideo_skill.scoped_judgment import derive_state_assessment
+
+    def conflict(code, message):
+        raise ReviewEvidenceConflict([{'criterion': name, 'code': code, 'message': message,
+            'status': row.get('status'), 'score': row.get('score'),
+            'assessment': deepcopy(row.get('assessment')),
+            'atomic_statuses': {key: value.get('status') for key, value in checks.items()}}])
+
+    if not isinstance(row, dict):
+        raise ValueError('review judgment must be an object')
+    checks = row.pop('atomic_checks', None)
+    if not isinstance(checks, dict) or set(checks) != set(CHECKS):
+        raise ValueError('review requires all atomic_checks')
+    for key, check in checks.items():
+        if (not isinstance(check, dict) or check.get('status') not in ({'supported', 'contradicted', 'unknown'} if key == 'predicate' else PREREQUISITE_STATUS)
+                or not isinstance(check.get('evidence'), str) or not check['evidence'].strip()):
+            raise ValueError('invalid atomic check ' + key)
+    components = checks['predicate'].get('components')
+    if not isinstance(components, list) or not components:
+        raise ValueError('predicate needs source-backed components')
+    for part in components:
+        if (not isinstance(part, dict) or not valid_source_quote(part.get('source_quote'), rule)
+                or part.get('status') not in {'supported', 'contradicted', 'unknown'}
+                or not isinstance(part.get('evidence'), str) or not part['evidence'].strip()):
+            raise ValueError(f'each component needs an exact criterion quote (description substring or '
+                f'complete primary proposition), status and evidence; allowed_sources={predicate_sources(rule)}')
+    required_actions = {item['quote'] for item in rule.get('review_action_requirements', [])}
+    if required_actions and not required_actions <= {c['source_quote'] for c in components}:
+        raise ValueError('action review components must cover every host-compiled action requirement')
+    statuses = [c['status'] for c in components]
+    predicate = 'contradicted' if 'contradicted' in statuses else 'unknown' if 'unknown' in statuses else 'supported'
+    if checks['predicate']['status'] != predicate:
+        raise ValueError('predicate contradicts component conjunction')
+    observable = all(PREREQUISITE_STATUS[checks[k]['status']] for k in ('referents', 'visibility', 'temporal_scope'))
+    conclusion = predicate if observable else 'unknown'
+    if row.get('status') == 'unobserved' and row.get('score') is not None:
+        conflict('unknown_with_score', 'unobserved judgment must not carry a numeric score')
+    derive_state_assessment(row, rule)
+    assessment = row.get('assessment', {})
+    if not isinstance(assessment, dict):
+        raise ValueError('review assessment must be an object')
+    outcome = assessment.get('outcome')
+    if rule.get('judgment_contract') == 'state-equality-v1':
+        if outcome != {'supported': 'satisfied', 'contradicted': 'violated', 'unknown': 'unknown'}[conclusion]:
+            conflict('state_evidence_conflict', 'state judgment contradicts atomic checks')
+    else:
+        unknown = outcome == 'unknown' if rule.get('judgment_contract') else row.get('status') == 'unobserved'
+        if unknown != (conclusion == 'unknown'):
+            conflict('observability_conflict', 'observability contradicts atomic checks')
+        score = row.get('score')
+        if conclusion == 'contradicted' and (outcome in {'complete', 'coherent', 'satisfied'} or score == 1):
+            conflict('predicate_verdict_conflict', 'violated component cannot receive full credit')
+        if conclusion == 'supported' and (outcome in {'absent', 'defective', 'violated'} or score == 0):
+            conflict('predicate_verdict_conflict', 'supported components contradict negative judgment')
+
+
 def validate_checks(raw, criteria):
-    """Validate explicit support, never infer facts from prose or confidence."""
+    """Collect all field-level failures; never invent a replacement visual judgment."""
     clean = deepcopy(raw)
     rows = clean.get('criteria', {}) if isinstance(clean, dict) else {}
     if not isinstance(rows, dict) or set(rows) != set(criteria):
         raise ValueError('review must return exactly the requested criteria')
+    evidence_issues, format_issues = [], []
     for name, rule in criteria.items():
-        row = rows[name]
-        if not isinstance(row, dict):
-            raise ValueError('review judgment must be an object')
-        checks = row.pop('atomic_checks', None)
-        if not isinstance(checks, dict) or set(checks) != set(CHECKS):
-            raise ValueError('review requires all atomic_checks')
-        for key, check in checks.items():
-            if (not isinstance(check, dict) or check.get('status') not in {'supported', 'contradicted', 'unknown'}
-                    or not isinstance(check.get('evidence'), str) or not check['evidence'].strip()):
-                raise ValueError('invalid atomic check ' + key)
-        components = checks['predicate'].get('components')
-        if not isinstance(components, list) or not components:
-            raise ValueError('predicate needs source-backed components')
-        for part in components:
-            if (not isinstance(part, dict) or not valid_source_quote(part.get('source_quote'), rule)
-                    or part.get('status') not in {'supported', 'contradicted', 'unknown'}
-                    or not isinstance(part.get('evidence'), str) or not part['evidence'].strip()):
-                raise ValueError(f'each component needs an exact criterion quote (description substring or '
-                    f'complete primary proposition), status and evidence; allowed_sources={predicate_sources(rule)}')
-        statuses = [c['status'] for c in components]
-        predicate = 'contradicted' if 'contradicted' in statuses else 'unknown' if 'unknown' in statuses else 'supported'
-        if checks['predicate']['status'] != predicate:
-            raise ValueError('predicate contradicts component conjunction')
-        observable = all(checks[k]['status'] == 'supported' for k in ('referents', 'visibility', 'temporal_scope'))
-        conclusion = predicate if observable else 'unknown'
-        assessment = row.get('assessment', {})
-        if not isinstance(assessment, dict):
-            raise ValueError('review assessment must be an object')
-        outcome = assessment.get('outcome')
-        if rule.get('judgment_contract') == 'state-equality-v1':
-            if outcome != {'supported': 'satisfied', 'contradicted': 'violated', 'unknown': 'unknown'}[conclusion]:
-                raise ValueError('state judgment contradicts atomic checks')
-        else:
-            unknown = outcome == 'unknown' if rule.get('judgment_contract') else row.get('status') == 'unobserved'
-            if unknown != (conclusion == 'unknown'):
-                raise ValueError('observability contradicts atomic checks')
-            score = row.get('score')
-            if conclusion == 'contradicted' and (outcome in {'complete', 'coherent', 'satisfied'} or score == 1):
-                raise ValueError('violated component cannot receive full credit')
-            if conclusion == 'supported' and (outcome in {'absent', 'defective', 'violated'} or score == 0):
-                raise ValueError('supported components contradict negative judgment')
+        try:
+            _validate_check_row(name, rows[name], rule)
+        except ReviewEvidenceConflict as exc:
+            evidence_issues.extend(exc.issues)
+        except (ValueError, KeyError, TypeError) as exc:
+            format_issues.append({'criterion': name, 'category': 'response_format', 'error': str(exc)})
+    if evidence_issues:
+        raise ReviewEvidenceConflict(evidence_issues, format_issues)
+    if format_issues:
+        raise ValueError(json.dumps(format_issues, ensure_ascii=False))
     return clean
 
 
@@ -332,60 +437,82 @@ def add_boundary_crops(reviewer, evidence, manifest):
 
 
 def review_group(owner, task, artifact, public, subset, rows, folder, group, digest, expected_source_hash=None):
-    """Two blind valid confirmations on enhanced evidence, or retain uncertainty."""
+    """Configured blind assessments on enhanced evidence, or retain uncertainty."""
     from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, VerifierFormatError, VerifierEvidenceError
     from evovideo_skill.api_tools import VideoApiError
     config = options(owner.profile.get('auto_review'))
     source_hash = stable_hash(Path(artifact.metadata['local_video_path']).read_bytes().hex())
     if expected_source_hash is not None and source_hash != expected_source_hash:
         raise VerifierEvidenceError('candidate source changed before automatic review')
+    from evovideo_skill.verifier_facts import fact_conflicts
+    subset = review_rules(subset, public)
     audit = {}
-    for name, initial in rows.items():
-        if not uncertain(initial, owner.profile['disagreement_threshold']):
+    for members in review_components(subset, rows, owner.profile['disagreement_threshold']):
+        initial = {name: deepcopy(rows[name]) for name in members}
+        if any(row.get('identity_gate', {}).get('status') == 'blocked'
+               for values in initial.values() for row in values):
+            for name in members:
+                audit[name] = {'status': 'abstained', 'observations': [], 'component': members,
+                    'errors': ['shared identity reassessment unresolved; no per-criterion retry or score assigned'],
+                    'review_scope': 'shared_identity', 'additional_model_calls': 0}
             continue
-        if any(row.get('identity_gate', {}).get('status') == 'blocked' for row in initial):
-            audit[name] = {'status': 'abstained', 'observations': [],
-                'errors': ['shared identity reassessment unresolved; no per-criterion retry or score assigned'],
-                'review_scope': 'shared_identity', 'additional_model_calls': 0}
-            continue
-        key = stable_hash([group, name])[:16]
+        key = stable_hash([VERSION, group, members, {n: subset[n] for n in members}, config, owner.model, source_hash])[:16]
         root = folder / 'auto_review' / key
         saved = root / 'decision.json'
         if saved.exists():
             decision = json.loads(saved.read_text())
-            audit[name] = decision
+            for name in members:
+                audit[name] = decision['criteria'][name]
             if decision['status'] == 'resolved':
-                rows[name] = decision['observations']
+                rows.update({n: deepcopy(decision['criteria'][n]['observations']) for n in members})
             continue
         root.mkdir(parents=True, exist_ok=True)
-        print(f'[conditioning verifier] auto-review criterion={name} group={group} budgeted=true', flush=True)
+        print(f'[conditioning verifier] auto-review component={members} group={group} budgeted=true', flush=True)
         started = time.monotonic()
-        results, failures = [], []
-        rule = {name: subset[name]}
+        results, failures, evidence_issues = [], [], []
+        abstention_kind = None
+        rule = {name: subset[name] for name in members}
         ledger_root = owner.root.parent if owner.root.name in {'runtime', 'final'} else owner.root
         ledger = ReviewLedger(ledger_root, config, source_hash,
-                              stable_hash([owner.root.name, name, subset[name]]))
+                              [stable_hash([owner.root.name, name, subset[name]]) for name in members])
 
         class Reviewer(ConditioningVideoVerifier):
             response_contract_instructions = REVIEW_SYSTEM
 
+            def _observe_group(self, path, payload, evidence, operation, subset, spans):
+                from evovideo_skill.review_observations import enabled, observe
+                if enabled(subset):
+                    return observe(self, path, payload, evidence, operation, subset, spans)
+                return super()._observe_group(path, payload, evidence, operation, subset, spans)
+
             def validate_response_contract(self, raw, criteria):
                 return validate_checks(raw, criteria)
 
+            def prepare_request_payload(self, payload):
+                payload = deepcopy(payload)
+                from evovideo_skill.review_observations import VERSION as OBSERVATION_PROTOCOL
+                from evovideo_skill.owned_observations import VERSION as OWNED_PROTOCOL
+                if payload.get('output_contract', {}).get('response_protocol') not in {OBSERVATION_PROTOCOL, OWNED_PROTOCOL}:
+                    add_review_contract(payload)
+                    payload['atomic_review'] = {'checks': CHECKS, 'location': 'atomic_checks inside each criterion',
+                        'schema': {'evidence_conditions': {'status': 'sufficient|insufficient|uncertain', 'evidence': 'visual identifiability, visibility, or temporal coverage'},
+                            'predicate': {'status': 'supported|contradicted|unknown', 'evidence': 'requirement truth'},
+                            'predicate.components': [{'source_quote': 'exact description substring, full primary proposition, or complete action requirement from predicate_sources',
+                                'status': 'supported|contradicted|unknown', 'evidence': 'support for this clause'}]},
+                        'instruction': 'Independently assess ALL explicit requirements including conjunctions. '
+                            'Unknown identity or occlusion does not establish a violation. Box-like appearance alone '
+                            'does not establish an object function. Never infer identity from the target. '
+                            'No new numerical distance, object count or action requirement may be invented. '
+                            'Components must cover ALL explicit clauses, including every listed action requirement. '
+                            'All criteria in this component must agree on every shared source fact; '
+                            'judge each from the supplied evidence without copying expected truth. '
+                            'Unknown prerequisites mean unknown judgment. '
+                            'Crops supplement the full image; never infer absence outside a crop. '
+                            'For physical motion judge physics only, not desired narrative.'}
+                return payload
+
             def request(self, prompt, evidence, operation):
-                payload = json.loads(prompt)
-                add_review_contract(payload)
-                payload['atomic_review'] = {'checks': CHECKS, 'location': 'atomic_checks inside each criterion',
-                    'schema': {'each_check': {'status': 'supported|contradicted|unknown', 'evidence': 'visible support or limitation'},
-                        'predicate.components': [{'source_quote': 'exact description substring or full primary proposition from predicate_sources',
-                            'status': 'supported|contradicted|unknown', 'evidence': 'support for this clause'}]},
-                    'instruction': 'Independently assess ALL explicit requirements including conjunctions. '
-                        'Unknown identity or occlusion does not establish a violation. Box-like appearance alone '
-                        'does not establish an object function. Never infer identity from the target. '
-                        'No new numerical distance, object count or action requirement may be invented. '
-                        'Components must cover ALL explicit clauses; unknown prerequisites mean unknown judgment. '
-                        'Crops supplement the full image; never infer absence outside a crop. '
-                        'For physical motion judge physics only, not desired narrative.'}
+                payload = self.prepare_request_payload(json.loads(prompt))
                 # Physical-domain sanitization already happened in _observe_group.
                 timeout = getattr(self, 'prepaid_timeout', None)
                 if timeout is not None:
@@ -411,16 +538,24 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                 write_json(root / (stable_hash(operation) + '.atomic.raw.json'), raw)
                 return raw
 
-        for repeat in range(2):
+        required = config['confirmations']
+        review_models = ([config['secondary_model'] or owner.model] if required == 1 else
+                         [owner.model, config['secondary_model'] or owner.model])
+        for repeat in range(required):
             p = {**owner.profile, 'auto_review': {**config, 'enabled': False}, 'max_attempts': 1,
                  'max_width': max(owner.profile['max_width'], config['max_width']),
                  'fps': max(owner.profile['fps'], config['fps'])}
-            if repeat and config['secondary_model']:
-                p['model'] = config['secondary_model']
+            p['model'] = review_models[repeat]
             reviewer = Reviewer(p, owner.root)
+            reviewer.observation_protocol = owner.observation_protocol
             parsed_cache = root / f'confirmation-{repeat}.parsed.json'
             if parsed_cache.exists():
-                results.append(json.loads(parsed_cache.read_text())[name])
+                cached = json.loads(parsed_cache.read_text())
+                results.append(cached)
+                if any(uncertain([value], owner.profile['disagreement_threshold']) for value in cached.values()):
+                    abstention_kind = 'evidence_unresolved'
+                    failures.append('cached valid confirmation contains unresolved evidence; no further confirmation requested')
+                    break
                 continue
             try:
                 ticket = uuid.uuid4().hex
@@ -436,16 +571,31 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                 parsed = reviewer._observe_group(root / f'confirmation-{repeat}.json', payload, media,
                     f'{digest[:12]}/review/{key}/{repeat}', rule, manifest['windows'])
                 write_json(parsed_cache, parsed)
-                results.append(parsed[name])
+                results.append(parsed)
+                if any(uncertain([value], owner.profile['disagreement_threshold']) for value in parsed.values()):
+                    abstention_kind = 'evidence_unresolved'
+                    failures.append('first valid confirmation contains unresolved evidence; no further confirmation requested')
+                    break
+            except ReviewEvidenceConflict as exc:
+                evidence_issues = exc.issues
+                abstention_kind = 'evidence_conflict'
+                failures.append(str(exc))
+                write_json(root / 'evidence-conflict.json', {'issues': exc.issues,
+                    'additional_format_issues': exc.format_issues,
+                    'policy': 'retain_initial_observations_no_score_no_format_retry'})
+                break
             except ReviewBudgetExhausted as exc:
+                abstention_kind = 'budget_exhausted'
                 failures.append(str(exc))
                 break
             except VerifierFormatError as exc:
+                abstention_kind = 'invalid_response'
                 failures.append(str(exc))
                 break
             except (ValueError, VideoApiError) as exc:
                 if str(exc).startswith(('verifier media exceeds fixed size budget',
                         'verifier request exceeds fixed byte budget', 'verifier image count exceeds')):
+                    abstention_kind = 'request_budget_exceeded'
                     failures.append(str(exc))
                     break
                 raise
@@ -453,16 +603,43 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                 if getattr(reviewer, 'prepaid_ticket', None) is not None:
                     ledger.settle(reviewer.prepaid_ticket, time.monotonic() - reviewer.acquisition_started)
                     reviewer.prepaid_ticket = None
-        resolved = len(results) == 2 and not uncertain(results, owner.profile['disagreement_threshold'])
-        decision = {'protocol': VERSION, 'criterion': name, 'status': 'resolved' if resolved else 'abstained',
-            'initial_observations': initial, 'observations': results, 'errors': failures,
-            'wall_seconds': time.monotonic() - started,
-            'models': [owner.model, config['secondary_model'] or owner.model],
-            'independent_model': bool(config['secondary_model'] and config['secondary_model'] != owner.model),
-            'qualification': 'Two blind reviews of enhanced source evidence; agreement is not proof of correctness.'}
+        confirmations = {name: [result[name] for result in results] for name in members}
+        conflicts = fact_conflicts(confirmations)
+        unresolved = [name for name, values in confirmations.items()
+                      if uncertain(values, owner.profile['disagreement_threshold'])]
+        resolved = len(results) == required and not unresolved and not conflicts
+        reasons = list(failures)
+        if not resolved and abstention_kind is None:
+            abstention_kind = 'shared_fact_conflict' if conflicts else 'confirmation_disagreement'
+        if len(results) < required and not failures:
+            reasons.append(f'fewer than {required} valid review assessments')
+        if unresolved:
+            reasons.append('component confirmations remain unknown or disputed: ' + ', '.join(unresolved))
+        if conflicts:
+            reasons.append('shared facts conflict across component confirmations: ' + ', '.join(sorted(conflicts)))
+        entries = {name: {'protocol': VERSION, 'criterion': name, 'component': members,
+            'status': 'resolved' if resolved else 'abstained',
+            'initial_observations': initial[name], 'observations': confirmations[name], 'errors': reasons,
+            'abstention_kind': abstention_kind, 'evidence_conflicts': evidence_issues,
+            'models': review_models[:len(results)],
+            'confirmations_required': required, 'confirmation_count': len(results),
+            'agreement_checked': len(results) > 1,
+            'independent_model': len(set(review_models[:len(results)])) > 1,
+            'different_model_from_initial': any(m != owner.model for m in review_models[:len(results)]),
+            'review_scope': 'shared_fact_component',
+            'qualification': ('Single enhanced-evidence assessment; repeat agreement was not measured. '
+                              'This is not independent visual truth.' if required == 1 else
+                              'Two blind component reviews; joint consistency is not independent visual truth.')}
+            for name in members}
+        decision = {'protocol': VERSION, 'component': members, 'criteria': entries,
+            'status': 'resolved' if resolved else 'abstained', 'errors': reasons,
+            'shared_fact_conflicts': conflicts, 'abstention_kind': abstention_kind,
+            'evidence_conflicts': evidence_issues, 'wall_seconds': time.monotonic() - started}
+        # One durable component decision is the commit record. Never replay a subset.
         write_json(saved, decision)
-        print(f"[conditioning verifier] auto-review criterion={name} status={decision['status']} errors={json.dumps(failures, ensure_ascii=False)} audit={saved}", flush=True)
-        audit[name] = decision
+        print(f"[conditioning verifier] auto-review component={members} status={decision['status']} "
+              f"errors={json.dumps(reasons)} audit={saved}", flush=True)
+        audit.update(entries)
         if resolved:
-            rows[name] = results
+            rows.update(deepcopy(confirmations))
     return audit

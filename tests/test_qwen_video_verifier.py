@@ -72,6 +72,38 @@ class QwenVideoTests(unittest.TestCase):
             "type": "video_url", "video_url": {"url": "data:video/mp4;base64,AA=="}, "fps": 4})
         self.assertNotIn("test-only", (judge.root / "calls.jsonl").read_text())
 
+    def test_json_mode_precondition_for_shared_observations_and_review(self):
+        from evovideo_skill.review_observations import VERSION, SYSTEM
+        judge = QwenGraphVideoVerifier(self.settings).primary
+        evidence = [("Candidate frame", {"mime": "image/png", "data": "AA=="})] * 27
+        shared = {"output_contract": {"response_protocol": VERSION},
+                  "evidence_manifest": {"evaluation_view": {
+                      "kind": "fixed_window_clip", "input_representation": "timestamped_images"}}}
+        # Simulate the provider's JSON-mode precondition on actual wire messages,
+        # not JSON serialization (which by itself does not include the word json).
+        def provider(request, **kwargs):
+            body = json.loads(request.data)
+            self.assertEqual(body["response_format"], {"type": "json_object"})
+            system = body["messages"][0]["content"]
+            self.assertIn("json", system.lower())
+            prompt = json.loads(body["messages"][1]["content"][0]["text"])
+            if prompt.get("output_contract", {}).get("response_protocol") == VERSION:
+                self.assertTrue(system.startswith(SYSTEM))
+                self.assertNotIn("Return a criteria object", system)
+            images = [x for x in body["messages"][1]["content"] if x["type"] == "image_url"]
+            self.assertEqual(len(images), 27)
+            return io.BytesIO(json.dumps({"choices": [{"message": {
+                "content": '{"facts": {}, "judgments": {}}'}}]}).encode())
+        for model in ("qwen3.8-max-0902", "qwen3-vl-plus"):
+            judge.profile["model"] = model
+            for kind, prompt in (("ordinary", {}), ("shared", shared), ("review", shared)):
+                with self.subTest(model=model, kind=kind), \
+                        patch.object(judge, "response_contract_instructions", "Review the same evidence."), \
+                        patch("urllib.request.urlopen", side_effect=provider) as call:
+                    self.assertEqual(judge.request(json.dumps(prompt), evidence, model + kind),
+                                     {"facts": {}, "judgments": {}})
+                    self.assertEqual(call.call_count, 1)
+
     def test_missing_evidence_review_not_score_shopping(self):
         judge = QwenGraphVideoVerifier(self.settings)
         task = VideoTask("t", "Move")

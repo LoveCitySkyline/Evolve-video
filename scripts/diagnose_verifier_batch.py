@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""Summarize a complete saved verifier batch offline, without media or credentials."""
+import argparse
+from collections import Counter
+import json
+from pathlib import Path
+
+
+def diagnose(root):
+    root = Path(root).resolve()
+    unique, records, failures = {}, [], []
+    for path in sorted((root / 'observations').glob('*.json')):
+        row = json.loads(path.read_text())
+        evaluation = row.get('evaluation', {})
+        meta = evaluation.get('verification_metadata', {})
+        source = row.get('source', {})
+        record = {'evaluation_id': source.get('evaluation_id', path.stem),
+            'task_id': source.get('task_id'), 'seed': source.get('seed'),
+            'status': evaluation.get('evaluation_status'), 'acceptance': row.get('acceptance', {}).get('status'),
+            'judgment_path': meta.get('judgment_path')}
+        records.append(record)
+        key = meta.get('judgment_path') or str(path)
+        if key in unique:
+            unique[key]['evaluation_ids'].append(record['evaluation_id'])
+            continue
+        problems = sorted(set(meta.get('unobserved_criteria', [])) | set(meta.get('disagreement_criteria', [])))
+        unique[key] = {**record, 'evaluation_ids': [record['evaluation_id']],
+            'protocol': meta.get('verifier_protocol'),
+            'processing_summary': meta.get('processing_summary'),
+            'review_failures': meta.get('processing_diagnostics', {}).get('review_failure_components', []),
+            'fact_conflicts': meta.get('fact_consistency', {}).get('unresolved', {}),
+            'problems': {name: evaluation.get('criterion_observations', {}).get(name, []) for name in problems}}
+    # Include every failed automatic-review component once, and both wire attempts.
+    # Only responses/format errors are read. Requests with embedded media are excluded.
+    for path in sorted((root / 'verifier').glob('*/judgments/*/auto_review/*/decision.json')):
+        decision = json.loads(path.read_text())
+        if decision.get('status') != 'abstained':
+            continue
+        entries = list(decision.get('criteria', {}).values())
+        first = entries[0] if entries else {}
+        response_files = sorted(path.parent.glob('confirmation-*.raw.json'))
+        failures.append({'decision': str(path.relative_to(root)),
+            'component': first.get('component', []), 'reason': first.get('abstention_kind'),
+            'errors': first.get('errors', []),
+            'responses': [{'file': str(p.relative_to(root)), 'response': json.loads(p.read_text())}
+                          for p in response_files]})
+    summary_path = root / 'summary.json'
+    summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
+    return {'purpose': 'offline_batch_diagnostics_not_visual_validation', 'model_calls': 0,
+        'source_run': str(root), 'saved_summary_complete': summary.get('complete'),
+        'saved_records': len(records), 'unique_judgments': len(unique),
+        'unique_status_counts': dict(Counter(r['status'] for r in unique.values())),
+        'per_task': {task: dict(Counter(r['status'] for r in unique.values() if r['task_id'] == task))
+                     for task in sorted({r['task_id'] for r in records if r['task_id']})},
+        'failed_component_counts': dict(Counter(r['reason'] for r in failures)),
+        'judgments': list(unique.values()), 'failed_components': failures,
+        'qualification': 'Model prose is unverified evidence, not visual truth. Shared judgment paths are counted once. '
+            'No videos, prompts, keys, or base64 request bodies are included. No saved scores were changed.'}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--run-dir', type=Path, required=True)
+    args = parser.parse_args()
+    if not args.run_dir.is_dir():
+        parser.error('run directory does not exist')
+    print(json.dumps(diagnose(args.run_dir), ensure_ascii=False, indent=2))
+
+
+if __name__ == '__main__':
+    main()

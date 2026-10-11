@@ -31,6 +31,22 @@ def atomic(outcome='violated', prerequisite='supported'):
 
 
 class ReviewUnitTests(unittest.TestCase):
+    def test_confirmation_count_and_story350_single_pass_profiles(self):
+        self.assertEqual(options()['confirmations'], 2)
+        for bad in (0, 3, True, 1.5, '1'):
+            with self.assertRaisesRegex(ValueError, 'confirmations'):
+                options({'confirmations': bad})
+        root = Path(__file__).resolve().parents[1]
+        for path in (root / 'configs').glob('h3_story350_*.json'):
+            profiles = resolve_profiles(json.loads(path.read_text()), RuntimeSettings(), require_keys=False)
+            for phase in ('runtime', 'final'):
+                profile = profiles[phase]
+                self.assertEqual(profile['repeats'], 1)
+                self.assertEqual(profile['auto_review']['confirmations'], 1)
+                self.assertEqual(profile['auto_review']['max_calls_per_criterion'], 2)
+                self.assertEqual(profile['auto_review']['max_calls_per_video'], 8)
+                self.assertEqual(profile['max_request_bytes'], 48000000)
+
     def test_host_primary_proposition_quote_is_valid_but_wrong_fact_is_not(self):
         from evovideo_skill.verifier_review import add_review_contract
         records = json.loads((Path(__file__).parent / 'fixtures/verifier_v221_nested_facts.json').read_text())
@@ -339,6 +355,69 @@ class ReviewMediaTests(unittest.TestCase):
         self.folder = self.owner.root / 'judgments/digest'
         self.folder.mkdir(parents=True)
 
+    def test_single_review_resolves_once_without_claiming_agreement_and_separates_cache(self):
+        self.owner.profile['auto_review'].update(confirmations=1, max_calls_per_criterion=4)
+        rows = {'x': [{'status': 'unobserved', 'score': None}]}
+        with patch.object(ConditioningVideoVerifier, 'request', return_value={'criteria': {'x': atomic()}}) as call:
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset, rows,
+                                 self.folder, 1, 'digest')
+        self.assertEqual(call.call_count, 1)
+        self.assertEqual(len(rows['x']), 1)
+        self.assertEqual(rows['x'][0]['score'], 0)
+        self.assertEqual(audit['x']['status'], 'resolved')
+        self.assertEqual(audit['x']['confirmation_count'], 1)
+        self.assertFalse(audit['x']['agreement_checked'])
+        self.assertFalse(audit['x']['independent_model'])
+        with patch.object(ConditioningVideoVerifier, 'request', side_effect=AssertionError('cached')):
+            review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                         {'x': [{'status': 'unobserved'}]}, self.folder, 1, 'digest')
+        # A different confirmation policy cannot reuse a single-review decision.
+        self.owner.profile['auto_review']['confirmations'] = 2
+        with patch.object(ConditioningVideoVerifier, 'request', return_value={'criteria': {'x': atomic()}}) as call:
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                                 {'x': [{'status': 'unobserved'}]}, self.folder, 1, 'digest')
+        self.assertEqual(call.call_count, 2)
+        self.assertTrue(audit['x']['agreement_checked'])
+
+    def test_single_review_uses_secondary_model_for_the_only_assessment(self):
+        self.owner.profile['auto_review'].update(confirmations=1, secondary_model='alternate-model')
+        models = []
+        def request(instance, *args):
+            models.append(instance.model)
+            return {'criteria': {'x': atomic()}}
+        with patch.object(ConditioningVideoVerifier, 'request', new=request):
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                {'x': [{'status': 'unobserved'}]}, self.folder, 1, 'digest')
+        self.assertEqual(models, ['alternate-model'])
+        self.assertTrue(audit['x']['different_model_from_initial'])
+        self.assertFalse(audit['x']['independent_model'])
+
+    def test_single_review_unknown_abstains_without_extra_confirmation(self):
+        self.owner.profile['auto_review'].update(confirmations=1, max_calls_per_criterion=2)
+        rows = {'x': [{'status': 'unobserved', 'score': None}]}
+        before = deepcopy(rows)
+        with patch.object(ConditioningVideoVerifier, 'request', return_value={
+                'criteria': {'x': atomic('unknown', 'unknown')}}) as call:
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                                 rows, self.folder, 1, 'digest')
+        self.assertEqual(call.call_count, 1)
+        self.assertEqual(audit['x']['status'], 'abstained')
+        self.assertEqual(rows, before)
+
+    def test_single_review_allows_one_format_correction_without_second_confirmation(self):
+        self.owner.profile['auto_review'].update(confirmations=1, max_calls_per_criterion=2)
+        missing = atomic()
+        missing.pop('atomic_checks')
+        rows = {'x': [{'status': 'unobserved', 'score': None}]}
+        with patch.object(ConditioningVideoVerifier, 'request', side_effect=[
+                {'criteria': {'x': missing}}, {'criteria': {'x': atomic()}}]) as call:
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                                 rows, self.folder, 1, 'digest')
+        self.assertEqual(call.call_count, 2)
+        self.assertEqual(audit['x']['status'], 'resolved')
+        self.assertEqual(audit['x']['confirmation_count'], 1)
+        self.assertEqual(json.loads((self.owner.root / 'auto_review_budget.json').read_text())['calls'], 2)
+
     def test_enhanced_evidence_and_two_blind_agreeing_calls_resolve(self):
         calls = []
         def request(instance, prompt, evidence, operation):
@@ -428,7 +507,7 @@ class ReviewMediaTests(unittest.TestCase):
                         {'referents', 'visibility', 'predicate', 'temporal_scope'})
                     calls.append((payload, evidence, operation))
                     row = atomic() if scoped else {**observed(.25), 'atomic_checks': atomic()['atomic_checks']}
-                    if 'format-correction' not in operation:
+                    if payload.get('format_feedback', {}).get('mode') != 'fresh_evidence_reassessment':
                         row.pop('atomic_checks')
                     return {'criteria': {'x': row}}
                 rows = {'x': [{'status': 'unobserved', 'score': None}]}
@@ -438,12 +517,17 @@ class ReviewMediaTests(unittest.TestCase):
                 self.assertEqual(len(calls), 4)  # each of two blind reads needs one format correction
                 for first, correction in ((calls[0], calls[1]), (calls[2], calls[3])):
                     self.assertNotIn('format_feedback', first[0])
-                    self.assertIn('review requires all atomic_checks', str(correction[0]['format_feedback']))
+                    self.assertEqual(correction[0]['format_feedback']['mode'], 'fresh_evidence_reassessment')
+                    self.assertNotIn('previous_response', correction[0]['format_feedback'])
                     self.assertEqual(first[1], correction[1])
                 ledger = json.loads((owner.root / 'auto_review_budget.json').read_text())
                 self.assertEqual(ledger['calls'], 4)
                 video = next(iter(ledger['videos'].values()))
                 self.assertTrue(all(r['status'] == 'settled' for r in video['reservations'].values()))
+                for p in folder.glob('auto_review/*/confirmation-*.request-*.json'):
+                    saved = json.loads(p.read_text())
+                    self.assertIn('atomic_review', saved)
+                    self.assertIn('atomic_checks', saved['output_contract']['fields']['x']['required'])
                 for p in folder.glob('auto_review/*/confirmation-*.raw.json'):
                     self.assertEqual('atomic_checks' in json.loads(p.read_text())['criteria']['x'],
                                      'correction-1' in p.name)
@@ -540,6 +624,37 @@ class ReviewMediaTests(unittest.TestCase):
         self.assertEqual(len(result['criterion_observations']['x']), 1)
         audits = result['verification_metadata']['auto_review']
         self.assertEqual(sum(a['status'] == 'resolved' for g in audits.values() for a in g.values()), 1)
+
+    def test_full_evaluation_single_pass_reviews_only_unknown_and_caches_result(self):
+        from test_conditioning_verifier import observed
+        self.owner.profile['auto_review'].update(confirmations=1, max_calls_per_criterion=2)
+        calls = []
+        def request(instance, prompt, evidence, operation):
+            payload = json.loads(prompt)
+            calls.append((operation, payload))
+            if 'atomic_review' in payload:
+                self.assertEqual(list(payload['criteria']), ['x'])
+                return {'criteria': {'x': atomic()}}
+            return {'criteria': {name: ({'confidence': .1, 'evidence': 'Object ambiguous.',
+                'assessment': {'outcome': 'unknown'}, 'evidence_refs': []} if name == 'x' else observed(.8))
+                for name in payload['criteria']}}
+        with patch.object(ConditioningVideoVerifier, 'request', new=request):
+            result = self.owner.evaluate(self.task, self.artifact)
+        initial = [op for op, payload in calls if 'atomic_review' not in payload]
+        reviews = [op for op, payload in calls if 'atomic_review' in payload]
+        self.assertTrue(initial)
+        self.assertTrue(all(op.endswith('/0') for op in initial))
+        self.assertEqual(len(reviews), 1)
+        self.assertEqual(result['criterion_scores']['x'], 0)
+        self.assertEqual(result['identity_consistency_score'], .8)
+        self.assertEqual(len(result['criterion_observations']['x']), 1)
+        policy = result['verification_metadata']['sampling_policy']
+        self.assertEqual(policy['initial_repeats'], 1)
+        self.assertFalse(policy['initial_repeat_agreement_measured'])
+        self.assertEqual(policy['review_confirmations'], 1)
+        with patch.object(ConditioningVideoVerifier, 'request', side_effect=AssertionError('cached')):
+            cached = self.owner.evaluate(self.task, self.artifact)
+        self.assertEqual(result, cached)
 
     def test_source_mutation_is_not_an_abstention(self):
         from evovideo_skill.conditioning_verifier import VerifierEvidenceError

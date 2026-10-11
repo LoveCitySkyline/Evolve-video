@@ -73,6 +73,12 @@ def summarize(results, selected):
             blocked += gate.get('status') == 'blocked'
     labeled = [case['visual_regression'] for case in results if case.get('visual_regression', {}).get('labeled')]
     report = {'planned_cases': len(selected), 'completed_cases': len(results), 'model_calls': calls,
+        'execution_status': 'completed' if len(results) == len(selected) and not any(
+            r.get('failure_category') in {'transport_or_provider', 'local_evidence', 'internal_error'}
+            for r in results) else 'stopped_system_error',
+        'models': sorted({r['summary']['model'] for r in results if r.get('summary', {}).get('model')}),
+        'invalid_response_judgments': [{'case': r.get('case'), 'criterion': name}
+            for r in results for name in r.get('summary', {}).get('invalid_response_criteria', [])],
         'format_valid_cases': sum(r.get('summary', {}).get('format_valid') is True for r in results),
         'identity_dependent_judgments': required, 'bound_identity_judgments': observed,
         'withheld_identity_judgments': blocked,

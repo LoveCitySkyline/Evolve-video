@@ -139,6 +139,23 @@ class GroupRecheckTests(unittest.TestCase):
             self.assertEqual(summary['auto_review_status'], 'abstained')
             self.assertEqual(summary['confirmation_count'], 0)
 
+    def test_auto_review_probe_includes_connected_consumers_but_not_unrelated_metrics(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source, _, _, args = self.fixture(root)
+            path = source / 'group-002-repeat-0.request-0.json'
+            request = json.loads(path.read_text())
+            shared = {'facts': {'s2:post:token.location': {}}, 'primary_fact': 's2:post:token.location'}
+            request['criteria']['c']['fact_contract'] = shared
+            request['criteria']['dependent'] = {'description': 'related state', 'fact_contract': shared}
+            request['criteria']['geometry'] = {'description': 'unrelated geometry'}
+            path.write_text(json.dumps(request))
+            with patch('builtins.print'):
+                plan = script.main(args + ['--auto-review-criterion', 'c', '--dry-run'])
+            self.assertEqual(plan['component'], ['c', 'dependent'])
+            self.assertEqual(set(plan['criteria']), {'c', 'dependent'})
+            self.assertEqual(plan['maximum_model_calls'], 4)
+
     def test_only_selected_group_is_evaluated_once_and_unknown_stays_unknown(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -155,6 +172,23 @@ class GroupRecheckTests(unittest.TestCase):
             self.assertTrue(summary['format_valid'])
             self.assertIsNone(summary['criteria']['c']['score'])
             self.assertEqual((root / 'old/recheck_protocol.json').read_bytes(), before)
+
+    def test_exhausted_response_is_reported_without_crashing_or_faking_format_success(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _, _, _, args = self.fixture(root)
+            failure = script.VerifierFormatError('invalid after bounded reassessment')
+            with patch.dict(os.environ, {'GROUP_TEST_KEY': 'fixture'}), patch('builtins.print'), patch.object(
+                    script.ConditioningVideoVerifier, 'evidence', return_value=([], {'windows': [{'segment_id': 0}]})), patch.object(
+                    script.ConditioningVideoVerifier, 'group_evidence', return_value=([], {})), patch.object(
+                    script.ConditioningVideoVerifier, '_observe_group', side_effect=failure):
+                summary = script.main(args)
+            self.assertFalse(summary['format_valid'])
+            self.assertEqual(summary['execution_status'], 'completed_with_unresolved')
+            self.assertEqual(summary['invalid_response_criteria'], ['c'])
+            self.assertIsNone(summary['criteria']['c']['score'])
+            self.assertTrue((root/'new/unresolved.json').exists())
+            self.assertFalse((root/'new/stopped.json').exists())
 
 
 if __name__ == '__main__':

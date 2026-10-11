@@ -126,7 +126,8 @@ class IdentityTests(unittest.TestCase):
         public, rules, _, _ = fixture()
         verifier = ConditioningVideoVerifier(profile(), root)
         with patch.object(verifier, 'request', side_effect=responses) as request:
-            result = verifier._observe_group(Path(root)/'group.json', {'original_task': public,
+            # Replay historical per-criterion wire via its retained adapter.
+            result = verifier._observe_scoped(Path(root)/'group.json', {'original_task': public,
                 'criteria': rules, 'evidence_manifest': citation_manifest()}, [], 'identity-test', rules, SPANS)
         return result, request
 

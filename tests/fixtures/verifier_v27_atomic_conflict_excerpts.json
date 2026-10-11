@@ -1,0 +1,332 @@
+{
+  "purpose": "saved_user_diagnostic_excerpts_not_complete_model_responses_or_visual_truth",
+  "note": "Null fields may result from dict.get in the extraction script. Fact observations and citations were not included.",
+  "responses": {
+    "confirmation-0.raw.json": {
+      "action_alignment_score": {
+        "status": "unobserved",
+        "score": null,
+        "assessment": null,
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "Actor B (short gray hair, rust vest) and actor A (auburn hair, navy apron) are clearly visible and correctly identified throughout the sequence."
+          },
+          "visibility": {
+            "status": "contradicted",
+            "evidence": "The required action involves a token and a till, neither of which is visible at any point in the provided samples. The scene shows only B holding a tray and A observing, with no interaction with a till."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The action 'B tips the token into the open till' does not occur. No token is visible, and no till is present or opened. The actors remain in a static conversational pose.",
+            "components": [
+              {
+                "source_quote": "B tips the token into the open till",
+                "status": "contradicted",
+                "evidence": "No token is visible; no till is present or opened. B holds a tray but does not perform the tipping action."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "contradicted",
+            "evidence": "The entire 6-second window (12.0-18.0s) was sampled with 48 frames, and the required action is absent throughout. The state remains unchanged from pre to post."
+          }
+        },
+        "evidence": "The required action 'B tips the token into the open till' is not visible in any sample. The token is never shown, and no till is opened or interacted with. The scene remains static with B holding a tray and A observing."
+      },
+      "story.s2.event.market_change_2": {
+        "status": null,
+        "score": null,
+        "assessment": {
+          "outcome": "absent",
+          "matched": [],
+          "unmet": [
+            "B tips the token into the open till"
+          ]
+        },
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "Actor B is consistently identified by short gray hair and a rust vest. Actor A is identified by tied-back auburn hair and a navy apron."
+          },
+          "visibility": {
+            "status": "contradicted",
+            "evidence": "The predicate requires a token and a till, both of which are absent from all frames. The action cannot be observed because the necessary objects are not present."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The action 'B tips the token into the open till' is not performed. The scene remains static with B holding a tray and A observing, with no interaction with a till.",
+            "components": [
+              {
+                "source_quote": "B tips the token into the open till",
+                "status": "contradicted",
+                "evidence": "No token is visible; no till is present or opened. B holds a tray but does not perform the tipping action."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "contradicted",
+            "evidence": "The entire 6-second window was sampled, and the required action is absent throughout. The state remains unchanged from pre to post."
+          }
+        },
+        "evidence": "The event 'B tips the token into the open till' is not observed. The token is never visible, and there is no open till. The scene shows B holding a tray while interacting with A, but no tipping action occurs."
+      },
+      "story.s2.post.token.location": {
+        "status": null,
+        "score": null,
+        "assessment": null,
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "The token is a defined object in the story, but its physical presence is not confirmed in the visual evidence."
+          },
+          "visibility": {
+            "status": "contradicted",
+            "evidence": "The token is not visible in any frame, making its location unverifiable. The required state 'till' cannot be confirmed."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The proposition 'token.location equals 'till'' is not supported by any visual evidence. The token is not visible, and no till is present.",
+            "components": [
+              {
+                "source_quote": "token.location equals 'till'",
+                "status": "contradicted",
+                "evidence": "No token is visible in the last boundary frame or any sample. The till is not present, so the location cannot be 'till'."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "contradicted",
+            "evidence": "The post-state is evaluated at the last boundary (17.958s), where the token is not visible and no till is present."
+          }
+        },
+        "evidence": "The token is not visible in the last boundary frame or any sample. The till is not present, so the token's location cannot be confirmed as 'till'."
+      },
+      "story.s2.pre.token.location": {
+        "status": null,
+        "score": null,
+        "assessment": null,
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "The token is a defined object in the story, but its physical presence is not confirmed in the visual evidence."
+          },
+          "visibility": {
+            "status": "contradicted",
+            "evidence": "The token is not visible in any frame, making its location unverifiable. The required state 'tray beside till' cannot be confirmed."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The proposition 'token.location equals 'tray beside till'' is not supported by any visual evidence. The token is not visible, and the tray's position relative to a till is unclear.",
+            "components": [
+              {
+                "source_quote": "token.location equals 'tray beside till'",
+                "status": "contradicted",
+                "evidence": "No token is visible in the first boundary frame or any sample. The tray is held by B, but no till is visible, so the location cannot be 'tray beside till'."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "contradicted",
+            "evidence": "The pre-state is evaluated at the first boundary (12.0s), where the token is not visible and no till is present."
+          }
+        },
+        "evidence": "The token is not visible in the first boundary frame or any early samples. The tray is held by B, but no token is seen on it, so the location cannot be confirmed as 'tray beside till'."
+      },
+      "story.s2.state_flow": {
+        "status": "unobserved",
+        "score": 0.0,
+        "assessment": null,
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "Actors A and B are correctly identified by their appearance throughout the sequence."
+          },
+          "visibility": {
+            "status": "contradicted",
+            "evidence": "The token and till are not visible, making state verification impossible. The required state transitions cannot be observed."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The state flow requirement is not met. The token's location is never confirmed, and the required action is absent.",
+            "components": [
+              {
+                "source_quote": "Shot 2, 12..18s: State continuity within this shot and across its entry boundary. Original setup (historical context, not a reset target): \"A customer holds one large brass token at B's stall.\". Earlier required events (do not replay): ['A places the token in a shallow payment tray', 'B slides the tray toward the till']. Current events: ['B tips the token into the open till']. Track the same relevant objects, their explicitly established contents, custody and physical condition. Preserve an established property unless a declared action changes it; respect legitimate transfers, transformations, additions and removals. A carried container must not silently refill or empty, a repaired object must not reset, and occlusion does not authorize an identity swap. Check only properties supported by the quoted story, never invent a count, hidden content, exact distance or grip. Visible contradictions fail even if the final location is correct. A gap between samples does not prove disappearance or spontaneous creation; unresolved evidence stays unknown. An earlier failed action does not prove a later action succeeded: judge the candidate's visible state against the required narrative, and explain the mismatch locally.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+                "status": "contradicted",
+                "evidence": "The required action 'B tips the token into the open till' is absent, and the token's location is never verified. The state does not progress as required."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "contradicted",
+            "evidence": "The entire window was sampled, and the required state transitions are absent. The scene remains static with no progression."
+          }
+        },
+        "evidence": "State continuity fails because the required action 'B tips the token into the open till' is absent, and the token's location is never verified as 'tray beside till' at the pre-boundary or 'till' at the post-boundary. The scene remains static with no progression of the narrative state."
+      }
+    },
+    "confirmation-0.correction-1.raw.json": {
+      "action_alignment_score": {
+        "status": "unobserved",
+        "score": null,
+        "assessment": null,
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "Actor B (short gray hair, rust vest) and actor A (auburn hair, navy apron) are clearly visible and match the source appearance definitions."
+          },
+          "visibility": {
+            "status": "contradicted",
+            "evidence": "The required objects (token, tray, till) and the action are not visible. A large decorative brass plate is present instead of a token, and no till is shown or opened."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The action 'B tips the token into the open till' does not occur. B holds a plate and interacts with A, but no token is present, no till is open, and no tipping motion is performed.",
+            "components": [
+              {
+                "source_quote": "B tips the token into the open till",
+                "status": "contradicted",
+                "evidence": "No token is visible; B holds a decorative plate. No till is visible or open. The motion described (tipping) is not performed."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "contradicted",
+            "evidence": "The entire 6-second window (12.0-18.0s) shows only a conversation and inspection of a plate, with no evidence of the required event at any point."
+          }
+        },
+        "evidence": "The required action 'B tips the token into the open till' is not visible in any sample. The token is never shown, and no till is opened or interacted with. The scene shows B holding a decorative brass plate, not a token, and no transfer occurs."
+      },
+      "story.s2.event.market_change_2": {
+        "status": null,
+        "score": null,
+        "assessment": {
+          "outcome": "absent",
+          "matched": [],
+          "unmet": [
+            "B tips the token into the open till"
+          ]
+        },
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "Actor B is correctly identified by his short gray hair and rust vest, matching the source definition."
+          },
+          "visibility": {
+            "status": "contradicted",
+            "evidence": "The required objects (token, till) and the action are not visible. A decorative plate is present instead of a token."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The action 'B tips the token into the open till' is not performed. B holds a plate and talks to A, but no token is transferred to a till.",
+            "components": [
+              {
+                "source_quote": "B tips the token into the open till",
+                "status": "contradicted",
+                "evidence": "No token is visible. No till is visible or open. The motion of tipping is not performed."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "contradicted",
+            "evidence": "The entire 6-second window shows no evidence of the required event. The scene is static with B holding a plate."
+          }
+        },
+        "evidence": "The event 'B tips the token into the open till' is completely absent. The token is never shown, and the till is not visible or opened. B is seen holding a decorative brass plate throughout the sequence, interacting with A, but no transfer to a till occurs."
+      },
+      "story.s2.post.token.location": {
+        "status": null,
+        "score": null,
+        "assessment": null,
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "The token is a required referent but is not visible; however, the referent definition is clear from the task."
+          },
+          "visibility": {
+            "status": "unknown",
+            "evidence": "The token and the till are not visible in the post-boundary frame, making the state unverifiable."
+          },
+          "predicate": {
+            "status": "unknown",
+            "evidence": "The proposition 'token.location equals 'till'' cannot be assessed because the token and till are not visible.",
+            "components": [
+              {
+                "source_quote": "token.location equals 'till'",
+                "status": "unknown",
+                "evidence": "The token's location is not visible; the till is not shown."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "unknown",
+            "evidence": "The post-boundary frame (17.958s) does not show the token or till, so the required state cannot be confirmed."
+          }
+        },
+        "evidence": "The post-condition 'token.location equals 'till'' cannot be verified. The token is never visible in any frame, and the till is not shown. The last boundary frame shows B holding a decorative plate, not a token in a till."
+      },
+      "story.s2.pre.token.location": {
+        "status": null,
+        "score": null,
+        "assessment": null,
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "The token is a defined referent, but its physical presence is not visible."
+          },
+          "visibility": {
+            "status": "unknown",
+            "evidence": "The token, tray, and till are not visible in the pre-boundary frame, making the state unverifiable."
+          },
+          "predicate": {
+            "status": "unknown",
+            "evidence": "The proposition 'token.location equals 'tray beside till'' cannot be assessed due to lack of visibility of the required objects.",
+            "components": [
+              {
+                "source_quote": "token.location equals 'tray beside till'",
+                "status": "unknown",
+                "evidence": "The token, tray, and till are not visible in the pre-boundary frame."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "unknown",
+            "evidence": "The pre-boundary frame (12.0s) does not show the token, tray, or till, so the required state cannot be confirmed."
+          }
+        },
+        "evidence": "The pre-condition 'token.location equals 'tray beside till'' is not supported. The first boundary frame shows B holding a decorative brass plate, not a token. The tray and till are not visible, so the pre-state cannot be verified."
+      },
+      "story.s2.state_flow": {
+        "status": "unobserved",
+        "score": null,
+        "assessment": null,
+        "atomic_checks": {
+          "referents": {
+            "status": "supported",
+            "evidence": "Actors A and B are correctly identified by their appearance."
+          },
+          "visibility": {
+            "status": "contradicted",
+            "evidence": "The required objects (token, tray, till) are not visible, and the action is absent, contradicting the state flow requirements."
+          },
+          "predicate": {
+            "status": "contradicted",
+            "evidence": "The state flow proposition is contradicted because the required objects and actions are missing, and a different object (plate) is present.",
+            "components": [
+              {
+                "source_quote": "Shot 2, 12..18s: State continuity within this shot and across its entry boundary. Original setup (historical context, not a reset target): \"A customer holds one large brass token at B's stall.\". Earlier required events (do not replay): ['A places the token in a shallow payment tray', 'B slides the tray toward the till']. Current events: ['B tips the token into the open till']. Track the same relevant objects, their explicitly established contents, custody and physical condition. Preserve an established property unless a declared action changes it; respect legitimate transfers, transformations, additions and removals. A carried container must not silently refill or empty, a repaired object must not reset, and occlusion does not authorize an identity swap. Check only properties supported by the quoted story, never invent a count, hidden content, exact distance or grip. Visible contradictions fail even if the final location is correct. A gap between samples does not prove disappearance or spontaneous creation; unresolved evidence stays unknown. An earlier failed action does not prove a later action succeeded: judge the candidate's visible state against the required narrative, and explain the mismatch locally.. Judge visible evidence in this shot only. Pre is its beginning, post its end; an invariant must hold throughout. Occlusion is unknown, not proof.",
+                "status": "contradicted",
+                "evidence": "The required objects (token, tray, till) are absent. B holds a decorative plate, which contradicts the narrative state."
+              }
+            ]
+          },
+          "temporal_scope": {
+            "status": "contradicted",
+            "evidence": "The entire window (12.0-18.0s) shows no evidence of the required state flow; the scene is inconsistent with the story."
+          }
+        },
+        "evidence": "State continuity fails because the required objects (token, tray, till) and actions are absent. The scene shows B holding a decorative plate, contradicting the narrative that a token should be in a tray beside a till. The pre-condition from shot 1 ('tray beside till') is not visible, and the event 'B tips the token into the open till' does not occur."
+      }
+    }
+  }
+}

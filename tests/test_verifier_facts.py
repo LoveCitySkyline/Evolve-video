@@ -93,20 +93,24 @@ class FactContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             project({'criteria': {POST: wrapped}}, {POST: rules[POST]}, citation_manifest())
 
-    def test_changed_actor_description_cannot_pass_as_enum_preserving_format_repair(self):
+    def test_invalid_response_is_reassessed_without_old_actor_narrative(self):
         public, rules = fixture()
         row = raw_row(rules[POST])
         initial = deepcopy(row)
         initial['evidence_refs'] = ['invalid-id']
-        initial['evidence'] = 'A is the gray-haired person.'
-        row['evidence'] = 'B is the gray-haired person.'
+        initial['evidence'] = 'OLD UNTRUSTED ACTOR NARRATIVE'
+        row['evidence'] = 'Fresh visible evidence, not a rewrite of the invalid answer.'
         with TemporaryDirectory() as tmp:
             verifier = ConditioningVideoVerifier(profile(), tmp)
-            with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: initial}}, {'criteria': {POST: row}}]):
-                with self.assertRaisesRegex(VerifierFormatError, 'format correction changed semantic judgments'):
-                    verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
-                        'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()}, [], 'replay', {POST: rules[POST]}, SPANS)
-            self.assertFalse((Path(tmp)/'g.json').exists())
+            with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: initial}},
+                    {'criteria': {POST: row}}]) as req:
+                result = verifier._observe_scoped(Path(tmp)/'g.json', {'original_task': public,
+                    'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()},
+                    [], 'replay', {POST: rules[POST]}, SPANS)
+            self.assertNotIn('OLD UNTRUSTED ACTOR NARRATIVE', req.call_args.args[0])
+            self.assertEqual(result[POST]['evidence'], row['evidence'])
+            self.assertIn('semantic_reassessment', result[POST])
+            self.assertEqual(req.call_count, 2)
 
     def test_context_samples_supplement_but_never_replace_full_boundary(self):
         public, _ = fixture()
@@ -155,32 +159,33 @@ class FactContractTests(unittest.TestCase):
                 # safety of old responses is tested by test_verifier_identity.
                 with patch('evovideo_skill.verifier_identity.contract', return_value=None), patch.object(
                         verifier, 'request', return_value={'criteria': {name: initial['judgment']}}) as req:
-                    result = verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
+                    result = verifier._observe_scoped(Path(tmp)/'g.json', {'original_task': public,
                         'criteria': rules, 'evidence_manifest': manifest}, [], 'replay', rules, SPANS)
                 self.assertEqual(req.call_count, 1)  # No unnecessary correction of the supplied valid citation.
                 self.assertEqual(result[name]['score'], 0)
                 self.assertEqual(result[name]['fact_observations'], initial['judgment']['fact_observations'])
 
-    def test_format_correction_flip_is_not_accepted_even_when_corrected_json_is_valid(self):
+    def test_new_negative_judgment_is_explicit_reassessment_not_format_repair(self):
         public, rules = fixture()
         initial = raw_row(rules[POST])
         initial['evidence_refs'] = ['invalid-id']
-        corrected = raw_row(rules[POST])
-        corrected['assessment']['outcome'] = 'violated'
-        corrected['fact_observations'][POST_FACT] = negative(corrected['fact_observations'][POST_FACT])
+        second = raw_row(rules[POST])
+        second['assessment']['outcome'] = 'violated'
+        second['fact_observations'][POST_FACT] = negative(second['fact_observations'][POST_FACT])
         with TemporaryDirectory() as tmp:
             verifier = ConditioningVideoVerifier(profile(), tmp)
-            with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: initial}}, {'criteria': {POST: corrected}}]) as req:
-                with self.assertRaisesRegex(VerifierFormatError, 'format correction changed semantic judgments') as error:
-                    verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
-                        'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()}, [], 'replay', {POST: rules[POST]}, SPANS)
-            self.assertEqual(error.exception.valid_observations, {})
+            with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: initial}},
+                    {'criteria': {POST: second}}]) as req:
+                result = verifier._observe_scoped(Path(tmp)/'g.json', {'original_task': public,
+                    'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()},
+                    [], 'replay', {POST: rules[POST]}, SPANS)
+            self.assertEqual(result[POST]['score'], 0)
+            self.assertIn('semantic_reassessment', result[POST])
             self.assertEqual(req.call_count, 2)
-            self.assertFalse((Path(tmp)/'g.json').exists())
             prompt = json.loads(req.call_args.args[0])
-            self.assertEqual(prompt['format_feedback']['previous_response']['criteria'][POST], initial)
-            self.assertTrue((Path(tmp)/'g.raw.json').exists())
-            self.assertTrue((Path(tmp)/'g.correction-1.raw.json').exists())
+            self.assertNotIn('previous_response', prompt['format_feedback'])
+            self.assertEqual(prompt['format_feedback']['mode'], 'fresh_evidence_reassessment')
+            self.assertEqual(json.loads((Path(tmp)/'g.raw.json').read_text())['criteria'][POST], initial)
 
     def test_format_only_citation_repair_is_accepted_without_changing_judgments(self):
         public, rules = fixture()
@@ -191,7 +196,7 @@ class FactContractTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             verifier = ConditioningVideoVerifier(profile(), tmp)
             with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: initial}}, {'criteria': {POST: row}}]):
-                result = verifier._observe_group(Path(tmp)/'g.json', {'original_task': public,
+                result = verifier._observe_scoped(Path(tmp)/'g.json', {'original_task': public,
                     'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()}, [], 'replay', {POST: rules[POST]}, SPANS)
             self.assertEqual(result[POST]['score'], 1)
 
@@ -369,11 +374,11 @@ class FactContractTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             verifier = ConditioningVideoVerifier(profile(), tmp)
             with patch.object(verifier, 'request', side_effect=[{'criteria': {POST: missing}}, {'criteria': {POST: row}}]) as req:
-                parsed = verifier._observe_group(Path(tmp) / 'group.json', {'original_task': public,
+                parsed = verifier._observe_scoped(Path(tmp) / 'group.json', {'original_task': public,
                     'criteria': {POST: rules[POST]}, 'evidence_manifest': citation_manifest()}, [], 'unit', {POST: rules[POST]}, SPANS)
             self.assertEqual(req.call_count, 2)
             self.assertEqual(parsed[POST]['score'], 1)
-            self.assertIn('fact_observations', str(json.loads(req.call_args.args[0])['format_feedback']))
+            self.assertIn('fact_observations', str(json.loads(req.call_args.args[0])['output_contract']))
 
     def test_cached_projected_judgment_cannot_bypass_fact_validation(self):
         _, rules = fixture()
@@ -407,15 +412,18 @@ class FactContractTests(unittest.TestCase):
                 def review(owner, task, artifact, public, subset, rows, *args):
                     if not any(row.get('fact_conflicts') for rr in rows.values() for row in rr):
                         return {}
-                    name = next(iter(subset))
-                    review_names.append(name)
+                    # A single component review receives all connected consumers.
+                    self.assertEqual(set(subset), {POST, EVENT})
+                    review_names.extend(subset)
                     if abstain:
-                        return {name: {'status': 'abstained', 'errors': ['automatic review budget exhausted; no score assigned']}}
-                    corrected = deepcopy(rows[name][0])
-                    corrected.pop('fact_conflicts', None)
-                    corrected['fact_observations'][POST_FACT] = facts(rules[POST])[POST_FACT]
-                    rows[name] = [deepcopy(corrected), deepcopy(corrected)]
-                    return {name: {'status': 'resolved'}}
+                        return {name: {'status': 'abstained', 'errors': ['automatic review budget exhausted; no score assigned']}
+                                for name in subset}
+                    for name in subset:
+                        corrected = deepcopy(rows[name][0])
+                        corrected.pop('fact_conflicts', None)
+                        corrected['fact_observations'][POST_FACT] = facts(rules[POST])[POST_FACT]
+                        rows[name] = [deepcopy(corrected), deepcopy(corrected)]
+                    return {name: {'status': 'resolved'} for name in subset}
                 with patch.object(verifier, 'group_evidence', return_value=([], citation_manifest())), patch.object(
                         verifier, '_observe_group', side_effect=judge), patch('evovideo_skill.verifier_review.review_group', side_effect=review):
                     result = verifier._judge(task, [], {'windows': SPANS, 'candidate_hash': 'fixture'}, rules,

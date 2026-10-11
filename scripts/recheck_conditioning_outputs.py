@@ -121,7 +121,9 @@ def main(argv=None):
             'missing baseline generation, or heldout gain calculation. Old and new scores are not pooled.'}
     overview = {'purpose': PURPOSE, 'saved_videos': len(videos), 'committed_selections': len(coverage),
         'missing_baselines': sum(r['missing_baseline'] for r in coverage), 'tasks': selected_ids,
-        'verifier_phase': args.verifier_phase, 'repeats': profile['repeats']}
+        'verifier_phase': args.verifier_phase, 'repeats': profile['repeats'],
+        'review_confirmations': profile['auto_review']['confirmations'],
+        'max_review_calls_per_component': profile['auto_review']['max_calls_per_criterion']}
     print(json.dumps(overview, ensure_ascii=False, indent=2), flush=True)
     if args.dry_run:
         return overview
@@ -163,6 +165,11 @@ def main(argv=None):
                     'completed_videos': len(summaries), 'error_type': type(exc).__name__,
                     'failure_category': failure_category(exc),
                     'reason': 'Verifier failed; inspect verifier call/format audits. No score assigned.'})
+                from evovideo_skill.evaluation_report import export_report
+                try:
+                    export_report(root)
+                except (OSError, ValueError, TypeError, KeyError) as report_error:
+                    print(f'Report export failed: {report_error}; original verifier error follows.', flush=True)
                 raise
             artifact.metadata['vlm_evaluation'] = result
             acceptance = acceptance_report(task, artifact)
@@ -173,12 +180,16 @@ def main(argv=None):
                 'evaluation_status': result['evaluation_status'], 'acceptance_status': acceptance['status'],
                 'unobserved_criteria': metadata.get('unobserved_criteria', []),
                 'disagreement_criteria': metadata.get('disagreement_criteria', []),
+                'processing_summary': metadata.get('processing_summary', {}),
+                'review_failure_counts': metadata.get('processing_diagnostics', {}).get('review_failure_counts', {}),
                 'judgment_path': metadata.get('judgment_path')}
             summaries.append(summary)
             write_json(root / 'summary.json', {**overview, 'complete': len(summaries) == len(videos),
                 'completed_videos': len(summaries), 'videos': summaries})
             print(json.dumps(summary, ensure_ascii=False), flush=True)
         (root / 'stopped.json').unlink(missing_ok=True)
+        from evovideo_skill.evaluation_report import export_report
+        export_report(root)
         return summaries
 
 

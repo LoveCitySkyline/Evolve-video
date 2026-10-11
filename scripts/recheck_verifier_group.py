@@ -8,7 +8,7 @@ from pathlib import Path
 
 from evovideo_skill.benchmarks import BenchmarkSuite
 from evovideo_skill.conditioning_verifier import (ConditioningVideoVerifier, VERIFIER_PROTOCOL_VERSION,
-    resolve_profiles, failure_category)
+    resolve_profiles, failure_category, VerifierFormatError)
 from evovideo_skill.models import VideoArtifact
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
@@ -111,7 +111,7 @@ def main(argv=None):
     parser.add_argument('--task-file', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--dry-run', action='store_true')
-    parser.add_argument('--auto-review-criterion', help='Exercise only the bounded automatic review for this saved criterion (at most 4 calls)')
+    parser.add_argument('--auto-review-criterion', help='Review this criterion and its shared-fact component within the saved group (at most 4 calls)')
     args = parser.parse_args(argv)
     task, row, subset, plan = plan_group(args.judgment_dir, args.group, args.repeat, args.task_file)
     config = json.loads(args.config.read_text())
@@ -124,13 +124,15 @@ def main(argv=None):
         name = args.auto_review_criterion
         if name not in subset:
             parser.error('selected criterion does not belong to the saved group')
-        subset = {name: subset[name]}
+        from evovideo_skill.verifier_facts import reassessment_closure
+        members = reassessment_closure(subset, {name})
+        subset = {key: rule for key, rule in subset.items() if key in members}
         review = options(profile.get('auto_review'))
         review.update(enabled=True, max_calls_per_criterion=min(4, review['max_calls_per_criterion']))
         profile['auto_review'] = review
-        plan.update(criteria=subset, diagnostic_mode='automatic_review_only',
-            maximum_model_calls=min(review[k] for k in
-                ('max_calls_per_criterion', 'max_calls_per_video', 'max_calls_per_run')))
+        plan.update(criteria=subset, component=sorted(subset), diagnostic_mode='automatic_review_only',
+            maximum_model_calls=min(2 * review['confirmations'], *(review[k] for k in
+                ('max_calls_per_criterion', 'max_calls_per_video', 'max_calls_per_run'))))
     plan['profile'] = profile
     print(json.dumps(plan, ensure_ascii=False, indent=2))
     if args.dry_run:
@@ -158,12 +160,15 @@ def main(argv=None):
         if args.auto_review_criterion:
             from evovideo_skill.verifier_review import review_group
             name = args.auto_review_criterion
-            rows = {name: [{'status': 'unobserved', 'score': None,
-                'evidence': 'Development diagnostic trigger; no prior quality judgment supplied.'}]}
+            rows = {key: [{'status': 'unobserved', 'score': None,
+                'evidence': 'Development diagnostic trigger; no prior quality judgment supplied.'}] for key in subset}
             audit = review_group(verifier, task, artifact, public, subset, rows,
                 root / 'review', args.group, 'single-group-review', plan['source_candidate_hash'])
             summary = {'purpose': plan['purpose'], 'criterion': name,
                 'auto_review_status': audit[name]['status'], 'errors': audit[name]['errors'],
+                'abstention_kind': audit[name].get('abstention_kind'),
+                'evidence_conflicts': audit[name].get('evidence_conflicts', []),
+                'component': sorted(subset), 'component_statuses': {key: value['status'] for key, value in audit.items()},
                 'confirmation_count': len(audit[name]['observations']),
                 'qualification': 'Only the automatic review path was tested; this is not a complete evaluation.'}
             write_json(root / 'summary.json', summary)
@@ -174,13 +179,23 @@ def main(argv=None):
         result = verifier._observe_group(root / 'group.json',
             {'original_task': public, 'criteria': subset, 'evidence_manifest': group_manifest},
             media, 'single-group', subset, manifest['windows'])
+    except VerifierFormatError as exc:
+        from evovideo_skill.conditioning_verifier import unresolved_response
+        result = unresolved_response(subset, manifest['windows'], exc)
+        write_json(root / 'unresolved.json', {'failure_category': 'response_format',
+            'reason': str(exc), 'no_score_assigned_to_invalid_criteria': True})
     except Exception as exc:
         write_json(root / 'stopped.json', {'failure_category': failure_category(exc),
             'error_type': type(exc).__name__, 'reason': str(exc), 'no_score_assigned': True})
         raise
     from evovideo_skill.verifier_facts import mark_conflicts
     conflicts = mark_conflicts({k: [v] for k, v in result.items()})
-    summary = {'purpose': plan['purpose'], 'format_valid': True, 'fact_conflicts': conflicts,
+    invalid = [k for k, v in result.items() if v.get('processing_status') == 'invalid_response']
+    summary = {'purpose': plan['purpose'], 'format_valid': not invalid, 'fact_conflicts': conflicts,
+        'invalid_response_criteria': invalid,
+        'model': profile['model'], 'transport': profile['transport'],
+        'execution_status': 'completed_with_unresolved' if invalid or conflicts or any(
+            v['status'] == 'unobserved' for v in result.values()) else 'completed',
         'identity_gates': {k: v['identity_gate'] for k, v in result.items() if 'identity_gate' in v},
         'criteria': {k: {'status': v['status'], 'score': v['score']} for k, v in result.items()},
         'qualification': 'One diagnostic repeat only; no admission, full-video aggregation or independent verification.'}

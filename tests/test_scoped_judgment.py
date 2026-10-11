@@ -95,7 +95,8 @@ class ScopedJudgmentTests(unittest.TestCase):
                 result = verifier._observe_group(path, {}, [], 'unit', {'a': STATE, 'b': STATE}, SPANS)
                 self.assertEqual(request.call_count, 2)
                 feedback = json.loads(request.call_args.args[0])['format_feedback']
-                self.assertEqual({e['criterion'] for e in feedback['validation_errors']}, {'a', 'b'})
+                self.assertEqual(set(feedback['invalid_criteria']), {'a', 'b'})
+                self.assertNotIn('previous_response', feedback)
                 self.assertIsNone(result['a']['score'])
                 self.assertEqual(result['b']['score'], 0)
                 self.assertEqual(verifier._observe_group(path, {}, [], 'unit', {'a': STATE, 'b': STATE}, SPANS), result)
