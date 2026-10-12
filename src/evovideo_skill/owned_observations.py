@@ -7,8 +7,8 @@ Legacy graded responses remain supported ONLY by the legacy replay adapter.
 from copy import deepcopy
 import math
 
-VERSION = 'shared-observation-review-v3'
-SUPPORTED_VERSIONS = {'shared-observation-review-v2', VERSION}
+VERSION = 'shared-observation-review-v4'
+SUPPORTED_VERSIONS = {'shared-observation-review-v2', 'shared-observation-review-v3', VERSION}
 SYSTEM = '''Return JSON following output_contract.response_shape exactly.
 Observe each requested source proposition once. Each fact has ONLY basis,
 confidence, evidence, evidence_refs. Never output credit, score, matched, unmet,
@@ -88,8 +88,11 @@ def prepare_plan(plan, protocol=VERSION):
         else:
             owners[signature] = key
     plan.update(wire_protocol=protocol, owner_context=dependencies, fact_aliases=aliases)
-    if protocol == VERSION:
+    if protocol in {'shared-observation-review-v3', VERSION}:
         plan['aggregation_policy'] = 'bounded-source-aggregation-v1'
+    if protocol == VERSION:
+        from evovideo_skill.predicate_evidence import VERSION as GUARD_VERSION
+        plan['predicate_evidence_guard'] = GUARD_VERSION
 
 
 def wire_contract(plan):
@@ -113,6 +116,12 @@ def wire_contract(plan):
                 'temporal_rule': 'pre/post uses its own boundary only; event/invariant keeps source-declared '
                     'interval and connective. Do not move an observation to another phase.'}
     return {'response_protocol': plan['wire_protocol'], 'response_shape': shape,
+        **({'predicate_evidence_guard': plan['predicate_evidence_guard'],
+            'rationale_instruction': 'Describe the visual feature of the requested property: e.g. sag/droop '
+                'or a stretched span for tension, and the named object for rotation. Attachment alone '
+                'does not decide tension. Do not invent these features to satisfy a schema. If you cannot '
+                'see them, report uncertainty. No extra response fields are required.'}
+           if plan.get('predicate_evidence_guard') else {}),
         'fact_sources': sources, 'evidence_catalog': plan['evidence_catalog'],
         'standalone_contract': plan['standalone_contract'],
         'standalone_criterion_ids': list(plan['standalone']),

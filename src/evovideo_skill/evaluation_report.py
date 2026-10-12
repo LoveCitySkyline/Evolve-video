@@ -33,6 +33,7 @@ def processing_diagnostics(states, review_audits):
 
 
 def scorecard(evaluation, acceptance, generation_cost=None, diagnostics=None):
+    from evovideo_skill.predicate_evidence import summary as predicate_summary
     meta = evaluation.get('verification_metadata', {})
     states = meta.get('criterion_processing_states', {})
     unknown = set(meta.get('unobserved_criteria', []))
@@ -57,6 +58,9 @@ def scorecard(evaluation, acceptance, generation_cost=None, diagnostics=None):
                        if row.get('aggregation_bounds')]
         if derivations:
             vector[name]['aggregation_bounds'] = derivations
+        guard = predicate_summary({name: evaluation.get('criterion_observations', {}).get(name, [])})
+        if guard['withheld_fact_count']:
+            vector[name]['predicate_evidence_guard'] = guard
     applicable = [r for r in vector.values() if r['processing_state'] != 'not_applicable']
     measured = sum(r['score'] is not None for r in applicable)
     complete = (evaluation.get('evaluation_status') == 'complete' and not unknown and not disputed

@@ -1,0 +1,36 @@
+{
+  "purpose": "User-supplied model rationales; labels concern inference validity, NOT visual ground truth",
+  "human_visual_labels": null,
+  "cases": [
+    {
+      "target": "drive.state equals 'chain off sprocket'",
+      "basis": "visible_counterexample",
+      "evidence": "The initial boundary frame shows the chain engaged with the sprocket teeth, not off the sprocket as required.",
+      "expected_issue": null
+    },
+    {
+      "target": "drive.state equals 'slack chain'",
+      "basis": "visible_counterexample",
+      "evidence": "At the end of the shot, the chain is still seated on the sprocket, not in a 'slack chain' state resulting from being off the sprocket.",
+      "expected_issue": "attachment_substituted_for_tension"
+    },
+    {
+      "target": "A turns the wheel",
+      "basis": "visible_support",
+      "evidence": "A's hand is seen touching and manipulating the sprocket/chain area, causing rotation of the mechanism in samples 20-48.",
+      "expected_issue": "mechanism_substituted_for_target_motion"
+    },
+    {
+      "target": "and the chain stays slack",
+      "basis": "visible_counterexample",
+      "evidence": "The chain is visibly seated on the sprocket teeth throughout the entire sequence, rather than staying slack/off as required by the context of the initial setup.",
+      "expected_issue": "attachment_substituted_for_tension"
+    },
+    {
+      "target": "A turns the wheel and the chain stays slack",
+      "basis": "visible_counterexample",
+      "evidence": "The proposition requires the chain to stay slack while the wheel is turned. However, the chain starts seated (not slack/off) and remains seated throughout the interaction where A touches the mechanism. The visible state is a seated chain, which contradicts the 'stays slack' condition derived from the 'off sprocket' start state.",
+      "expected_issue": "attachment_substituted_for_tension"
+    }
+  ]
+}

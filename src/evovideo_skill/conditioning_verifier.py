@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "predicate-scoped-evaluation-v36"
+VERIFIER_PROTOCOL_VERSION = "predicate-evidence-evaluation-v37"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -1547,6 +1547,7 @@ class ConditioningVideoVerifier:
             criterion_states[name] = state
         result = {k: scores[k] for k in GENERIC if k in scores}
         from evovideo_skill.evaluation_report import processing_diagnostics
+        from evovideo_skill.predicate_evidence import summary as predicate_summary
         result.update(model=self.model, criterion_scores={k: scores[k] for k in rubric if k in scores},
             criterion_evidence={k: texts[k] for k in rubric}, failed_segments=failed, failure_types=[],
             evaluation_status="needs_review" if unobserved or review else "complete",
@@ -1554,6 +1555,7 @@ class ConditioningVideoVerifier:
                 "verifier_protocol": VERIFIER_PROTOCOL_VERSION, "scope_issues": scope_issues,
                 "criterion_processing_states": criterion_states,
                 "processing_diagnostics": processing_diagnostics(criterion_states, review_audits),
+                "predicate_evidence_guard": predicate_summary(observations),
                 "processing_summary": {state: sum(s == state for s in criterion_states.values())
                     for state in ('measured', 'not_applicable', 'insufficient_evidence', 'score_unresolved', 'identity_unresolved', 'disputed', 'invalid_response')},
                 "auto_review": review_audits, "response_format_failures": format_failures,
@@ -1566,7 +1568,7 @@ class ConditioningVideoVerifier:
                 "cross_window_conflict_policy": "single_owner_source_facts_with_explicit_context_bindings",
                 "fact_ownership": ownership_audit,
                 "shared_observation_protocol": self.observation_protocol,
-                "source_fact_scoring": "categorical_requirement_satisfaction" if self.observation_protocol in {"shared-observation-review-v2", "shared-observation-review-v3"} else "legacy_graded",
+                "source_fact_scoring": "categorical_requirement_satisfaction" if self.observation_protocol in {"shared-observation-review-v2", "shared-observation-review-v3", "shared-observation-review-v4"} else "legacy_graded",
                 'source_identity': source_identity_audit,
                 'fact_consistency': {'before_review': fact_conflicts_before, 'unresolved': fact_conflicts_after,
                     'qualification': 'Structured same-proposition consistency, not independent visual ground truth.'},

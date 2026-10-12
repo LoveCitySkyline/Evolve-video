@@ -7,12 +7,16 @@ import json
 from pathlib import Path
 import re
 
-from evovideo_skill.owned_observations import VERSION, SUPPORTED_VERSIONS
+from evovideo_skill.owned_observations import SUPPORTED_VERSIONS
 from evovideo_skill.review_observations import compile_plan, project_response
 from evovideo_skill.scoped_judgment import project
 from evovideo_skill.conditioning_verifier import parse_judgment
 from evovideo_skill.verifier_identity import contract, assess
 from evovideo_skill.verifier_facts import fact_conflicts
+
+# This diagnostic isolates V36 algebra; newer relevance guards belong to
+# audit_predicate_evidence.py, not to this saved arithmetic comparison.
+ALGEBRA_PROTOCOL = 'shared-observation-review-v3'
 
 
 def compare(request, raw):
@@ -22,7 +26,7 @@ def compare(request, raw):
     manifest, public = request['evidence_manifest'], request['original_task']
     spans = manifest['windows']
     projected, audits = [], {}
-    for protocol in (old_protocol, VERSION):
+    for protocol in (old_protocol, ALGEBRA_PROTOCOL):
         plan = compile_plan(request['criteria'], public, spans, manifest, protocol=protocol)
         wire, audit = project_response(raw, plan, manifest, with_audit=True)
         rows = parse_judgment(project(wire, plan['rules'], manifest), plan['rules'], spans, manifest)
@@ -62,7 +66,7 @@ def run(root):
             row.update(status='invalid_saved_attempt', error=str(exc))
         records.append(row)
     return {'purpose': 'offline_counterfactual_algebra_not_visual_validation', 'model_calls': 0,
-            'current_observation_protocol': VERSION, 'attempt_counts': dict(Counter(r['status'] for r in records)),
+            'current_observation_protocol': ALGEBRA_PROTOCOL, 'attempt_counts': dict(Counter(r['status'] for r in records)),
             'records': records,
             'qualification': 'Saved attempts are not independent evaluations. No media/model calls or file writes. '
                 'Old model claims remain unverified, including possible predicate confusion. Algebraic changes '

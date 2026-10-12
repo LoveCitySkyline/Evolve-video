@@ -361,6 +361,7 @@ def project_response(raw, plan, manifest, *, with_audit=False):
     """Do not accept legacy redundant verdicts or turn old conflicts into scores."""
     if not isinstance(raw, dict) or set(raw) - {'facts', 'judgments', 'identity_bindings'}:
         raise ValueError('shared observation response permits only facts, judgments, identity_bindings')
+    original_facts = deepcopy(raw.get('facts'))
     if plan.get('wire_protocol'):
         from evovideo_skill.owned_observations import expand_observations
         raw = expand_observations(raw, plan)
@@ -386,6 +387,13 @@ def project_response(raw, plan, manifest, *, with_audit=False):
             errors.append({'fact': key, 'error': str(exc)})
     if errors:
         raise ObservationValidationError(errors)
+    if plan.get('predicate_evidence_guard'):
+        from evovideo_skill.predicate_evidence import quarantine
+        for key, definition in plan['definitions'].items():
+            owner = plan.get('fact_aliases', {}).get(key, key)
+            canonical[key] = quarantine(definition, canonical[key], original_facts[owner])
+            if canonical[key].get('predicate_evidence_audit'):
+                credits[key] = None
     out = deepcopy(judgments)
     aggregation_audits = {}
     for name, row in out.items():
