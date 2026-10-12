@@ -7,12 +7,23 @@ identity/citation validation and BEFORE any categorical score aggregation.
 from copy import deepcopy
 import re
 
-VERSION = 'predicate-evidence-guard-v1'
+VERSION = 'predicate-evidence-guard-v1.1'
 QUALIFICATION = ('Rationale relevance only, not visual validation. Undetected paraphrases and '
                  'incorrect visual claims remain possible. No passing/failing score is inferred.')
 
 
+def eligible(definition):
+    """Only direct shot requirements; holistic prose can quote historical facts."""
+    field = {'pre': 'preconditions', 'post': 'postconditions',
+             'invariant': 'invariants', 'event': 'events'}.get(definition.get('phase'))
+    index = definition.get('shot_index')
+    return (field is not None and type(index) is int and index >= 0
+            and definition.get('source', '').startswith(f'shots[{index}].{field}.'))
+
+
 def issues(definition, observation):
+    if not eligible(definition):
+        return []
     if observation.get('basis') not in {'visible_support', 'visible_counterexample'}:
         return []
     target = definition['proposition'].lower()

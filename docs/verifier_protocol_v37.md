@@ -1,10 +1,14 @@
-# V37：拦截已知的证据属性替代，不把流程完成当成判断正确
+# V37.1：拦截已知的证据属性替代，不把流程完成当成判断正确
 
 ## 本次修复的边界
 
 V36 的真实复核把“链条仍啮合”当作“链条不松弛”，并把“手操作机构”当作“目标车轮转动”。回答格式、引用和内部一致性都合法，因此原路径把它们转成了确定分数。本次修复在已验证的事实与评分之间加入保守的理由检查。
 
-协议：`predicate-evidence-evaluation-v37`；事实协议：`shared-observation-review-v4`；自动复核协议：`predicate-evidence-review-v16`；检查器：`predicate-evidence-guard-v1`。
+协议：`predicate-evidence-evaluation-v37.1`；事实协议：`shared-observation-review-v4`；自动复核协议：`predicate-evidence-review-v16.1`；检查器：`predicate-evidence-guard-v1.1`。
+
+V37.1 修复作用域：只对编译来源为当前镜头 `preconditions`、`postconditions`、`invariants`、`events` 的直接命题应用这道检查。`state_flow`、整体初始场景、事件顺序等综合描述可能引用历史内容，不能根据其中出现的属性词套用此规则。它们仍接受原有格式、身份、引用及事实一致性校验，不会因此自动通过。离线输出的 `guard_scope` 列出适用和排除的事实。
+
+V37 批量命中的 `state_flow:whole` 不能作为已证实的模型错误。升级后离线重新统计即可，不要付费重新生成这些回答。
 
 当前明确覆盖两类 **英文** 理由模式，无任务 ID 特判：
 

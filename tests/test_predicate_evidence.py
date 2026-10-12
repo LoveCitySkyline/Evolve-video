@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
-from evovideo_skill.predicate_evidence import issues
+from evovideo_skill.predicate_evidence import issues, eligible
 from evovideo_skill.owned_observations import VERSION
 from evovideo_skill.review_observations import compile_plan, project_response, wire_contract, observe
 from evovideo_skill.conditioning_verifier import parse_judgment
@@ -17,32 +17,77 @@ from test_scoped_judgment import citation_manifest, SPANS, STATE
 import test_verifier_v27_review as review_fixtures
 
 
+def direct(target):
+    return {'proposition': target, 'phase': 'event', 'shot_index': 2, 'source': 'shots[2].events.fixture'}
+
+
 class PredicateEvidenceTests(unittest.TestCase):
     def test_user_supplied_rationales(self):
         data = json.loads((Path(__file__).parent/'fixtures/verifier_v36_predicate_substitution.json').read_text())
         self.assertIsNone(data['human_visual_labels'])
         for case in data['cases']:
             with self.subTest(case=case['target']):
-                found = issues({'proposition': case['target']}, case)
+                found = issues(direct(case['target']), case)
                 self.assertEqual([r['code'] for r in found], [case['expected_issue']] if case['expected_issue'] else [])
 
     def test_generalizes_without_task_ids_and_keeps_direct_alternatives(self):
         for obj, support in [('belt', 'pulley'), ('rope', 'hook'), ('cable', 'gear')]:
-            target = {'proposition': f'The {obj} stays slack'}
+            target = direct(f'The {obj} stays slack')
             raw = {'basis': 'visible_counterexample', 'evidence': f'The {obj} is attached to the {support}.'}
             self.assertTrue(issues(target, raw))
             for evidence in [f'The {obj} is attached to the {support} and visibly sagging.',
                              f'The {obj} is attached to the {support} with a stretched straight span.']:
                 self.assertFalse(issues(target, {**raw, 'evidence': evidence}))
-        self.assertFalse(issues({'proposition': 'A turns the wheel and the chain stays slack'},
+        self.assertFalse(issues(direct('A turns the wheel and the chain stays slack'),
             {'basis': 'visible_counterexample', 'evidence': 'The chain is on the sprocket. The wheel remains stationary.'}))
-        self.assertFalse(issues({'proposition': 'A turns the wheel'},
+        self.assertFalse(issues(direct('A turns the wheel'),
             {'basis': 'visible_support', 'evidence': 'The wheel rotates as A manipulates the mechanism.'}))
 
     def test_context_and_unknown_do_not_create_failure(self):
         raw = {'basis': 'visible_counterexample', 'evidence': 'The chain is seated on the sprocket.'}
-        self.assertFalse(issues({'proposition': 'chain off sprocket', 'context': 'chain stays slack'}, raw))
-        self.assertFalse(issues({'proposition': 'chain stays slack'}, {**raw, 'basis': 'occluded'}))
+        self.assertFalse(issues({**direct('chain off sprocket'), 'context': 'chain stays slack'}, raw))
+        self.assertFalse(issues(direct('chain stays slack'), {**raw, 'basis': 'occluded'}))
+
+    def test_scope_is_compiled_source_not_words_in_historical_prose(self):
+        target = 'Earlier events: A turns the wheel and the chain stays slack. Judge continuity now.'
+        raw = {'basis': 'visible_support', 'evidence': 'The mechanism remains attached to the sprocket.'}
+        definitions = [
+            {**direct(target), 'phase': 'state_flow', 'source': 'evaluation.story.s2.state_flow.description'},
+            {**direct(target), 'phase': 'pre', 'source': 'semantics.initial_setup'},
+            {**direct(target), 'phase': 'order', 'source': 'shots[2].events.order'},
+            {**direct(target), 'source': 'shots[1].events.fixture'},
+            {'proposition': target},
+        ]
+        for definition in definitions:
+            with self.subTest(definition=definition):
+                self.assertFalse(eligible(definition))
+                self.assertFalse(issues(definition, raw))
+        for phase, field in [('pre', 'preconditions'), ('post', 'postconditions'),
+                             ('invariant', 'invariants'), ('event', 'events')]:
+            definition = {**direct('chain stays slack'), 'phase': phase,
+                          'source': f'shots[2].{field}.drive.state'}
+            self.assertTrue(eligible(definition))
+            self.assertTrue(issues(definition, raw))
+
+    def test_holistic_flow_keeps_its_own_verdict_without_bypassing_citations(self):
+        public, plan, manifest, raw = self.fixture()
+        rules = deepcopy(plan['rules'])
+        flow = 'story.s2.state_flow'
+        rules[flow] = {**STATE, 'judgment_contract': 'categorical-action-v2',
+            'description': 'Earlier: A turns the wheel and the chain stays slack. Assess continuity.'}
+        plan = compile_plan(rules, public, SPANS, manifest, protocol=VERSION)
+        key = 's2:state_flow:whole'
+        raw['facts'][key] = {'basis': 'visible_support', 'confidence': .9,
+            'evidence': 'The mechanism remains attached to the sprocket without discontinuity.',
+            'evidence_refs': ['window:2:samples']}
+        rows = parse_judgment(project(project_response(raw, plan, manifest), plan['rules'], manifest),
+                              plan['rules'], SPANS, manifest)
+        self.assertEqual(rows[flow]['score'], 1.)
+        self.assertNotIn('predicate_evidence_audit', rows[flow]['fact_observations'][key])
+        self.assertIsNone(rows['story.s2.post.drive.state']['score'])
+        raw['facts'][key]['evidence_refs'] = ['s9:first']
+        with self.assertRaises(ValueError):
+            project_response(raw, plan, manifest)
 
     def fixture(self, protocol=VERSION):
         public = {'metadata': {'story_contract': {'shots': [{'shot_index': 2,
@@ -129,6 +174,7 @@ class PredicateEvidenceTests(unittest.TestCase):
             result = module.audit(root)
             self.assertEqual(result['attempt_counts'], {'claims_withheld': 1})
             self.assertEqual(len(result['records'][0]['withheld_facts']), 4)
+            self.assertIn('guard_scope', result['records'][0])
             self.assertEqual(before, {p.name: p.read_bytes() for p in root.iterdir()})
 
     def test_automatic_review_abstains_once_instead_of_approving_bad_claim(self):
