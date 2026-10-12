@@ -1,5 +1,6 @@
 """Offline, blinded development review packets; never change experiment scores."""
 from copy import deepcopy
+from collections import Counter
 from hashlib import sha256
 from html import escape
 import json
@@ -7,7 +8,7 @@ from pathlib import Path
 
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'predicate-review-pack-v1'
+VERSION = 'predicate-review-pack-v1.1'
 
 
 def _request_path(root, response):
@@ -73,13 +74,19 @@ def _copy_media(root, output, record, copied):
     """Only hash-verified cached candidate media under this run's media roots."""
     filename = record.get('media_file')
     expected = record.get('image_hash') or record.get('sampled_media_hash')
-    if not isinstance(filename, str) or Path(filename).name != filename or not expected:
-        return {'status': 'missing_media_metadata'}
+    if not isinstance(filename, str) or not filename or not isinstance(expected, str) or not expected:
+        return {'status': 'missing_media_metadata', 'media_file': filename,
+                'missing_fields': [key for key, value in [('media_file', filename), ('media_hash', expected)]
+                                   if not isinstance(value, str) or not value]}
+    relative_path = Path(filename)
+    if relative_path.is_absolute() or '..' in relative_path.parts or '\\' in filename:
+        return {'status': 'unsafe_media_path', 'media_file': filename}
     allowed = [root / 'verifier' / 'media', *sorted((root / 'verifier').glob('*/media'))]
     found = []
     for folder in allowed:
-        path = folder / filename
-        if path.is_file() and path.resolve().is_relative_to(root):
+        folder = folder.resolve()
+        path = (folder / relative_path).resolve()
+        if folder.is_relative_to(root.resolve()) and path.is_relative_to(folder) and path.is_file():
             data = path.read_bytes()
             if stable_hash(data.hex()) == expected:
                 found.append((path, data))
@@ -159,6 +166,9 @@ def export(root, output, audit):
         'unique_candidate_hashes': len({r['candidate_hash'] for r in blind if r['candidate_hash']}),
         'superseded_attempts': len(packet['superseded_attempts']),
         'unresolved_attempts': len(packet['unresolved_attempts']), 'media_issues': problems,
+        'media_issue_count': len(problems),
+        'media_issue_counts': dict(Counter(item['status'] for item in problems)),
+        'verified_media_files': len(copied),
         'media': copied, 'human_labels_complete': False, 'packet_fingerprint': labels['packet_fingerprint'],
         'qualification': 'Cases are review candidates, not confirmed model errors. Repeated responses do not '
                          'create independent videos. Old judgments are unchanged. Unknown remains a valid label.'}

@@ -22,7 +22,10 @@ def main():
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
     command = 'PYTHONPATH=src python scripts/summarize_predicate_labels.py --review-dir ' + shlex.quote(str(output))
+    # Keep full per-frame details in the packet, not hundreds of terminal lines.
+    result['media_issue_examples'] = result.pop('media_issues')[:3]
     print(json.dumps({'review_dir': str(output), 'report': str(output / 'index.html'),
+                     'details': str(output / 'manifest.json'),
                      'after_saving_human_labels_command': command, **result}, ensure_ascii=False, indent=2))
 
 
