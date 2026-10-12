@@ -113,8 +113,14 @@ def combine_obligations(task, observations):
                 target = next(s for s in combined["segments"] if s["segment_id"] == index)
                 segments = [next(s for s in c["segments"] if s["segment_id"] == index)
                             for c in components]
-                known = all(c["status"] == "observed" and not c.get('fact_conflicts') for c in components + segments)
-                score = min(c["score"] for c in components + segments) if known else None
+                from evovideo_skill.evidence_aggregation import combine, observation_bounds, point, audit as bounds_audit, integrity_blocked
+                intervals = [observation_bounds(c) for c in components + segments]
+                blocked = (any(integrity_blocked(c) for c in components + segments)
+                           or any(observation_bounds(c) != observation_bounds(s)
+                                  for c, s in zip(components, segments)))
+                interval = (0., 1.) if blocked else combine(intervals, 'minimum')
+                score = point(interval)
+                known = score is not None
                 status = "observed" if known else "unobserved"
                 evidence = "Host conjunction of independent source requirements: " + " | ".join(
                     f"{name}: {c['evidence']}" for name, c in zip(names, components))
@@ -128,6 +134,14 @@ def combine_obligations(task, observations):
                 for row in (combined, target):
                     row.pop("assessment", None)
                     row["aggregation_source"] = "host_source_obligation_conjunction"
+                    row['observation_basis'] = combined['observation_basis']
+                    row['aggregation_bounds'] = bounds_audit(interval, 'minimum',
+                        [name for name, c, segment in zip(names, components, segments)
+                         if observation_bounds(c) != observation_bounds(segment)
+                         or observation_bounds(c)[0] != observation_bounds(c)[1]],
+                        [] if blocked else [name for name, c, segment in zip(names, components, segments)
+                                            if observation_bounds(c) == observation_bounds(segment) == (0., 0.)])
+                    row['aggregation_bounds']['integrity_blocked'] = blocked
                 observations[parent][repeat] = combined
     return audit
 

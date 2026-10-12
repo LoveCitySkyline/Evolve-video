@@ -8,7 +8,7 @@ from pathlib import Path
 from evovideo_skill.conditioning_verifier import VERIFIER_PROTOCOL_VERSION, parse_judgment
 from evovideo_skill.review_observations import VERSION, compile_plan, project_response, _validate_observation, expand_field_patch
 from evovideo_skill.scoped_judgment import project
-from evovideo_skill.owned_observations import VERSION as OWNED_VERSION, expand_observations
+from evovideo_skill.owned_observations import SUPPORTED_VERSIONS, expand_observations
 from evovideo_skill.verifier_identity import assess, contract
 
 
@@ -28,14 +28,14 @@ def audit(root):
             record.update(raw_sha256=hashlib.sha256(data).hexdigest(),
                           request_sha256=hashlib.sha256(request_data).hexdigest())
             protocol = request.get('output_contract', {}).get('response_protocol')
-            if protocol not in {VERSION, OWNED_VERSION}:
+            if protocol not in {VERSION, *SUPPORTED_VERSIONS}:
                 record.update(status='unsupported_protocol')
                 continue
             manifest = request['evidence_manifest']
             raw = expand_field_patch(raw, request)
             spans = manifest['windows']
             plan = compile_plan(request['criteria'], request['original_task'], spans, manifest, protocol=protocol)
-            validation_raw = expand_observations(raw, plan) if protocol == OWNED_VERSION else raw
+            validation_raw = expand_observations(raw, plan) if protocol in SUPPORTED_VERSIONS else raw
             fact_errors = []
             for key, definition in plan['definitions'].items():
                 try:

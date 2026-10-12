@@ -18,7 +18,7 @@ from evovideo_skill.review_observations import compile_plan, project_response, V
 from evovideo_skill.scoped_judgment import is_scoped, project
 from evovideo_skill.verifier_facts import with_fact_contract, fact_conflicts
 from evovideo_skill.verifier_identity import contract, assess
-from evovideo_skill.owned_observations import VERSION as OWNED_VERSION
+from evovideo_skill.owned_observations import SUPPORTED_VERSIONS
 from evovideo_skill.verifier_review import validate_checks
 
 
@@ -32,7 +32,7 @@ def replay(request, raw, require_review=False):
     manifest = request['evidence_manifest']
     spans = manifest['windows']
     protocol = request.get('output_contract', {}).get('response_protocol')
-    if protocol in {VERSION, OWNED_VERSION}:
+    if protocol in {VERSION, *SUPPORTED_VERSIONS}:
         plan = compile_plan(rules, request.get('original_task', {}), spans, manifest, protocol=protocol)
         normalized = project_response(raw, plan, manifest)
         rules = plan['rules']
@@ -52,7 +52,7 @@ def replay(request, raw, require_review=False):
     if isinstance(normalized, dict) and 'identity_bindings' in normalized:
         normalized = {k: v for k, v in normalized.items() if k != 'identity_bindings'}
     rows = parse_judgment(normalized, rules, spans, manifest)
-    identity_required = (bool(request.get('identity_contract')) or protocol in {VERSION, OWNED_VERSION})
+    identity_required = (bool(request.get('identity_contract')) or protocol in {VERSION, *SUPPORTED_VERSIONS})
     identity = assess(raw, contract(request.get('original_task', {}), rules, manifest) if identity_required else None)
     conflicts = fact_conflicts({k: [v] for k, v in rows.items()})
     unknown = sorted(k for k, v in rows.items() if v['status'] == 'unobserved')

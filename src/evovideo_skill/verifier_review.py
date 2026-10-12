@@ -12,7 +12,7 @@ from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'owned-fact-review-v14'
+VERSION = 'predicate-scoped-review-v15'
 DEFAULTS = dict(enabled=False, max_calls_per_criterion=4, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
                 secondary_model=None, confirmations=2)
@@ -491,8 +491,8 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
             def prepare_request_payload(self, payload):
                 payload = deepcopy(payload)
                 from evovideo_skill.review_observations import VERSION as OBSERVATION_PROTOCOL
-                from evovideo_skill.owned_observations import VERSION as OWNED_PROTOCOL
-                if payload.get('output_contract', {}).get('response_protocol') not in {OBSERVATION_PROTOCOL, OWNED_PROTOCOL}:
+                from evovideo_skill.owned_observations import SUPPORTED_VERSIONS
+                if payload.get('output_contract', {}).get('response_protocol') not in {OBSERVATION_PROTOCOL, *SUPPORTED_VERSIONS}:
                     add_review_contract(payload)
                     payload['atomic_review'] = {'checks': CHECKS, 'location': 'atomic_checks inside each criterion',
                         'schema': {'evidence_conditions': {'status': 'sufficient|insufficient|uncertain', 'evidence': 'visual identifiability, visibility, or temporal coverage'},

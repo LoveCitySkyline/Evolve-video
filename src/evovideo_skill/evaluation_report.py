@@ -53,6 +53,10 @@ def scorecard(evaluation, acceptance, generation_cost=None, diagnostics=None):
         vector[name] = {'score': value, 'processing_state': state,
                         'acceptance': checks.get(name),
                         'evidence': evaluation.get('criterion_evidence', {}).get(name)}
+        derivations = [row['aggregation_bounds'] for row in evaluation.get('criterion_observations', {}).get(name, [])
+                       if row.get('aggregation_bounds')]
+        if derivations:
+            vector[name]['aggregation_bounds'] = derivations
     applicable = [r for r in vector.values() if r['processing_state'] != 'not_applicable']
     measured = sum(r['score'] is not None for r in applicable)
     complete = (evaluation.get('evaluation_status') == 'complete' and not unknown and not disputed

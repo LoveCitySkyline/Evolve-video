@@ -7,7 +7,8 @@ Legacy graded responses remain supported ONLY by the legacy replay adapter.
 from copy import deepcopy
 import math
 
-VERSION = 'shared-observation-review-v2'
+VERSION = 'shared-observation-review-v3'
+SUPPORTED_VERSIONS = {'shared-observation-review-v2', VERSION}
 SYSTEM = '''Return JSON following output_contract.response_shape exactly.
 Observe each requested source proposition once. Each fact has ONLY basis,
 confidence, evidence, evidence_refs. Never output credit, score, matched, unmet,
@@ -30,9 +31,25 @@ Keep original source identity definitions. If requested return identity_bindings
 Standalone judgments follow their own contract. All evidence IDs must actually
 be attached. Unknown may cite context, but does not earn a numerical score.
 '''
+PREDICATE_INSTRUCTIONS = '''Judge the EXACT proposition and temporal scope in each predicate_contract.
+Context identifies actors, objects and explicit relations; it is not an extra
+requirement or a substitute observation. A failed initial setup is not proof of
+a failed later action, tension state, or visual continuity. Different physical
+attributes may coexist: attachment/position does not determine tension, motion,
+contents or identity. Never invent an equivalence between different predicates.
+For a visible counterexample, describe a visible alternative incompatible with
+THIS proposition at THIS scope. If only a different property is visible, use
+unknown for the requested property. A boundary describes that instant only;
+'stays/throughout' needs interval evidence, and a failure needs a cited instant
+showing the incompatible state. Current post-state success does not prove an
+invariant, and a failed precondition does not by itself refute that invariant.
+Do not infer a mandatory order from 'and'. Do not replace an unseen action with
+its intended effect. Confidence, nearby task failures and repeated labels cannot
+repair missing evidence. Apply these rules before returning the four fact fields.
+'''
 
 
-def prepare_plan(plan):
+def prepare_plan(plan, protocol=VERSION):
     """Remove duplicate historical questions, not their declared dependencies."""
     index = next(iter(plan['rules'].values()))['story_shot_index']
     dependencies = {}
@@ -70,7 +87,9 @@ def prepare_plan(plan):
             aliases[key] = owners[signature]
         else:
             owners[signature] = key
-    plan.update(wire_protocol=VERSION, owner_context=dependencies, fact_aliases=aliases)
+    plan.update(wire_protocol=protocol, owner_context=dependencies, fact_aliases=aliases)
+    if protocol == VERSION:
+        plan['aggregation_policy'] = 'bounded-source-aggregation-v1'
 
 
 def wire_contract(plan):
@@ -85,12 +104,25 @@ def wire_contract(plan):
     sources = {k: deepcopy(plan['sources'][k]) for k in fields}
     for source in sources.values():
         source['citation_contract']['refs_when_unknown'] = '[] or allowed IDs explaining uncertainty only'
-    return {'response_protocol': VERSION, 'response_shape': shape,
+        if plan.get('aggregation_policy'):
+            source['predicate_contract'] = {'target': source['proposition'], 'source': source['source'],
+                'phase': source['phase'], 'shot_index': source['shot_index'],
+                'context': source.get('context'),
+                'counterexample_requirement': 'Cited visible alternative incompatible with this target itself; '
+                    'another failed criterion or an assumed equivalence is not a counterexample.',
+                'temporal_rule': 'pre/post uses its own boundary only; event/invariant keeps source-declared '
+                    'interval and connective. Do not move an observation to another phase.'}
+    return {'response_protocol': plan['wire_protocol'], 'response_shape': shape,
         'fact_sources': sources, 'evidence_catalog': plan['evidence_catalog'],
         'standalone_contract': plan['standalone_contract'],
         'standalone_criterion_ids': list(plan['standalone']),
         'fact_aliases': plan['fact_aliases'], 'derivations': plan['consumers'],
         'owner_context': plan['owner_context'],
+        **({'aggregation_policy': plan['aggregation_policy'],
+            'predicate_instructions': PREDICATE_INSTRUCTIONS,
+            'aggregate_unknown_policy': 'Minimum has exact value 0 when a validated component is 0 even if '
+                'another is unknown. Other minima and means remain unknown unless their bounds coincide. '
+                'Keep every unknown child; never fill it with the parent score.'} if plan.get('aggregation_policy') else {}),
         'scoring_policy': 'Declared source facts are categorical: supported=1, contradicted=0, unknown=null. '
             'Event/obligation conjunction and action aggregation remain host-derived. '
             'This changes the legacy free partial-credit protocol; do not pool old and new scores.',
@@ -138,7 +170,7 @@ def reconcile_owned_facts(observations):
     owners, bindings = {}, {}
     for name, rows in observations.items():
         for repeat, row in enumerate(rows):
-            if row.get('fact_protocol') != VERSION:
+            if row.get('fact_protocol') not in SUPPORTED_VERSIONS:
                 continue
             index = row.get('review_derivation', {}).get('owner_shot_index')
             for key, fact in row.get('fact_observations', {}).items():
@@ -152,7 +184,7 @@ def reconcile_owned_facts(observations):
     for name, rows in observations.items():
         for row in rows:
             refs = row.get('owner_fact_context')
-            if row.get('fact_protocol') != VERSION or not refs:
+            if row.get('fact_protocol') not in SUPPORTED_VERSIONS or not refs:
                 continue
             unresolved, conflicts = [], []
             for key in refs:

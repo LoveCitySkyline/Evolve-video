@@ -25,9 +25,9 @@ def audit(probe_dir):
             actual_path = path.with_name(path.name.split('.')[0] + f'.request-{attempt}.json')
             actual = json.loads(actual_path.read_text()) if actual_path.exists() else {}
             from evovideo_skill.review_observations import VERSION as OBSERVATION_PROTOCOL
-            from evovideo_skill.owned_observations import VERSION as OWNED_VERSION
+            from evovideo_skill.owned_observations import SUPPORTED_VERSIONS
             wire_protocol = actual.get('output_contract', {}).get('response_protocol')
-            shared = wire_protocol in {OBSERVATION_PROTOCOL, OWNED_VERSION}
+            shared = wire_protocol in {OBSERVATION_PROTOCOL, *SUPPORTED_VERSIONS}
             if shared:
                 from evovideo_skill.review_observations import compile_plan, project_response, expand_field_patch
                 from evovideo_skill.scoped_judgment import project

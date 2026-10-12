@@ -119,10 +119,10 @@ def compile_plan(criteria, public, spans, manifest, protocol=None):
     plan = {'rules': rules, 'definitions': definitions, 'modes': modes, 'sources': sources, 'evidence_catalog': labels,
             'consumers': consumers, 'standalone': standalone, 'standalone_contract': fields}
     if protocol is not None and protocol != VERSION:
-        from evovideo_skill.owned_observations import VERSION as OWNED_VERSION, prepare_plan
-        if protocol != OWNED_VERSION:
+        from evovideo_skill.owned_observations import SUPPORTED_VERSIONS, prepare_plan
+        if protocol not in SUPPORTED_VERSIONS:
             raise ValueError('unsupported shared observation protocol: ' + protocol)
-        prepare_plan(plan)
+        prepare_plan(plan, protocol)
     return plan
 
 
@@ -357,7 +357,7 @@ def _validate_observation(key, definition, fact, plan, manifest):
     return row, credit
 
 
-def project_response(raw, plan, manifest):
+def project_response(raw, plan, manifest, *, with_audit=False):
     """Do not accept legacy redundant verdicts or turn old conflicts into scores."""
     if not isinstance(raw, dict) or set(raw) - {'facts', 'judgments', 'identity_bindings'}:
         raise ValueError('shared observation response permits only facts, judgments, identity_bindings')
@@ -387,6 +387,7 @@ def project_response(raw, plan, manifest):
     if errors:
         raise ObservationValidationError(errors)
     out = deepcopy(judgments)
+    aggregation_audits = {}
     for name, row in out.items():
         if not isinstance(row, dict) or 'fact_observations' in row or 'atomic_checks' in row:
             raise ValueError(name + ': standalone judgments must not duplicate shared facts or atomic checks')
@@ -395,6 +396,7 @@ def project_response(raw, plan, manifest):
             row['fact_observations'] = {k: deepcopy(canonical[k]) for k in fc['facts']}
     for name, consumer in plan['consumers'].items():
         rule = plan['rules'][name]
+        aggregation = None
         if 'primary' in consumer:
             key = consumer['primary']
             deps, score = [key], credits[key]
@@ -403,10 +405,24 @@ def project_response(raw, plan, manifest):
             deps = list(dict.fromkeys(k for parts in aggregate['events'] for k in parts))
             if aggregate['order']:
                 deps.append(aggregate['order'])
-            score = None if any(credits[k] is None for k in deps) else sum(
-                min(credits[k] for k in parts) for parts in aggregate['events']) / len(aggregate['events'])
-            if score is not None and aggregate['order']:
-                score = min(score, credits[aggregate['order']])
+            if plan.get('aggregation_policy'):
+                from evovideo_skill.evidence_aggregation import bounds, combine, point, audit
+                event_bounds = [combine([bounds(credits[k]) for k in parts], 'minimum')
+                                for parts in aggregate['events']]
+                interval = combine(event_bounds, 'mean')
+                if aggregate['order']:
+                    interval = combine([interval, bounds(credits[aggregate['order']])], 'minimum')
+                score = point(interval)
+                aggregation = audit(interval, 'mean_of_event_minima_with_order_cap',
+                                    [k for k in deps if credits[k] is None])
+                aggregation['event_bounds'] = [audit(b, 'minimum',
+                    [k for k in parts if credits[k] is None], [k for k in parts if credits[k] == 0])
+                    for parts, b in zip(aggregate['events'], event_bounds)]
+            else:
+                score = None if any(credits[k] is None for k in deps) else sum(
+                    min(credits[k] for k in parts) for parts in aggregate['events']) / len(aggregate['events'])
+                if score is not None and aggregate['order']:
+                    score = min(score, credits[aggregate['order']])
         row = {'confidence': min(facts[k]['confidence'] for k in deps),
             'evidence': 'Host projection from shared observations: ' + ' | '.join(
                 f'{k}: {canonical[k]["evidence"]}' for k in deps),
@@ -429,7 +445,11 @@ def project_response(raw, plan, manifest):
             row['observation_basis'] = ('insufficient_evidence' if score is None else
                 'visible_match' if score == 1 else 'visible_mismatch')
         out[name] = row
-    return {'criteria': out}
+        if aggregation:
+            # Host metadata is attached after scoped parsing; it is not a model field.
+            aggregation_audits[name] = aggregation
+    result = {'criteria': out}
+    return (result, aggregation_audits) if with_audit else result
 
 
 def observe(reviewer, path, payload, evidence, operation, criteria, spans):
@@ -472,7 +492,7 @@ def observe(reviewer, path, payload, evidence, operation, criteria, spans):
                 'qualification': 'No inferred score or visual observation; complete response revalidated.'})
             if payload['output_contract'].get('response_mode') == 'missing_credit_patch':
                 write_json(path.with_suffix('.correction-1.expanded.json'), raw)
-            normalized = project_response(raw, plan, manifest)
+            normalized, aggregation_audits = project_response(raw, plan, manifest, with_audit=True)
             projected = project(normalized, plan['rules'], manifest)
             parsed = parse_judgment(projected, plan['rules'], spans, manifest)
             identity_audit = assess(raw, identity)
@@ -484,6 +504,11 @@ def observe(reviewer, path, payload, evidence, operation, criteria, spans):
                     'message': 'Source identity unresolved; no component score committed'}
                     for n in identity_audit['blocked_criteria']])
             for name, row in parsed.items():
+                if name in aggregation_audits:
+                    row['aggregation_bounds'] = deepcopy(aggregation_audits[name])
+                    for segment in row['segments']:
+                        if segment['segment_id'] == plan['rules'][name]['story_shot_index']:
+                            segment['aggregation_bounds'] = deepcopy(aggregation_audits[name])
                 row['review_derivation'] = {'protocol': plan.get('wire_protocol', VERSION),
                     **deepcopy(plan['consumers'].get(name, {'standalone': True}))}
                 if plan.get('wire_protocol'):

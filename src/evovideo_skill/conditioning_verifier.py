@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "owned-fact-evaluation-v35"
+VERIFIER_PROTOCOL_VERSION = "predicate-scoped-evaluation-v36"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -408,8 +408,11 @@ def aggregate_source_windows(components, spans):
         if len(target) != 1:
             raise ValueError('source aggregation window mismatch')
         segments.append(deepcopy(target[0]))
-    known = all(r.get('status') == 'observed' and not r.get('scope_issues') and not r.get('fact_conflicts')
-                for r in [*components, *segments])
+    from evovideo_skill.evidence_aggregation import audit, combine, observation_bounds, integrity_blocked
+    intervals = [observation_bounds(c) if not integrity_blocked(c) and not integrity_blocked(s)
+                 and observation_bounds(c) == observation_bounds(s) else (0., 1.)
+                 for c, s in zip(components, segments)]
+    known = all(lo == hi for lo, hi in intervals)
     result = {'status': 'observed' if known else 'unobserved',
         'score': statistics.mean(r['score'] for r in components) if known else None,
         'confidence': min(r['confidence'] for r in components),
@@ -421,6 +424,9 @@ def aggregate_source_windows(components, spans):
         result.update(processing_status='invalid_response', observation_source='response_format_failure')
     result['fact_observations'] = {key: deepcopy(value) for row in components
                                    for key, value in row.get('fact_observations', {}).items()}
+    interval = combine(intervals, 'mean')
+    result['aggregation_bounds'] = audit(interval, 'mean',
+        [span['segment_id'] for span, interval in zip(spans, intervals) if interval[0] != interval[1]])
     return result
 
 
@@ -842,10 +848,10 @@ class ConditioningVideoVerifier:
         if fixed:
             system += FRAME_INPUT_INSTRUCTIONS
         from evovideo_skill.review_observations import VERSION as OBSERVATION_PROTOCOL, SYSTEM as OBSERVATION_SYSTEM
-        from evovideo_skill.owned_observations import VERSION as OWNED_PROTOCOL, SYSTEM as OWNED_SYSTEM
+        from evovideo_skill.owned_observations import SUPPORTED_VERSIONS, SYSTEM as OWNED_SYSTEM
         wire_protocol = text_payload.get('output_contract', {}).get('response_protocol')
-        shared_review = wire_protocol in {OBSERVATION_PROTOCOL, OWNED_PROTOCOL}
-        if wire_protocol == OWNED_PROTOCOL:
+        shared_review = wire_protocol in {OBSERVATION_PROTOCOL, *SUPPORTED_VERSIONS}
+        if wire_protocol in SUPPORTED_VERSIONS:
             OBSERVATION_SYSTEM = OWNED_SYSTEM
         if shared_review:
             # A distinct wire contract: do not append the legacy criteria/facts
@@ -1560,7 +1566,7 @@ class ConditioningVideoVerifier:
                 "cross_window_conflict_policy": "single_owner_source_facts_with_explicit_context_bindings",
                 "fact_ownership": ownership_audit,
                 "shared_observation_protocol": self.observation_protocol,
-                "source_fact_scoring": "categorical_requirement_satisfaction" if self.observation_protocol == "shared-observation-review-v2" else "legacy_graded",
+                "source_fact_scoring": "categorical_requirement_satisfaction" if self.observation_protocol in {"shared-observation-review-v2", "shared-observation-review-v3"} else "legacy_graded",
                 'source_identity': source_identity_audit,
                 'fact_consistency': {'before_review': fact_conflicts_before, 'unresolved': fact_conflicts_after,
                     'qualification': 'Structured same-proposition consistency, not independent visual ground truth.'},
