@@ -56,6 +56,8 @@ PY
 
 不要为了追求 `resolved` 重复调用 Max。若要验证视觉准确性，需要一次性观看开发样本并填写独立事实标签；本次 fixtures 的标签仅说明理由推理是否充分，`human_visual_labels` 保持 null，不冒充人工视觉标签。该案例已经用于调试，不能作为未见测试集的质量收益。
 
+现可用 [事实复核包](predicate_review_pack.md) 一条命令完成离线审计、按视频事实去重、复制哈希匹配的画面及盲标页面导出。该工具不增加模型调用，不改变 V37.1 的评分协议。
+
 ## 同步与验证
 
 运行必需：`src/evovideo_skill/`、`scripts/`。建议同时同步 `tests/`（含 fixtures）及 `docs/verifier_protocol_v37.md`。配置、生成视频、benchmark 和权重无需改动。没有切换 Qwen 模型，也没有增加 API 预算。
