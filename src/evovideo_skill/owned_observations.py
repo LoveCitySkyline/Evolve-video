@@ -106,6 +106,8 @@ def wire_contract(plan):
         shape['judgments'] = deepcopy(plan['standalone_contract']['fields'])
     sources = {k: deepcopy(plan['sources'][k]) for k in fields}
     for source in sources.values():
+        from evovideo_skill.predicate_scope import predicate_scope
+        source['judgment_scope'] = predicate_scope(source)
         source['citation_contract']['refs_when_unknown'] = '[] or allowed IDs explaining uncertainty only'
         if plan.get('aggregation_policy'):
             source['predicate_contract'] = {'target': source['proposition'], 'source': source['source'],

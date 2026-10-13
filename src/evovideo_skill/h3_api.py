@@ -470,6 +470,7 @@ class H3GenerationTool(VideoTool):
                 mode = "fl2va" if any(r.get("role") in {"first_frame", "last_frame"} for r in refs) else "ref2va" if refs else "t2va"
         plan, planning_consumed = _plan_with_graph_conditioning(plan, context)
         prompt = plan.generation_prompt
+        shot_contract = None
         duration = config.get("duration_seconds", task.duration_seconds)
         if "shot_index" in config:
             index = config["shot_index"]
@@ -479,7 +480,8 @@ class H3GenerationTool(VideoTool):
             shot = shots[index]
             if not isinstance(shot, dict) or not isinstance(shot.get("prompt"), str) or not shot["prompt"].strip():
                 raise VideoApiError("Every H3 shot needs a nonempty prompt")
-            prompt = f"{task.metadata.get('h3_global_constraints', '')}\n{shot['prompt']}".strip()
+            from evovideo_skill.story_generation import shot_prompt
+            prompt, shot_contract = shot_prompt(task, index)
             duration = config.get("duration_seconds", shot.get("duration_seconds", task.duration_seconds))
         elif task.metadata.get("h3_shots"):
             prompt += "\nShared constraints: " + str(task.metadata.get("h3_global_constraints", ""))
@@ -560,6 +562,8 @@ class H3GenerationTool(VideoTool):
                     "h3_usage": record.get("usage"), "real_video_processed": True}
         if alignment is not None:
             metadata["h3_output_alignment"] = alignment
+        if shot_contract is not None and repair_segment is None:
+            metadata["h3_shot_contract"] = shot_contract
         if repair_segment is not None:
             metadata.update(repair_timeline="segment", repair_segment=dict(repair_segment))
         elif repair_instructions:

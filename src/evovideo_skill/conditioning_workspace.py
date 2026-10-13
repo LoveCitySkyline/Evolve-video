@@ -32,6 +32,7 @@ def artifact_view(artifact):
             "duration_seconds", "has_audio") if key in meta},
         "references": reference_view(meta.get("h3_references", [])),
         "submitted_conditioning": reference_view(meta.get("h3_conditioning", [])),
+        "shot_contract": deepcopy(meta.get("h3_shot_contract")),
         "request_hash": meta.get("h3_request_hash"),
         "adapter_reports_consumption": meta.get("upstream_conditioning_consumed") is True,
         "semantic_validity": "unverified"}
@@ -105,7 +106,9 @@ def planner_project(task, parent, records, operation):
                 "artifact_id", "tool", "input_nodes", "input_artifact_ids", "cache_hit",
                 "artifact_state") if key in evidence} for node_id, evidence in nodes.items()},
             "quality_scope": "whole output; not a per-node semantic approval"})
+    from evovideo_skill.story_generation import state_transfer_view
     return {"version": VERSION, "references": refs,
+        "story_state_transfer": state_transfer_view(task, parent),
         "reference_status": "supplied inputs; semantic correctness is not certified",
         "observations": observations, "has_measured_video": bool(observations),
         "generation_contract": {

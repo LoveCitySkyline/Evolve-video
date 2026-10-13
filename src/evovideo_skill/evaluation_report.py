@@ -68,7 +68,21 @@ def scorecard(evaluation, acceptance, generation_cost=None, diagnostics=None):
     # No quality average or relative gain can turn an unmet contract into success.
     accepted = complete and acceptance.get('status') == 'passed'
     from evovideo_skill.owned_observations import quality_bounds
-    bounds = quality_bounds(vector, {k: v.get('weight', 1.0) for k, v in rules.items() if isinstance(v, dict)})
+    # Auxiliary generic diagnostics must not silently change the declared
+    # rubric's denominator. Keep them visible in the vector, outside its mean.
+    bounds = quality_bounds({k: v for k, v in vector.items() if not rules or k in rules},
+        {k: v.get('weight', 1.0) for k, v in rules.items() if isinstance(v, dict)})
+    from evovideo_skill.evaluation_policy import automation_disposition
+    net_bounds = None
+    if generation_cost and generation_cost.get('objective', {}).get('enabled'):
+        from evovideo_skill.conditioning_cost import penalty
+        if all(number(generation_cost.get(k)) for k in ('normalized_calls', 'normalized_seconds')):
+            cost_penalty = penalty(generation_cost, generation_cost['objective'])
+            net_bounds = {'lower': bounds['lower'] - cost_penalty if bounds['lower'] is not None else None,
+                'upper': bounds['upper'] - cost_penalty if bounds['upper'] is not None else None,
+                'cost_penalty': cost_penalty,
+                'qualification': 'Declared rubric mean minus deployment cost proxy; diagnostic only, '
+                    'not the learning reward, bargaining utility or a measured quality improvement.'}
     return {'quality_vector': vector, 'quality_bounds': bounds, 'evaluation_status': evaluation.get('evaluation_status', 'unknown'),
         'contract_status': acceptance.get('status', 'unknown'), 'contract_satisfied': accepted,
         'failed_constraints': sorted(k for k, v in checks.items() if v.get('status') == 'failed'),
@@ -77,6 +91,9 @@ def scorecard(evaluation, acceptance, generation_cost=None, diagnostics=None):
                              'fraction': measured / len(applicable) if applicable else None},
         'unknown_criteria': sorted(unknown), 'disputed_criteria': sorted(disputed),
         'sampling_policy': meta.get('sampling_policy'),
+        'automation': meta.get('automation') or automation_disposition(evaluation),
+        'review_schedule': meta.get('review_schedule'),
+        'net_rubric_quality_bounds': net_bounds,
         'processing_diagnostics': meta.get('processing_diagnostics'),
         'judgment_path': meta.get('judgment_path'),
         'verifier_protocol': meta.get('verifier_protocol'),
@@ -158,6 +175,7 @@ def build_report(root):
             if not evaluation:
                 evaluation = {'evaluation_status': 'needs_review' if folder == 'unobserved_evaluations' else 'unknown',
                               'criterion_scores': row.get('criterion_scores', {}),
+                              'criterion_observations': row.get('criterion_observations', {}),
                               'verification_metadata': row.get('verification', {})}
             outputs.append({'evaluation_id': ident, 'task_id': row.get('task_id', row.get('source', {}).get('task_id')),
                 'source': str(path.relative_to(root)),
@@ -216,6 +234,7 @@ def build_report(root):
             'unique_judgments': len(unique),
             'unique_by_evaluation_status': dict(Counter(r['evaluation_status'] for r in unique.values())), 'contract_satisfied': sum(r['contract_satisfied'] for r in outputs),
             'by_evaluation_status': dict(Counter(r['evaluation_status'] for r in outputs))},
+        'automation_counts': dict(Counter(r['automation']['disposition'] for r in unique.values())),
         'outputs': outputs, 'heldout_tests': heldout, 'read_issues': issues,
         'completion': {'stopped': read(root / 'stopped.json'), 'incomplete': read(root / 'incomplete.json'),
                        'saved_summary': read(root / 'summary.json')},
@@ -230,7 +249,7 @@ def export_report(root):
     # Rendering the same JSON avoids a second, inconsistent aggregate calculation.
     html = '<!doctype html><meta charset="utf-8"><title>质量、预算与评估证据</title>'
     html += '<style>body{max-width:1100px;margin:32px auto;font:16px/1.6 system-ui;padding:0 20px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f4f7;padding:18px}details{margin:18px 0}table{border-collapse:collapse;width:100%}th,td{padding:8px;border:1px solid #ddd;text-align:left}.scroll{overflow:auto}</style>'
-    html += '<h1>质量、预算与评估证据</h1><p>评分改善 ≠ 全部约束通过。未知不等于零分；单次判断不证明稳定性。GPU 时间与金额未测量。</p>'
+    html += '<h1>质量、预算与评估证据</h1><p>评分改善 ≠ 全部约束通过。未知不等于零分；单次判断不证明稳定性。GPU 时间与金额未测量。</p><p>abstained 表示已自动暂缓该结果：保留未知，不计学习收益，继续其他任务。兼容字段 needs_review 不代表必须人工解锁。</p>'
     def display(value):
         return '未测量' if value is None else escape(str(value))
     labels = {'generation_budget': '生成预算与剩余额度', 'verifier_cost': '评估调用与已报告用量',
@@ -238,13 +257,15 @@ def export_report(root):
         'planner_cost': '规划开销', 'output_counts': '已保存评估概况', 'heldout_tests': '测试集质量与成本比较',
         'completion': '运行完成与停止状态', 'read_issues': '报告读取异常'}
     html += '<h2>逐视频结果</h2><p>路径成本按从头执行的调用数和生成视频秒数估计；客户端耗时包含排队和媒体处理。不同单位不直接相加。</p>'
-    html += '<div class="scroll"><table><tr><th>任务 / 评估</th><th>评估状态</th><th>必需条件</th><th>指标覆盖率</th><th>路径调用数</th><th>路径视频秒</th><th>生成阶段耗时</th></tr>'
+    html += '<div class="scroll"><table><tr><th>任务 / 评估</th><th>自动处理</th><th>必需条件</th><th>指标覆盖率</th><th>质量区间</th><th>路径调用数</th><th>路径视频秒</th><th>生成阶段耗时</th></tr>'
     for output in report['outputs']:
         cost = output['generation_cost_proxy'] or {}
         coverage = output['quality_coverage']['fraction']
-        values = [f"{output['task_id']} / {str(output['evaluation_id'])[:8]}", output['evaluation_status'],
+        bounds = output['quality_bounds']
+        interval = f"[{bounds['lower']:.3f}, {bounds['upper']:.3f}]" if bounds['lower'] is not None else None
+        values = [f"{output['task_id']} / {str(output['evaluation_id'])[:8]}", output['automation']['disposition'],
             output['contract_status'], f'{coverage:.1%}' if coverage is not None else None,
-            cost.get('calls'), cost.get('generated_seconds'), output['generation_wall_seconds']]
+            interval, cost.get('calls'), cost.get('generated_seconds'), output['generation_wall_seconds']]
         html += '<tr>' + ''.join('<td>'+display(v)+'</td>' for v in values) + '</tr>'
     html += '</table></div>'
     for key in ('generation_budget', 'verifier_cost', 'verifier_limits', 'review_budgets',

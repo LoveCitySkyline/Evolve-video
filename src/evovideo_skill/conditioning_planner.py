@@ -11,6 +11,11 @@ Return exactly {graph:{nodes:[],edges:[]}, strategy:{name,instruction,hypothesis
 required_references}, used_strategy_ids:[]} as JSON, without markdown.
 Nodes have node_id,node_type (tool or trigger),name,config. Edges have edge_id,source,
 target,condition:'always',config:{}.
+Read project_state.story_state_transfer when present. Text describing continuity
+does not transfer generated pixels. Consider the explicit boundary-link recipe
+as a measured intervention, preserving independent-shot baselines. A carried bad
+state may propagate defects; compare quality, generation calls/seconds and wall
+time. Never claim a state is verified merely because its prompt requested it.
 Every strategy object MUST contain exactly these five fields (no extra fields):
 {"name":"snake_case_name","instruction":"Portable conditioning instruction",
 "hypothesis":"Testable expected effect","risks":["Possible regression"],

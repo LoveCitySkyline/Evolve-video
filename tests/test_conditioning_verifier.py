@@ -264,6 +264,32 @@ class EvidenceContractTests(unittest.TestCase):
 
 
 class VerifierTests(unittest.TestCase):
+    def test_terminal_unknown_is_reused_without_new_judging(self):
+        verifier = ConditioningVideoVerifier(profile(auto_review={'enabled': False}), self.root)
+        def request(prompt, media, operation):
+            rows = {name: observed() for name in json.loads(prompt)['criteria']}
+            for row in rows.values():
+                row.update(status='unobserved', score=None)
+                for segment in row['segments']:
+                    segment.update(status='unobserved', score=None)
+            return {'criteria': rows}
+        with patch.object(verifier, 'evidence', return_value=(self.evidence, self.manifest)), \
+                patch.object(verifier, 'request', side_effect=request):
+            first = verifier.evaluate(self.task, self.artifact)
+        self.assertEqual(first['evaluation_status'], 'needs_review')
+        self.assertEqual(first['verification_metadata']['automation']['disposition'], 'abstained')
+        self.assertTrue(list(self.root.glob('judgments/*/terminal.json')))
+        with patch.object(verifier, 'evidence', return_value=(self.evidence, self.manifest)), \
+                patch.object(verifier, '_observe_group', side_effect=AssertionError('new judgment')):
+            second = verifier.evaluate(self.task, self.artifact)
+        self.assertEqual(first, second)
+        # A changed profile belongs to a different experiment/cache namespace.
+        verifier.profile['fps'] += 1
+        with patch.object(verifier, 'evidence', return_value=(self.evidence, self.manifest)), \
+                patch.object(verifier, '_observe_group', side_effect=RuntimeError('new profile')):
+            with self.assertRaisesRegex(RuntimeError, 'new profile'):
+                verifier.evaluate(self.task, self.artifact)
+
     def test_group_routing_preserves_references_and_excludes_other_windows(self):
         verifier = ConditioningVideoVerifier(profile(criteria_per_call=2), self.root)
         criteria = {"global": {}, "shot2a": {"story_shot_index": 2},

@@ -26,6 +26,9 @@ def diagnose(root):
         problems = sorted(set(meta.get('unobserved_criteria', [])) | set(meta.get('disagreement_criteria', [])))
         unique[key] = {**record, 'evaluation_ids': [record['evaluation_id']],
             'protocol': meta.get('verifier_protocol'),
+            'automation': meta.get('automation', {}),
+            'review_schedule': meta.get('review_schedule', {}),
+            'response_format_failures': meta.get('response_format_failures', []),
             'processing_summary': meta.get('processing_summary'),
             'review_failures': meta.get('processing_diagnostics', {}).get('review_failure_components', []),
             'fact_conflicts': meta.get('fact_consistency', {}).get('unresolved', {}),
@@ -50,6 +53,12 @@ def diagnose(root):
         'source_run': str(root), 'saved_summary_complete': summary.get('complete'),
         'saved_records': len(records), 'unique_judgments': len(unique),
         'unique_status_counts': dict(Counter(r['status'] for r in unique.values())),
+        'automation_counts': dict(Counter(r['automation'].get('disposition', 'legacy_unspecified')
+                                         for r in unique.values())),
+        'review_scheduling_counts': dict(Counter(
+            f"{entry.get('action', 'unknown')}:{entry.get('reason', 'unknown')}"
+            for r in unique.values() for entry in r['review_schedule'].get('components', []))),
+        'initial_format_failure_count': sum(len(r['response_format_failures']) for r in unique.values()),
         'per_task': {task: dict(Counter(r['status'] for r in unique.values() if r['task_id'] == task))
                      for task in sorted({r['task_id'] for r in records if r['task_id']})},
         'failed_component_counts': dict(Counter(r['reason'] for r in failures)),

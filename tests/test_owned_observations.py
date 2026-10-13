@@ -67,6 +67,33 @@ class OwnedObservationTests(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 self.parse(raw)
 
+    def test_failed_precondition_does_not_erase_observed_action(self):
+        rules = deepcopy(self.fx.fx.rules)
+        rules['story.s2.pre.token.location'] = {**rules[POST], 'description':'Token begins in A hand.'}
+        self.plan = compile_plan(rules,self.fx.fx.public,SPANS,self.manifest,protocol=VERSION)
+        raw = self.raw()
+        raw['facts']['s2:pre:token.location'].update(basis='visible_counterexample',
+            evidence='Token visibly starts on the counter rather than in A hand.')
+        rows = self.parse(raw)
+        self.assertEqual(rows['story.s2.pre.token.location']['score'],0)
+        self.assertEqual(rows[EVENT]['score'],1)
+        self.assertEqual(rows['action_alignment_score']['score'],1)
+        self.assertEqual(rows[POST]['score'],1)
+        from evovideo_skill.models import VideoTask, VideoArtifact
+        from evovideo_skill.story_contracts import acceptance_report
+        task = VideoTask('fixture','fixture',metadata={'evaluation':rules,
+            'h3_shots':[{'duration_seconds':6} for _ in SPANS]})
+        artifact = VideoArtifact('fixture','fixture','fixture',task.mode,[],[],{
+            'vlm_evaluation':{'criterion_observations':{k:[v] for k,v in rows.items()},
+                              'verification_metadata':{'windows':SPANS}}})
+        report = acceptance_report(task,artifact)
+        self.assertEqual(report['status'],'failed')
+        self.assertEqual(report['checks'][EVENT]['status'],'passed')
+        self.assertEqual(report['checks']['story.s2.pre.token.location']['status'],'failed')
+        sources = wire_contract(self.plan)['fact_sources']
+        self.assertEqual(sources[EVENT_FACT]['judgment_scope']['scope'],'action_only')
+        self.assertEqual(sources['s2:pre:token.location']['judgment_scope']['state_key'],'token.location')
+
     def test_actual_review_router_uses_new_wire_and_preserves_observed_negative(self):
         self.assertEqual(ConditioningVideoVerifier.observation_protocol, VERSION)
         with TemporaryDirectory() as root:
@@ -177,7 +204,9 @@ class BatchAndCalibrationTests(unittest.TestCase):
             root=Path(tmp); (root/'observations').mkdir()
             sample={'source':{'evaluation_id':'a','task_id':'task'},'evaluation':{
                 'evaluation_status':'needs_review','criterion_observations':{'x':[{'status':'unobserved','score':None}]},
-                'verification_metadata':{'judgment_path':'same/judgment','unobserved_criteria':['x']}}}
+                'verification_metadata':{'judgment_path':'same/judgment','unobserved_criteria':['x'],
+                    'review_schedule': {'components': [{'action': 'abstain', 'reason': 'below_review_materiality'}]},
+                    'response_format_failures': [{'group': 10, 'repeat': 0, 'error': 'bad envelope'}]}}}
             for ident in ('a','b'):
                 sample['source']['evaluation_id']=ident
                 (root/'observations'/f'{ident}.json').write_text(json.dumps(sample))
@@ -186,6 +215,9 @@ class BatchAndCalibrationTests(unittest.TestCase):
             self.assertEqual(report['unique_judgments'],1)
             self.assertEqual(report['judgments'][0]['evaluation_ids'],['a','b'])
             self.assertEqual(report['model_calls'],0)
+            self.assertEqual(report['review_scheduling_counts'], {'abstain:below_review_materiality': 1})
+            self.assertEqual(report['initial_format_failure_count'], 1)
+            self.assertEqual(report['judgments'][0]['response_format_failures'][0]['group'], 10)
 
     def test_known_unknown_and_threshold_flips_are_not_hidden_by_incomplete_run(self):
         from evovideo_skill.conditioning_calibration import repeatability_report

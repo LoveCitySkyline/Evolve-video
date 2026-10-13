@@ -260,6 +260,31 @@ class RunnerAbstentionTests(unittest.TestCase):
         from evovideo_skill.conditioning_runner import EvidenceIncomplete
         return EvidenceIncomplete('disputed', {'verification': {'disagreement_criteria': ['state']}, 'seed': 42})
 
+    def test_saved_abstention_keeps_partial_quality_cost_and_is_not_reexecuted(self):
+        from evovideo_skill.conditioning_runner import EvidenceIncomplete
+        original = self.runner.evolver.rollout
+        def partial(*args, **kwargs):
+            rollout = original(*args, **kwargs)
+            rollout.artifact.metadata['vlm_evaluation'] = {
+                'evaluation_status': 'needs_review', 'criterion_scores': {'known': .8},
+                'verification_metadata': {'verifier_protocol': 'fixture', 'unobserved_criteria': ['hidden'],
+                    'criterion_contracts': {'known': {'weight': 1}, 'hidden': {'weight': 1}},
+                    'criterion_processing_states': {'known': 'measured', 'hidden': 'insufficient_evidence'}}}
+            return rollout
+        task = self.runner.dataset.train[0]
+        args = (task, self.runner.baseline, self.runner.seeds[0], 'train/' + task.task_id)
+        with patch.object(self.runner.evolver, 'rollout', side_effect=partial):
+            with self.assertRaises(EvidenceIncomplete):
+                self.runner.evaluate(*args)
+        saved = json.loads(next((self.runner.root/'unobserved_evaluations').glob('*.json')).read_text())
+        self.assertEqual(saved['evaluation']['criterion_scores'], {'known': .8})
+        self.assertEqual(saved['evaluation_scorecard']['quality_bounds']['lower'], .4)
+        self.assertIn('reserved_budget_delta', saved)
+        self.assertIn('generation_cost', saved)
+        with patch.object(self.runner.evolver, 'rollout', side_effect=AssertionError('regeneration')):
+            with self.assertRaises(EvidenceIncomplete):
+                self.runner.evaluate(*args)
+
     def test_parent_abstention_does_not_stop_or_learn_false_gain(self):
         with patch.object(self.runner, 'evaluate', side_effect=self.pending()):
             self.runner.learn()

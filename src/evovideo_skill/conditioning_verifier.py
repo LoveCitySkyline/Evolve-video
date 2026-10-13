@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "predicate-evidence-evaluation-v37.1"
+VERIFIER_PROTOCOL_VERSION = "source-scoped-evaluation-v40"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -1299,7 +1299,12 @@ class ConditioningVideoVerifier:
             if checked_raw is None:
                 pass
             elif not isinstance(rows, dict) or set(rows) != set(remaining) or set(checked_raw) != {'criteria'}:
-                errors.append({'error': 'Return exactly the currently requested criterion keys; do not rewrite accepted criteria.'})
+                errors.append({'category': 'response_envelope',
+                    'expected_top_level_keys': ['criteria'],
+                    'received_top_level_keys': sorted(checked_raw) if isinstance(checked_raw, dict) else None,
+                    'expected_criterion_keys': sorted(remaining),
+                    'received_criterion_keys': sorted(rows) if isinstance(rows, dict) else None,
+                    'error': 'Return exactly the currently requested criterion keys; do not rewrite accepted criteria.'})
                 failed.update(remaining)
             else:
                 for name, rule in remaining.items():
@@ -1361,6 +1366,10 @@ class ConditioningVideoVerifier:
                 # Invalid answers stay in the audit, never as anchors in the second prompt.
                 feedback = {
                     'mode': 'fresh_evidence_reassessment',
+                    # Explain the wire mismatch without anchoring the model to
+                    # an invalid visual verdict or an earlier numerical score.
+                    'validation_errors': deepcopy([e for e in errors
+                        if e.get('category') == 'response_envelope']),
                     'invalid_criteria': sorted(failed),
                     'semantic_reassessment': {'criteria': sorted(semantic_rechecks)},
                     'instruction': 'The first response could not be accepted. Judge all requested criteria '
@@ -1401,6 +1410,9 @@ class ConditioningVideoVerifier:
         final = folder / "result.json"
         if self.cache_enabled and final.exists():
             return json.loads(final.read_text())
+        terminal = folder / 'terminal.json'
+        if self.cache_enabled and terminal.exists():
+            return json.loads(terminal.read_text())
         write_json(folder / "evidence.json", manifest)
         from evovideo_skill.verifier_review import options as review_options, review_group, uncertain
         auto_options = review_options(self.profile.get("auto_review"))
@@ -1445,13 +1457,27 @@ class ConditioningVideoVerifier:
             facts = any(rule.get('fact_contract') for rule in batch['criteria'].values())
             return (not mandatory, not facts, scope is None, scope or 0, domain)
         from evovideo_skill.verifier_facts import mark_conflicts
-        for (scope, domain), batch in sorted(review_batches.items(), key=review_priority):
+        from evovideo_skill.evaluation_policy import review_schedule, automation_disposition
+        # Generic metrics may feed the base-quality reward even when absent
+        # from the story rubric; retain them in the scheduling proxy.
+        schedule = review_schedule(review_batches, criteria, auto_options,
+                                   self.profile['disagreement_threshold'])
+        write_json(folder / 'review_schedule.json', schedule)
+        ordered_batches = sorted(review_batches.items(), key=review_priority)
+        if auto_options['policy'] == 'decision_relevant':
+            ranks = {}
+            for i, entry in enumerate(schedule['components']):
+                ranks.setdefault(entry['group'], i)
+            ordered_batches.sort(key=lambda item: ranks.get(f'scope-{item[0][0]}-{item[0][1]}', len(ranks)))
+        for (scope, domain), batch in ordered_batches:
             subset, group_rows = batch['criteria'], batch['rows']
             mark_conflicts(group_rows)
             if auto_options['enabled'] and artifact is not None:
                 key = f'scope-{scope}-{domain}'
                 review_audits[key] = review_group(self, task, artifact, public, subset,
-                    group_rows, folder, key, digest, manifest['candidate_hash'])
+                    group_rows, folder, key, digest, manifest['candidate_hash'],
+                    [e for e in schedule['components'] if e['group'] == key]
+                    if auto_options['policy'] == 'decision_relevant' else None)
             for k, rows in group_rows.items():
                 # Review assessments stay in the audit; reconciliation does not add independent samples.
                 if len(rows) != self.profile['repeats']:
@@ -1559,11 +1585,12 @@ class ConditioningVideoVerifier:
                 "processing_summary": {state: sum(s == state for s in criterion_states.values())
                     for state in ('measured', 'not_applicable', 'insufficient_evidence', 'score_unresolved', 'identity_unresolved', 'disputed', 'invalid_response')},
                 "auto_review": review_audits, "response_format_failures": format_failures,
+                "review_schedule": schedule,
                 "review_policy": "single_pass_shared_fact_components_atomic_commit",
                 "sampling_policy": {"initial_repeats": self.profile["repeats"],
                     "initial_repeat_agreement_measured": self.profile["repeats"] > 1,
                     "review_confirmations": auto_options["confirmations"],
-                    "review_trigger": "unknown_or_conflicting_components_only",
+                    "review_trigger": auto_options['policy'],
                     "qualification": "Single observations do not measure repeatability or establish visual truth."},
                 "cross_window_conflict_policy": "single_owner_source_facts_with_explicit_context_bindings",
                 "fact_ownership": ownership_audit,
@@ -1592,10 +1619,14 @@ class ConditioningVideoVerifier:
         self._normalize_benchmark_result(task, result)
         # Legacy normalization substitutes zero for missing fields; do not hide absent evidence.
         result["criterion_scores"] = {k: scores[k] for k in rubric if k in scores}
+        result['verification_metadata']['automation'] = automation_disposition(result)
         if result["evaluation_status"] == "complete":
             write_json(final, result)
         else:
             write_json(folder / "needs_review.json", result)
+        # Reuse terminal uncertainty for identical media/task/profile/protocol.
+        # Repeated callers must not turn abstention into retry-until-success.
+        write_json(terminal, result)
         return result
 
 

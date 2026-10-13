@@ -182,6 +182,7 @@ def main(argv=None):
                 'disagreement_criteria': metadata.get('disagreement_criteria', []),
                 'processing_summary': metadata.get('processing_summary', {}),
                 'review_failure_counts': metadata.get('processing_diagnostics', {}).get('review_failure_counts', {}),
+                'automation': metadata.get('automation', {}),
                 'judgment_path': metadata.get('judgment_path')}
             summaries.append(summary)
             write_json(root / 'summary.json', {**overview, 'complete': len(summaries) == len(videos),

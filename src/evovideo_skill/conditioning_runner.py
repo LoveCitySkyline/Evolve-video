@@ -240,6 +240,13 @@ class ConditioningRunner:
                                            for k in ("calls", "seconds")},
                     wall_seconds=time.monotonic() - started,
                     video_files=material_hashes([exc.details.get("video")]))
+                # Preserve measured siblings and their resource accounting even
+                # when this candidate is ineligible for a learning reward.
+                from evovideo_skill.evaluation_report import scorecard
+                exc.details['acceptance'] = acceptance_report(sampled, rollout.artifact)
+                exc.details['evaluation_scorecard'] = scorecard(
+                    exc.details.get('evaluation', {}), exc.details['acceptance'],
+                    exc.details['generation_cost'], exc.details['process_diagnostics'])
                 write_json(self.root / "unobserved_evaluations" / (ident + ".json"),
                            {"status": "evidence_incomplete", "error": str(exc), **exc.details})
             append_json(self.root / "errors.jsonl", {"episode": episode, "task_id": task.task_id,
@@ -266,6 +273,7 @@ class ConditioningRunner:
                 raise EvidenceIncomplete("verifier has unresolved criteria; inspect " +
                     str(details.get("judgment_path", "verifier logs")),
                     {"verification": details, "criterion_observations": vlm.get("criterion_observations", {}),
+                     "evaluation": deepcopy(vlm),
                      "video": artifact.metadata.get("local_video_path")})
             raise MeasurementUnavailable("verifier evidence is incomplete or disputed; inspect " + str(details.get("judgment_path", "verifier logs")))
         if not isinstance(score, (int, float)) or not math.isfinite(score) or not 0 <= score <= 1:
@@ -1062,6 +1070,13 @@ class ConditioningRunner:
         try:
             self.check_measurement(artifact, reward.score, self.config.get('unresolved_policy') == 'continue')
         except EvidenceIncomplete as exc:
+            from evovideo_skill.evaluation_report import scorecard
+            exc.details['generation_cost'] = deepcopy(record.get('generation_cost'))
+            exc.details['process_diagnostics'] = deepcopy(record.get('process_diagnostics'))
+            exc.details['acceptance'] = acceptance_report(task, artifact)
+            exc.details['evaluation_scorecard'] = scorecard(
+                exc.details.get('evaluation', {}), exc.details['acceptance'],
+                exc.details['generation_cost'], exc.details['process_diagnostics'])
             write_json(unresolved, {'status': 'abstained', 'reason': str(exc), 'details': exc.details})
             raise
         result = {"evaluation_id": record["evaluation_id"], "score": reward.score, "reward": reward.to_dict(),

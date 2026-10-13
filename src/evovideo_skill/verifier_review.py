@@ -12,10 +12,11 @@ from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'predicate-evidence-review-v16.1'
+VERSION = 'bounded-automatic-review-v17'
 DEFAULTS = dict(enabled=False, max_calls_per_criterion=4, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
-                secondary_model=None, confirmations=2)
+                secondary_model=None, confirmations=2, policy='all_uncertain',
+                min_quality_impact=.02, max_components_per_video=3)
 CHECKS = {
     'referents': 'Can all actors/objects NEEDED FOR THIS CLAIM be bound to visible evidence? A task definition alone is not visual identification.',
     'visibility': 'Is the visual evidence sufficient to decide this claim, including a visible counterexample? Not whether the required outcome occurs.',
@@ -157,11 +158,16 @@ def options(value=None):
     if type(out['enabled']) is not bool:
         raise ValueError('auto_review.enabled must be boolean')
     for key in ('max_calls_per_criterion', 'max_calls_per_video', 'max_calls_per_run',
-                'max_seconds_per_video', 'max_width'):
+                'max_seconds_per_video', 'max_width', 'max_components_per_video'):
         if type(out[key]) is not int or out[key] <= 0:
             raise ValueError('invalid auto_review.' + key)
     if type(out['confirmations']) is not int or out['confirmations'] not in (1, 2):
         raise ValueError('auto_review.confirmations must be 1 or 2')
+    if out['policy'] not in ('all_uncertain', 'decision_relevant'):
+        raise ValueError('invalid auto_review.policy')
+    if (type(out['min_quality_impact']) not in (int, float)
+            or not math.isfinite(out['min_quality_impact']) or not 0 <= out['min_quality_impact'] <= 1):
+        raise ValueError('invalid auto_review.min_quality_impact')
     if type(out['fps']) not in (int, float) or not math.isfinite(out['fps']) or not 0 < out['fps'] <= 30:
         raise ValueError('invalid auto_review.fps')
     if out['secondary_model'] is not None and (not isinstance(out['secondary_model'], str) or not out['secondary_model'].strip()):
@@ -436,7 +442,8 @@ def add_boundary_crops(reviewer, evidence, manifest):
     return fit_review_samples(reviewer, evidence, manifest)
 
 
-def review_group(owner, task, artifact, public, subset, rows, folder, group, digest, expected_source_hash=None):
+def review_group(owner, task, artifact, public, subset, rows, folder, group, digest, expected_source_hash=None,
+                 schedule=None):
     """Configured blind assessments on enhanced evidence, or retain uncertainty."""
     from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, VerifierFormatError, VerifierEvidenceError
     from evovideo_skill.api_tools import VideoApiError
@@ -447,8 +454,21 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
     from evovideo_skill.verifier_facts import fact_conflicts
     subset = review_rules(subset, public)
     audit = {}
-    for members in review_components(subset, rows, owner.profile['disagreement_threshold']):
+    components = review_components(subset, rows, owner.profile['disagreement_threshold'])
+    if schedule is not None:
+        order = {tuple(e['component']): i for i, e in enumerate(schedule)}
+        components.sort(key=lambda members: order.get(tuple(members), len(order)))
+    for members in components:
         initial = {name: deepcopy(rows[name]) for name in members}
+        if schedule is not None:
+            selection = next((e for e in schedule if e['component'] == members), None)
+            if selection is None or selection['action'] != 'review':
+                for name in members:
+                    audit[name] = {'status': 'abstained', 'component': members, 'observations': [],
+                        'abstention_kind': 'review_not_scheduled', 'additional_model_calls': 0,
+                        'errors': [], 'scheduling': selection,
+                        'human_review_required': False}
+                continue
         if any(row.get('identity_gate', {}).get('status') == 'blocked'
                for values in initial.values() for row in values):
             for name in members:

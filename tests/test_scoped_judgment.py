@@ -81,6 +81,10 @@ class ScopedJudgmentTests(unittest.TestCase):
         self.assertNotIn('score', fields['required'])
         self.assertNotIn('status', fields['required'])
         self.assertNotIn('segments', fields['required'])
+        shape = contract['response_shape']['criteria']['state']
+        self.assertEqual(set(shape), set(fields['required']))
+        self.assertNotIn('score', shape)
+        self.assertNotIn('status', shape)
         self.assertTrue(is_scoped({'s': STATE}))
         self.assertFalse(is_scoped({'global': {}, 's': STATE}))
 
@@ -120,6 +124,30 @@ class ScopedJudgmentTests(unittest.TestCase):
         self.assertEqual(failure_category(VerifierFormatError('bad')), 'response_format')
         self.assertEqual(failure_category(VerifierEvidenceError('bad')), 'local_evidence')
         self.assertEqual(failure_category(VideoApiError('HTTP')), 'transport_or_provider')
+
+    def test_envelope_feedback_identifies_keys_without_replaying_old_verdict(self):
+        with TemporaryDirectory() as tmp:
+            profile = resolve_profiles({'verifier': {'runtime': {}}}, RuntimeSettings(), require_keys=False)['runtime']
+            verifier = ConditioningVideoVerifier(profile, tmp)
+            rules = {'motion': {**STATE, 'judgment_contract': 'physical-motion-v1'}}
+            row = decision(assessment={'basis': 'physical_motion', 'outcome': 'coherent', 'defects': []})
+            bad = {'judgments': {'motion': row}}
+            good = {'criteria': {'motion': row}}
+            with patch.object(verifier, 'request', side_effect=[bad, good]) as request:
+                parsed = verifier._observe_group(Path(tmp)/'motion.json', {}, [], 'unit', rules, SPANS)
+            self.assertEqual(request.call_count, 2)
+            second = json.loads(request.call_args.args[0])
+            problem = second['format_feedback']['validation_errors'][0]
+            self.assertEqual(problem['received_top_level_keys'], ['judgments'])
+            self.assertEqual(problem['expected_criterion_keys'], ['motion'])
+            self.assertNotIn('Fixture observation', json.dumps(second))
+            self.assertEqual(set(second['output_contract']['response_shape']), {'criteria'})
+            self.assertEqual(parsed['motion']['score'], 1.)
+
+            with patch.object(verifier, 'request', return_value=bad) as request:
+                with self.assertRaises(VerifierFormatError):
+                    verifier._observe_group(Path(tmp)/'still-invalid.json', {}, [], 'unit', rules, SPANS)
+            self.assertEqual(request.call_count, 2)
 
     def test_physics_keeps_story_isolated_and_uses_single_window_system_on_both_transports(self):
         response = {'choices': [{'message': {'content': '{"criteria":{}}'}}],

@@ -243,6 +243,37 @@ class H3ExecutorTests(unittest.TestCase):
         with self.assertRaisesRegex(GraphExecutionError, "does not match"):
             executor.execute(replace(task, duration_seconds=10), self.plan, graph)
 
+    def test_previous_shot_last_pixels_are_submitted_as_next_first_frame(self):
+        task = replace(self.task, duration_seconds=8, metadata={"h3_shots": [
+            {"prompt":"Make a spiral", "duration_seconds":4},
+            {"prompt":"Raise the spiral wall", "duration_seconds":4}]})
+        graph = ToolPathGraph('carry','carry','',[],[
+            GraphNode('one','tool','h3_t2va',{'shot_index':0}),
+            GraphNode('frame','tool','h3_frame_extract',{'position':'last','role':'first_frame'}),
+            GraphNode('two','tool','h3_fl2va',{'shot_index':1}),
+            GraphNode('join','tool','h3_av_concat',{'source_nodes':['one','two']})], [
+            GraphEdge('a','one','frame'),GraphEdge('b','frame','two'),
+            GraphEdge('c','one','join'),GraphEdge('d','two','join')])
+        result = ArtifactPassingGraphExecutor(self.registry, EvaluatorSuite()).execute(task,self.plan,graph)
+        posts = [c[2] for c in self.http.calls if c[0]=='POST']
+        self.assertEqual(len(posts),2)
+        ref = posts[1]['content'][1]
+        self.assertEqual(ref['role'],'first_frame')
+        import base64
+        path = result.node_artifacts['frame'].metadata['local_image_path']
+        self.assertEqual(base64.b64decode(ref['image_url']['url'].split(',',1)[1]),Path(path).read_bytes())
+        self.assertAlmostEqual(result.artifact.metadata['duration_seconds'],8,delta=.2)
+
+    def test_scoped_story_prompt_reaches_provider_with_audit(self):
+        from test_story_generation import task as story_task
+        task = story_task()
+        result = self.registry.get('h3_t2va').run_with_context(task,self.plan,
+            ToolExecutionContext('shot2',{'shot_index':2,'duration_seconds':4}))
+        prompt = next(c[2]['content'][0]['text'] for c in self.http.calls if c[0]=='POST')
+        self.assertIn('shallow bowl',prompt)
+        self.assertNotIn('one long clay rope',prompt)
+        self.assertEqual(result.metadata['h3_shot_contract']['shot_index'],2)
+
     def test_long_direct_baseline_is_explicit_independent_shot_calls(self):
         task = replace(self.task, duration_seconds=16, metadata={
             "h3_shots": [{"prompt": f"Stage {index}", "duration_seconds": 4} for index in range(4)]})

@@ -68,6 +68,9 @@ class ConditioningNodeCache:
         plan_data.pop("selected_skill_names", None)
         data = [self.namespace, asdict(task), plan_data, asdict(node),
                 {k: asdict(v) for k, v in inputs.items()}, spec.to_dict()]
+        from evovideo_skill.story_generation import VERSION, GENERATORS
+        if spec.name in GENERATORS:
+            data.append({"generation_prompt_protocol": VERSION})
         return stable_hash([data, material_hashes(data)])
 
     def lookup(self, task, plan, node, inputs, spec):
