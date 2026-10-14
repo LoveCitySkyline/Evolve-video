@@ -14,14 +14,16 @@ class VerifierEvidenceUnavailable(VideoApiError):
 
 class NativeGraphVideoVerifier:
     require_complete = True
+    additional_models = ()
     _normalize_benchmark_result = staticmethod(ConditioningVideoVerifier._normalize_benchmark_result)
 
     def __init__(self, settings):
         if not os.environ.get(self.key_env):
             raise VideoApiError(f"{self.key_env} is required for the {self.label} verifier")
         self.model = settings.vlm_model or self.default_model
-        if not self.model.startswith(self.model_prefix):
-            raise ValueError(f"{self.label} verifier requires a {self.model_prefix}* model; unset stale VLM_MODEL")
+        if not self.model.startswith(self.model_prefix) and self.model not in self.additional_models:
+            allowed = ', '.join((self.model_prefix + '*', *self.additional_models))
+            raise ValueError(f"{self.label} verifier requires a model matching {allowed}; unset stale VLM_MODEL")
         if not self.min_fps <= settings.vlm_video_fps <= settings.vlm_review_fps <= self.max_fps:
             raise ValueError(f"Require {self.min_fps} <= VLM_VIDEO_FPS <= VLM_REVIEW_FPS <= {self.max_fps}")
         # Keep profiles independent from CONDITION_* overrides used by other experiments.
@@ -89,11 +91,12 @@ class GeminiGraphVerifier(NativeGraphVideoVerifier):
 
 
 class QwenGraphVideoVerifier(NativeGraphVideoVerifier):
-    label = "Qwen3.8 Max"
+    label = "Qwen3.8"
     transport = "dashscope_video"
     key_env = "DASHSCOPE_API_KEY"
     default_model = "qwen3.8-max-0902"
     model_prefix = "qwen3.8-max"
+    additional_models = ("qwen3.8-flash",)
     min_fps, max_fps = .1, 10
 
     @staticmethod

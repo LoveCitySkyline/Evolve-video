@@ -958,8 +958,10 @@ class ConditioningVideoVerifier:
                     content.append({"type": "image_url", "image_url": {"url": media_url}})
             payload = {"model": p["model"], "messages": [{"role": "system", "content": system},
                 {"role": "user", "content": content}], "temperature": 0, "response_format": {"type": "json_object"}}
-            if p["model"].startswith("qwen3.8-max"):
+            if p["model"].startswith("qwen3.8-max") or p["model"] == "qwen3.8-flash":
                 # Synchronous structured judging uses the non-thinking mode explicitly.
+                # Flash also defaults to thinking; changing only the model name
+                # would otherwise enable additional reasoning token consumption.
                 payload["enable_thinking"] = False
             headers["Authorization"] = "Bearer " + key
             url = p["base_url"].rstrip("/") + "/chat/completions"
@@ -975,6 +977,7 @@ class ConditioningVideoVerifier:
         write_json(audit, {"operation": operation, "protocol": VERIFIER_PROTOCOL_VERSION,
             "transport": p["transport"], "model": self.model, "prompt": text_payload,
             "system": system, "request_bytes": len(body),
+            "enable_thinking": payload.get("enable_thinking"),
             "image_count": image_count,
             "video_count": sum(m["mime"].startswith("video/") for _, m in evidence),
             "media": [{"label": label, "mime": m["mime"],

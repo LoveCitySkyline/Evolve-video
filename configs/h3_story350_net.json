@@ -1,6 +1,6 @@
 {
   "task_file": "outputs/story350_prepared/story350_h3.json",
-  "output_dir": "outputs/h3_story350_net",
+  "output_dir": "outputs/h3_story350_net_qwen38_flash",
   "search_mode": "factorial",
   "active_graph_search": {
     "enabled": true,
@@ -44,7 +44,7 @@
   "verifier": {
     "require_independent_final": false,
     "runtime": {
-      "model": "qwen3.8-max-0902",
+      "model": "qwen3.8-flash",
       "fps": 2,
       "repeats": 1,
       "auto_review": {
@@ -66,7 +66,7 @@
       "observation_mode": "isolated_attributes"
     },
     "final": {
-      "model": "qwen3.8-max-0902",
+      "model": "qwen3.8-flash",
       "fps": 4,
       "repeats": 1,
       "auto_review": {
@@ -96,7 +96,7 @@
     "timeout_seconds": 1800,
     "sample_frames": 12,
     "enable_vlm_eval": true,
-    "vlm_model": "qwen3.8-max-0902",
+    "vlm_model": "qwen3.8-flash",
     "vlm_max_images": 16,
     "vlm_timeout_seconds": 240,
     "enable_llm_mutation": true,

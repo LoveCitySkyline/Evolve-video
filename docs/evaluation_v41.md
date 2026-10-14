@@ -4,6 +4,39 @@
 `isolated-attribute-observations-v1.2`。决策维度：`story-quality-axes-v1`。
 V41/V41.1 原始协议、提示词及匿名问题 ID 保留用于旧记录回放，不将旧响应重标为新观察。
 
+## Story350 默认 verifier 切换到 Qwen3.8 Flash
+
+`h3_story350_debug/ks/nash/net.json` 的 runtime、final 和 runtime.vlm_model 统一使用
+`qwen3.8-flash`，自动复核沿用当前模型，没有配置 Max 后备。默认生成实验输出目录增加
+`_qwen38_flash` 后缀。本次不改变 V41.2 评分、采样、复核次数、质量保护或生成预算。
+
+官方 [模型说明](https://help.aliyun.com/zh/model-studio/qwen3-8-flash)确认该 ID 支持图像、视频
+与结构化输出。[思考模式说明](https://help.aliyun.com/zh/model-studio/deep-thinking)表明 Flash
+默认开启思考；传输层现在与 Max 一样显式发送 `enable_thinking=false`，请求审计文件也记录
+此字段。只修改模型名而不同步代码会遗漏这个设置。接口模拟测试覆盖整段视频、27 张帧图
+及 60 张增强复核图的实际请求体，不构成真实服务连通性或视觉准确率验证。
+原生图视频适配器同时增加 Flash 白名单支持。90 项相关回归测试通过；debug、KS、Nash、
+net 四配置各静态编译全部 350 条任务，runtime/final 均解析为 Flash，未调用真实模型。
+
+换 Flash 主要降低 token 单价；相同图像数量和分辨率仍需要视觉输入 token，模型实际
+分词量也可能不同。此次未降低采样，不预先承诺总费用或准确率。同一地域、业务空间的
+Key 是否可用取决于其模型权限和计费状态；上一轮 `Arrearage` 需要先处理，换模型不会
+自动解除欠费。沿用已工作的 DashScope 接入域名。
+
+同步 `src/evovideo_skill/`、`configs/`；测试及说明在 `tests/`、`docs/`。
+在服务器原终端显式覆盖可能遗留的 Max 模型环境变量：
+
+```bash
+export CONDITION_RUNTIME_VERIFIER_MODEL=qwen3.8-flash
+export CONDITION_FINAL_VERIFIER_MODEL=qwen3.8-flash
+export VLM_MODEL=qwen3.8-flash
+PYTHONPATH=src:tests python -m unittest test_qwen_video_verifier
+```
+
+Flash 评估使用新的输出目录，例如 `outputs/h3_v412_flash_canary_XXXXXX`，不能对 Max
+目录使用 `--resume`。复用原生成视频即可，分数分别保存；不同模型的结果不能拼成同一
+次实验。本文第 6 节给出了固定三任务复测命令。
+
 ## V41.2：状态中的角色编号消歧
 
 V41.1 离线快照审计有 8 个可提交组件，其中 4 个完整、4 个仍未知。这不代表 8 段视频
@@ -216,7 +249,7 @@ PYTHONPATH=src:tests python -m unittest test_evaluation_v41 test_conditioning_ba
 这一步会调用付费 verifier，不调用 H3；旧结果不变，缺失基线仍明确缺失。
 
 ```bash
-review_dir="$(mktemp -d outputs/h3_v412_canary_XXXXXX)"
+review_dir="$(mktemp -d outputs/h3_v412_flash_canary_XXXXXX)"
 recheck_args=(
   --run-dir outputs/h3_story350_semantics_v2_RowaH0
   --config configs/h3_story350_debug.json

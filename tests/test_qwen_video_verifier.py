@@ -124,6 +124,53 @@ class QwenVideoTests(unittest.TestCase):
             with self.assertRaises(VerifierEvidenceUnavailable):
                 judge.evaluate(task, None)
 
+    def test_flash_video_frames_and_review_disable_thinking_on_actual_wire(self):
+        from evovideo_skill.isolated_observations import VERSION
+        self.settings.vlm_model = 'qwen3.8-flash'
+        judge = QwenGraphVideoVerifier(self.settings)
+        shared = {'output_contract': {'response_protocol': VERSION},
+                  'evidence_manifest': {'evaluation_view': {
+                      'kind': 'fixed_window_clip', 'input_representation': 'timestamped_images'}}}
+        cases = [(judge.primary, {}, 'video/mp4', 1),
+                 (judge.primary, shared, 'image/jpeg', 27),
+                 (judge.review, shared, 'image/jpeg', 60)]
+        def provider(request, **kwargs):
+            body = json.loads(request.data)
+            self.assertEqual(body['model'], 'qwen3.8-flash')
+            self.assertIs(body['enable_thinking'], False)
+            self.assertEqual(body['response_format'], {'type': 'json_object'})
+            self.assertNotIn('reasoning_effort', body)
+            self.assertNotIn('thinking_budget', body)
+            self.assertEqual(body['temperature'], 0)
+            return io.BytesIO(json.dumps({'choices': [{'message': {'content': '{"facts": {}}'}}]}).encode())
+        for index, (verifier, prompt, mime, count) in enumerate(cases):
+            with self.subTest(index=index), patch('urllib.request.urlopen', side_effect=provider) as call:
+                verifier.request(json.dumps(prompt), [('candidate', {'mime': mime, 'data': 'AA=='})]*count,
+                                 f'flash-test-{index}')
+                self.assertEqual(call.call_count, 1)
+                audit = next(p for p in (verifier.root/'requests').glob('*.json')
+                             if json.loads(p.read_text())['operation'] == f'flash-test-{index}')
+                self.assertIs(json.loads(audit.read_text())['enable_thinking'], False)
+
+    def test_story350_profiles_use_flash_and_separate_default_output_directories(self):
+        from evovideo_skill.conditioning_verifier import resolve_profiles
+        root = Path(__file__).resolve().parents[1]
+        outputs = set()
+        for name in ('debug', 'ks', 'nash', 'net'):
+            config = json.loads((root/'configs'/f'h3_story350_{name}.json').read_text())
+            settings = RuntimeSettings(**config['runtime'])
+            profiles = resolve_profiles(config, settings, require_keys=False, apply_env=False)
+            self.assertEqual(settings.vlm_model, 'qwen3.8-flash')
+            for phase in ('runtime', 'final'):
+                self.assertEqual(profiles[phase]['model'], 'qwen3.8-flash')
+                self.assertEqual(profiles[phase]['transport'], 'dashscope_video')
+                self.assertIsNone(profiles[phase]['auto_review']['secondary_model'])
+                self.assertEqual(profiles[phase]['repeats'], 1)
+                self.assertEqual(profiles[phase]['auto_review']['max_calls_per_criterion'], 2)
+            self.assertTrue(config['output_dir'].endswith('_qwen38_flash'))
+            outputs.add(config['output_dir'])
+        self.assertEqual(len(outputs), 4)
+
     def test_h3_default_configs_select_same_judge(self):
         root = Path(__file__).resolve().parents[1]
         for name in ("h3_local_graph_harness", "h3_native_graph_harness", "h3_local_mini50_harness"):
