@@ -166,10 +166,37 @@ class QwenVideoTests(unittest.TestCase):
                 self.assertEqual(profiles[phase]['transport'], 'dashscope_video')
                 self.assertIsNone(profiles[phase]['auto_review']['secondary_model'])
                 self.assertEqual(profiles[phase]['repeats'], 1)
+                self.assertEqual(profiles[phase]['timeout_seconds'], 600)
+                self.assertEqual(profiles[phase]['max_attempts'], 1)
+                self.assertEqual(profiles[phase]['auto_review']['max_seconds_per_video'], 600)
                 self.assertEqual(profiles[phase]['auto_review']['max_calls_per_criterion'], 2)
             self.assertTrue(config['output_dir'].endswith('_qwen38_flash'))
             outputs.add(config['output_dir'])
         self.assertEqual(len(outputs), 4)
+
+    def test_flash_timeout_uses_configured_wait_without_duplicate_image_request(self):
+        from evovideo_skill.conditioning_verifier import ConditioningVideoVerifier, resolve_profiles
+        config = json.loads((Path(__file__).resolve().parents[1] /
+                             'configs/h3_story350_debug.json').read_text())
+        profiles = resolve_profiles(config, RuntimeSettings(**config['runtime']), apply_env=False)
+        judge = ConditioningVideoVerifier(profiles['final'], Path(self.temp.name) / 'flash')
+        prompt = {'evidence_manifest': {'evaluation_view': {
+            'kind': 'fixed_window_clip', 'input_representation': 'timestamped_images'}}}
+        evidence = [('Candidate sample', {'mime': 'image/jpeg', 'data': 'AA=='})] * 27
+        with patch('urllib.request.urlopen', side_effect=TimeoutError('read timed out')) as call, \
+                patch('time.sleep') as sleep, self.assertRaises(VideoApiError) as caught:
+            judge.request(json.dumps(prompt), evidence, 'timeout-regression')
+        self.assertIsInstance(caught.exception.__cause__, TimeoutError)
+        self.assertEqual(call.call_count, 1)
+        self.assertEqual(call.call_args.kwargs['timeout'], 600)
+        body = json.loads(call.call_args.args[0].data)
+        self.assertFalse(body['enable_thinking'])
+        self.assertEqual(sum(x['type'] == 'image_url' for x in body['messages'][1]['content']), 27)
+        sleep.assert_not_called()
+        log = [json.loads(line) for line in (judge.root / 'calls.jsonl').read_text().splitlines()]
+        self.assertEqual([row['status'] for row in log], ['started', 'failed'])
+        self.assertEqual(log[-1]['error_type'], 'TimeoutError')
+        self.assertNotIn('score', log[-1])
 
     def test_h3_default_configs_select_same_judge(self):
         root = Path(__file__).resolve().parents[1]

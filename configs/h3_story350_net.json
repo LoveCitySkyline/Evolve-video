@@ -63,7 +63,9 @@
       },
       "transport": "dashscope_video",
       "api_key_env": "DASHSCOPE_API_KEY",
-      "observation_mode": "isolated_attributes"
+      "observation_mode": "isolated_attributes",
+      "timeout_seconds": 600,
+      "max_attempts": 1
     },
     "final": {
       "model": "qwen3.8-flash",
@@ -85,7 +87,9 @@
       },
       "transport": "dashscope_video",
       "api_key_env": "DASHSCOPE_API_KEY",
-      "observation_mode": "isolated_attributes"
+      "observation_mode": "isolated_attributes",
+      "timeout_seconds": 600,
+      "max_attempts": 1
     }
   },
   "runtime": {

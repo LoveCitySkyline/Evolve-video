@@ -212,6 +212,27 @@ print(count)
                 ledger.reserve('third')
             self.assertEqual(ReviewLedger(tmp, cfg, 'a', 'y').reserve(), 170)
 
+    def test_longer_transport_wait_cannot_expand_shared_review_budget(self):
+        with TemporaryDirectory() as tmp:
+            cfg = options({'max_seconds_per_video': 600})
+            first = ReviewLedger(tmp, cfg, 'video', 'criterion-a')
+            for value in (0, -1, True, 0.5, float('inf')):
+                with self.assertRaises(ValueError):
+                    first.reserve(timeout_seconds=value)
+            self.assertFalse(first.path.exists())
+            self.assertEqual(first.reserve('first', timeout_seconds=600), 600)
+            second = ReviewLedger(tmp, cfg, 'video', 'criterion-b')
+            with self.assertRaises(ReviewBudgetExhausted):
+                second.reserve('other', timeout_seconds=600)
+            first.settle('first', 220)
+            self.assertEqual(second.reserve('remaining', timeout_seconds=600), 380)
+            data = json.loads(first.path.read_text())
+            self.assertEqual(data['calls'], 2)
+            self.assertEqual(data['videos']['video']['reserved_seconds'], 600)
+            # Reopening the ledger cannot erase an unfinished request's time.
+            with self.assertRaises(ReviewBudgetExhausted):
+                ReviewLedger(tmp, cfg, 'video', 'criterion-c').reserve(timeout_seconds=600)
+
     def test_settlement_keeps_other_workers_pending_time_and_rejects_wrong_owner(self):
         with TemporaryDirectory() as tmp:
             cfg = options({'max_seconds_per_video': 600})
@@ -442,6 +463,26 @@ class ReviewMediaTests(unittest.TestCase):
         self.assertEqual(audit['x']['status'], 'resolved')
         self.assertEqual(audit['x']['confirmation_count'], 1)
         self.assertEqual(json.loads((self.owner.root / 'auto_review_budget.json').read_text())['calls'], 2)
+
+    def test_review_and_correction_follow_longer_transport_timeout(self):
+        self.owner.profile['timeout_seconds'] = 600
+        self.owner.profile['auto_review'].update(confirmations=1, max_calls_per_criterion=2)
+        missing = atomic()
+        missing.pop('atomic_checks')
+        timeouts = []
+        def request(instance, *args):
+            timeouts.append(instance.profile['timeout_seconds'])
+            return {'criteria': {'x': missing if len(timeouts) == 1 else atomic()}}
+        with patch.object(ConditioningVideoVerifier, 'request', new=request):
+            audit = review_group(self.owner, self.task, self.artifact, {}, self.subset,
+                {'x': [{'status': 'unobserved', 'score': None}]}, self.folder, 1, 'digest')
+        self.assertEqual(audit['x']['status'], 'resolved')
+        self.assertEqual(len(timeouts), 2)
+        self.assertTrue(all(180 < t <= 600 for t in timeouts), timeouts)
+        ledger = json.loads((self.owner.root / 'auto_review_budget.json').read_text())
+        self.assertEqual(ledger['calls'], 2)
+        video = next(iter(ledger['videos'].values()))
+        self.assertLessEqual(video['reserved_seconds'], 600)
 
     def test_enhanced_evidence_and_two_blind_agreeing_calls_resolve(self):
         calls = []

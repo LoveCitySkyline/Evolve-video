@@ -209,7 +209,9 @@ class ReviewLedger:
         self.config, self.candidate, self.criterion = config, candidate, criterion
         self.criteria = tuple(sorted(criterion)) if isinstance(criterion, (list, tuple)) else (criterion,)
 
-    def reserve(self, ticket=None):
+    def reserve(self, ticket=None, *, timeout_seconds=180):
+        if type(timeout_seconds) is not int or timeout_seconds <= 0:
+            raise ValueError('review request timeout must be a positive integer')
         ticket = ticket or uuid.uuid4().hex
         with portable_interprocess_lock(self.path.with_suffix('.lock'), timeout_seconds=30):
             data = json.loads(self.path.read_text()) if self.path.exists() else {'calls': 0, 'videos': {}}
@@ -221,7 +223,9 @@ class ReviewLedger:
             if (data['calls'] >= self.config['max_calls_per_run'] or video['calls'] >= self.config['max_calls_per_video']
                     or count >= self.config['max_calls_per_criterion'] or remaining <= 0):
                 raise ReviewBudgetExhausted('automatic review budget exhausted; no score assigned')
-            timeout = min(180, remaining)
+            # Follow the selected transport timeout, but never expand the shared
+            # per-video budget. Pending/crashed requests retain their reservation.
+            timeout = min(timeout_seconds, remaining)
             data['calls'] += 1
             video['calls'] += 1
             for key in self.criteria:
@@ -548,7 +552,7 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                     request_started = self.acquisition_started
                 else:
                     ticket = uuid.uuid4().hex
-                    timeout = ledger.reserve(ticket)
+                    timeout = ledger.reserve(ticket, timeout_seconds=self.profile['timeout_seconds'])
                     request_started = time.monotonic()
                 self.prepaid_ticket = None
                 self.profile['timeout_seconds'] = min(self.profile['timeout_seconds'], max(1, int(timeout)))
@@ -583,7 +587,7 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                 continue
             try:
                 ticket = uuid.uuid4().hex
-                reviewer.prepaid_timeout = ledger.reserve(ticket)
+                reviewer.prepaid_timeout = ledger.reserve(ticket, timeout_seconds=p['timeout_seconds'])
                 reviewer.prepaid_ticket = ticket
                 reviewer.acquisition_started = time.monotonic()
                 evidence, manifest = reviewer.evidence(task, artifact)
