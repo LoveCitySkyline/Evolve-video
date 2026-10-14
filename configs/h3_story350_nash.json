@@ -61,7 +61,8 @@
         "max_components_per_video": 3
       },
       "transport": "dashscope_video",
-      "api_key_env": "DASHSCOPE_API_KEY"
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "observation_mode": "isolated_attributes"
     },
     "final": {
       "model": "qwen3.8-max-0902",
@@ -81,7 +82,8 @@
         "max_components_per_video": 3
       },
       "transport": "dashscope_video",
-      "api_key_env": "DASHSCOPE_API_KEY"
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "observation_mode": "isolated_attributes"
     }
   },
   "runtime": {
@@ -119,7 +121,7 @@
   "bargaining": {
     "enabled": true,
     "method": "nash",
-    "metric_source": "criteria",
+    "metric_source": "axes",
     "metrics": [],
     "floor": 0.0,
     "aspiration": 1.0,
@@ -131,7 +133,8 @@
     "min_validation_gain": 0.01,
     "se_multiplier": 1.0,
     "stop_patience": 2,
-    "stop_min_rounds": 2
+    "stop_min_rounds": 2,
+    "ks_tiebreak": true
   },
   "unresolved_policy": "continue"
 }

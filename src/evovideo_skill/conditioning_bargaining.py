@@ -11,7 +11,8 @@ DEFAULTS = {"enabled": False, "method": "ks", "metric_source": "criteria", "metr
     "floor": .0, "aspiration": 1., "overrides": {}, "max_call_ratio": 4.,
     "max_second_ratio": 4., "ideal_call_ratio": 1., "ideal_second_ratio": 1.,
     "min_gain": .01, "min_validation_gain": .01, "se_multiplier": 1.,
-    "stopping_enabled": True, "stop_patience": 2, "stop_min_rounds": 2}
+    "stopping_enabled": True, "stop_patience": 2, "stop_min_rounds": 2,
+    "ks_tiebreak": False, "min_tiebreak_gain": .01}
 
 
 def options(config):
@@ -21,15 +22,15 @@ def options(config):
     o = deepcopy(DEFAULTS) | deepcopy(raw)
     if type(o['enabled']) is not bool or o['method'] not in {'ks', 'nash'}:
         raise ValueError('invalid bargaining enabled/method')
-    if type(o['stopping_enabled']) is not bool:
-        raise ValueError('bargaining.stopping_enabled must be boolean')
-    if o['metric_source'] not in {'criteria', 'metrics'}:
-        raise ValueError('bargaining metric_source must be criteria or metrics')
+    if any(type(o[k]) is not bool for k in ('stopping_enabled', 'ks_tiebreak')):
+        raise ValueError('bargaining stopping_enabled/ks_tiebreak must be boolean')
+    if o['metric_source'] not in {'criteria', 'metrics', 'axes'}:
+        raise ValueError('bargaining metric_source must be criteria, metrics or axes')
     if (not isinstance(o['metrics'], list) or any(not isinstance(k, str) or not k or k == 'cost' for k in o['metrics'])
             or len(o['metrics']) != len(set(o['metrics']))):
         raise ValueError('invalid bargaining metrics')
     for key in ('floor', 'aspiration', 'max_call_ratio', 'max_second_ratio', 'ideal_call_ratio',
-                'ideal_second_ratio', 'min_gain', 'min_validation_gain', 'se_multiplier'):
+                'ideal_second_ratio', 'min_gain', 'min_validation_gain', 'min_tiebreak_gain', 'se_multiplier'):
         if type(o[key]) not in (int, float) or not math.isfinite(o[key]) or o[key] < 0:
             raise ValueError(f'invalid bargaining.{key}')
     if not 0 <= o['floor'] < o['aspiration'] <= 1:
@@ -53,6 +54,9 @@ def options(config):
 def vector(record, o):
     if o['metric_source'] == 'criteria':
         values = record.get('criterion_scores', {})
+    elif o['metric_source'] == 'axes':
+        from evovideo_skill.quality_axes import values as axis_values
+        values = axis_values(record)
     else:
         from evovideo_skill.conditioning_memory import metric_vector
         values = metric_vector(record)
@@ -104,7 +108,14 @@ def profile(records, o):
     conservative = {k: max(0., value-o['se_multiplier']*se[k]) for k, value in means.items()}
     costs = {k: statistics.mean(r['generation_cost'][k] for r in records)
              for k in ('calls', 'generated_seconds', 'normalized_calls', 'normalized_seconds')}
-    return {**from_values(conservative, costs, o), 'means': means, 'standard_errors': se,
+    result = from_values(conservative, costs, o)
+    replicate_violations = [{'seed': r.get('seed'), 'violations': p['violations']}
+        for r, v in zip(records, vectors) if not (p := from_values(v, r['generation_cost'], o))['feasible']]
+    if replicate_violations:
+        result['feasible'] = False
+        result['violations'] = sorted(set(result['violations']) | {'replicate:hard_constraint'})
+    return {**result, 'means': means, 'standard_errors': se,
+            'replicate_violations': replicate_violations,
             'uncertainty_note': 'Seed SE penalty is a heuristic, not calibrated coverage or verifier-bias correction.'}
 
 
@@ -125,6 +136,22 @@ def annotate(effect, before, after):
     effect['bargaining'] = {'objective': o, 'before': a, 'after': b, 'gain': b['score']-a['score'],
         'seed_gains': gains, 'gain_std': statistics.stdev(gains) if len(gains)>1 else None,
         'metric_deltas': {k: b['means'][k]-a['means'][k] for k in a['means']}}
+    e = effect['bargaining']
+    secondary = b['nash_log'] - a['nash_log']
+    secondary_seeds = [profile([y], o)['nash_log'] - profile([x], o)['nash_log']
+                       for x, y in zip(before, after)]
+    # Equal max-min attainment can improve without buying a primary regression.
+    tie = (o['method'] == 'ks' and o['ks_tiebreak'] and abs(e['gain']) <= 1e-12
+           and all(v >= -1e-12 for v in gains))
+    e['secondary_gain'] = secondary
+    e['selection_basis'] = 'nash_log_tiebreak' if tie else 'primary'
+    e['decision_gain'] = secondary if tie else e['gain']
+    e['decision_threshold'] = o['min_tiebreak_gain'] if tie else o['min_gain']
+    e['selection_signal'] = math.tanh(secondary) if tie else e['gain']
+    e['selection_seed_gains'] = secondary_seeds if tie else gains
+    e['selection_note'] = ('tanh(log-Nash gain) is a bounded retrieval signal for ties, not a quality '
+        'effect size. Decisions use raw tier-specific gain/threshold; winners use (primary, Nash). '
+        'Different tiers must not be averaged as one effect size. Log uses a fixed 1e-12 floor.')
     return effect
 
 
@@ -138,10 +165,20 @@ def supported(effect, config):
     if effect['gain'] < -cost_options(config)['max_quality_drop'] or any(
             v < -config['max_metric_regression'] for v in effect['metric_deltas'].values()):
         return False
-    se = (e['gain_std'] or 0)/math.sqrt(len(e['seed_gains']))
-    return (e['after']['feasible'] and e['gain'] > o['min_gain'] and
-            sum(v > 0 for v in e['seed_gains'])/len(e['seed_gains']) >= config.get('min_positive_seed_fraction', 0) and
-            statistics.mean(e['seed_gains'])-config.get('gain_se_multiplier', 0)*se > 0)
+    gains = e.get('selection_seed_gains', e['seed_gains'])
+    se = statistics.stdev(gains)/math.sqrt(len(gains)) if len(gains)>1 else 0.
+    return (e['after']['feasible'] and e.get('decision_gain', e['gain']) > e.get('decision_threshold', o['min_gain']) and
+            sum(v > 0 for v in gains)/len(gains) >= config.get('min_positive_seed_fraction', 0) and
+            statistics.mean(gains)-config.get('gain_se_multiplier', 0)*se > 0)
+
+
+def validation_supported(effects, config):
+    """Apply the declared threshold in each comparison's own tier, never mix units."""
+    o = options(config)
+    return bool(effects) and all(supported(e, config) and
+        e['bargaining'].get('decision_gain', e['bargaining']['gain']) >= (
+            o['min_tiebreak_gain'] if e['bargaining'].get('selection_basis') == 'nash_log_tiebreak'
+            else o['min_validation_gain']) for e in effects)
 
 
 def frontier(cells, o):

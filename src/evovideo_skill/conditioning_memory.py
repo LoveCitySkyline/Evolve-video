@@ -90,6 +90,7 @@ def metric_vector(record):
     metrics = {k: v["score"] for k, v in record.get("feedback", {}).get("metrics", {}).items()}
     metrics.update(record.get("reward", {}).get("components", {}))
     metrics.update(record.get("criterion_scores", {}))
+    metrics.update({k: row['score'] for k, row in record.get('quality_axes', {}).get('axes', {}).items()})
     return {k: float(v) for k, v in metrics.items() if type(v) in (int, float) and math.isfinite(v)}
 
 
@@ -100,6 +101,9 @@ def paired_effect(before, after):
     for a, b in zip(before, after):
         if (a["task_id"], a["seed"]) != (b["task_id"], b["seed"]):
             raise ValueError("unpaired task/seed observations")
+        for field in ('verifier_protocol', 'shared_observation_protocol', 'profile'):
+            if a.get('verification', {}).get(field) != b.get('verification', {}).get(field):
+                raise ValueError('paired verifier measurement contract changed: ' + field)
         av, bv = metric_vector(a), metric_vector(b)
         if set(av) != set(bv):
             raise ValueError("paired evaluations have different observed metrics")
@@ -161,7 +165,7 @@ class StrategyMemory:
             e = observation["effect"]
             c = e.get("cost_effect", {})
             selection_by_task.setdefault(observation["task_id"], []).append(
-                e['bargaining']['gain'] if 'bargaining' in e else
+                e['bargaining'].get('selection_signal', e['bargaining']['gain']) if 'bargaining' in e else
                 c["net_gain"] if c.get("objective", {}).get("enabled") else e["gain"])
         selection_mean = statistics.mean(statistics.mean(v) for v in selection_by_task.values())
         dims = sorted({k for e in effects for k in e["metric_deltas"]})
@@ -171,6 +175,7 @@ class StrategyMemory:
             "evidence": {"task_support": len(gains), "experiment_count": len(effects),
                 "mean_train_gain": statistics.mean(gains), "metric_deltas": deltas,
                 "mean_selection_gain": selection_mean,
+                "selection_signal_qualification": "Retrieval ranking only. For KS ties this includes bounded log-Nash signals; inspect per-effect primary/secondary gains for effect sizes.",
                 "selection_status": "positive" if selection_mean > 0 else "nonpositive",
                 "cost_effects": [deepcopy(e["cost_effect"]) for e in effects if "cost_effect" in e][-8:],
                 "bargaining_effects": [deepcopy(e['bargaining']) for e in effects if 'bargaining' in e][-8:],

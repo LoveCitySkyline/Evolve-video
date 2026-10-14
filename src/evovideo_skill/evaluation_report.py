@@ -73,6 +73,7 @@ def scorecard(evaluation, acceptance, generation_cost=None, diagnostics=None):
     bounds = quality_bounds({k: v for k, v in vector.items() if not rules or k in rules},
         {k: v.get('weight', 1.0) for k, v in rules.items() if isinstance(v, dict)})
     from evovideo_skill.evaluation_policy import automation_disposition
+    from evovideo_skill.quality_axes import from_evaluation as quality_axes
     net_bounds = None
     if generation_cost and generation_cost.get('objective', {}).get('enabled'):
         from evovideo_skill.conditioning_cost import penalty
@@ -83,7 +84,8 @@ def scorecard(evaluation, acceptance, generation_cost=None, diagnostics=None):
                 'cost_penalty': cost_penalty,
                 'qualification': 'Declared rubric mean minus deployment cost proxy; diagnostic only, '
                     'not the learning reward, bargaining utility or a measured quality improvement.'}
-    return {'quality_vector': vector, 'quality_bounds': bounds, 'evaluation_status': evaluation.get('evaluation_status', 'unknown'),
+    return {'quality_vector': vector, 'quality_axes': quality_axes(evaluation, rules),
+        'quality_bounds': bounds, 'evaluation_status': evaluation.get('evaluation_status', 'unknown'),
         'contract_status': acceptance.get('status', 'unknown'), 'contract_satisfied': accepted,
         'failed_constraints': sorted(k for k, v in checks.items() if v.get('status') == 'failed'),
         'unknown_constraints': sorted(k for k, v in checks.items() if v.get('status') == 'unknown'),
@@ -97,6 +99,7 @@ def scorecard(evaluation, acceptance, generation_cost=None, diagnostics=None):
         'processing_diagnostics': meta.get('processing_diagnostics'),
         'judgment_path': meta.get('judgment_path'),
         'verifier_protocol': meta.get('verifier_protocol'),
+        'measurement_overrides': meta.get('measurement_overrides', {}),
         'calibration_status': 'not_established_by_this_evaluation',
         'generation_cost_proxy': generation_cost,
         'generation_wall_seconds': (diagnostics or {}).get('generation_wall_seconds'),
@@ -207,7 +210,7 @@ def build_report(root):
         row = read(path, {})
         heldout.append({'source': str(path.relative_to(root)), **{k: row.get(k) for k in (
             'status', 'coverage', 'heldout_gain', 'heldout_net_gain', 'heldout_bargaining_gain',
-            'contract_acceptance', 'task_bootstrap_95ci')},
+            'heldout_secondary_log_gain', 'bargaining_outcomes', 'contract_acceptance', 'task_bootstrap_95ci')},
             'comparisons': [{k: p.get(k) for k in ('task_id', 'seed', 'baseline_criteria', 'candidate_criteria',
                 'criterion_deltas', 'baseline_acceptance', 'candidate_acceptance', 'cost_tradeoff', 'bargaining')}
                 for p in row.get('pairs', [])]})

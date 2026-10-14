@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from evovideo_skill.owned_observations import VERSION, SUPPORTED_VERSIONS
+from evovideo_skill.isolated_observations import VERSION as ISOLATED_VERSION
 from evovideo_skill.predicate_evidence import VERSION as GUARD_VERSION, QUALIFICATION, eligible
 from evovideo_skill.review_observations import compile_plan, project_response
 from evovideo_skill.scoped_judgment import project
@@ -34,7 +35,8 @@ def audit(root):
             record.update(source_protocol=old, request_sha256=hashlib.sha256(req_bytes).hexdigest(),
                           response_sha256=hashlib.sha256(raw_bytes).hexdigest())
             manifest, public = request['evidence_manifest'], request['original_task']
-            plan = compile_plan(request['criteria'], public, manifest['windows'], manifest, protocol=VERSION)
+            plan = compile_plan(request['criteria'], public, manifest['windows'], manifest,
+                protocol=old if old == ISOLATED_VERSION else VERSION)
             record['guard_scope'] = {
                 'eligible_facts': [key for key, definition in plan['definitions'].items() if eligible(definition)],
                 'excluded_contextual_facts': [key for key, definition in plan['definitions'].items() if not eligible(definition)],

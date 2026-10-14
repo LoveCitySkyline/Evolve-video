@@ -185,6 +185,9 @@ def acceptance_report(task, artifact):
         status = "unknown" if not valid else "passed" if score >= threshold else "failed"
         checks[name] = {"status": status, "score": score if valid else None,
                         "threshold": threshold, "evidence": evidence, "window": window}
+        override = vlm.get('verification_metadata', {}).get('measurement_overrides', {}).get(name)
+        if override:
+            checks[name]['measurement_override'] = deepcopy(override)
     if not checks:
         status = "not_applicable"
     else:

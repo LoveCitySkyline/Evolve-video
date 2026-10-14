@@ -35,7 +35,12 @@ def audit(root):
             raw = expand_field_patch(raw, request)
             spans = manifest['windows']
             plan = compile_plan(request['criteria'], request['original_task'], spans, manifest, protocol=protocol)
-            validation_raw = expand_observations(raw, plan) if protocol in SUPPORTED_VERSIONS else raw
+            validation_raw = raw
+            if plan.get('isolated_observations'):
+                from evovideo_skill.isolated_observations import select_targets
+                validation_raw = select_targets(raw, plan)
+            if protocol in SUPPORTED_VERSIONS:
+                validation_raw = expand_observations(validation_raw, plan)
             fact_errors = []
             for key, definition in plan['definitions'].items():
                 try:

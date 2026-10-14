@@ -123,6 +123,9 @@ def compile_plan(criteria, public, spans, manifest, protocol=None):
         if protocol not in SUPPORTED_VERSIONS:
             raise ValueError('unsupported shared observation protocol: ' + protocol)
         prepare_plan(plan, protocol)
+        from evovideo_skill.isolated_observations import VERSION as ISOLATED_VERSION, prepare
+        if protocol == ISOLATED_VERSION:
+            prepare(plan, public)
     return plan
 
 
@@ -361,6 +364,9 @@ def project_response(raw, plan, manifest, *, with_audit=False):
     """Do not accept legacy redundant verdicts or turn old conflicts into scores."""
     if not isinstance(raw, dict) or set(raw) - {'facts', 'judgments', 'identity_bindings'}:
         raise ValueError('shared observation response permits only facts, judgments, identity_bindings')
+    if plan.get('isolated_observations'):
+        from evovideo_skill.isolated_observations import select_targets
+        raw = select_targets(raw, plan)
     original_facts = deepcopy(raw.get('facts'))
     if plan.get('wire_protocol'):
         from evovideo_skill.owned_observations import expand_observations
@@ -479,13 +485,20 @@ def observe(reviewer, path, payload, evidence, operation, criteria, spans):
         payload['identity_contract'] = identity
     payload['criteria'] = deepcopy(plan['rules'])
     payload['output_contract'] = wire_contract(plan)
+    if plan.get('isolated_observations'):
+        write_json(path.with_suffix('.host-projection.json'), plan['isolated_observations'])
     for attempt in range(2):
         write_json(path.with_suffix(f'.request-{attempt}.json'), payload)
         raw_path = path.with_suffix('.raw.json' if attempt == 0 else '.correction-1.raw.json')
         if reviewer.cache_enabled and raw_path.exists():
             raw = json.loads(raw_path.read_text())
         else:
-            raw = reviewer._request_observation(json.dumps(payload, ensure_ascii=False), evidence,
+            sent = payload
+            if plan.get('isolated_observations'):
+                from evovideo_skill.isolated_observations import transport_payload
+                sent = transport_payload(payload)
+                write_json(path.with_suffix(f'.wire-request-{attempt}.json'), sent)
+            raw = reviewer._request_observation(json.dumps(sent, ensure_ascii=False), evidence,
                 operation + ('/schema-reassessment-1' if attempt else ''))
             write_json(raw_path, raw)
         try:
@@ -525,6 +538,11 @@ def observe(reviewer, path, payload, evidence, operation, criteria, spans):
                         'request_file': str(path.with_suffix(f'.request-{attempt}.json')),
                         'response_file': str(raw_path)}
                     row['review_derivation']['owner_shot_index'] = plan['rules'][name]['story_shot_index']
+                    if plan.get('isolated_observations'):
+                        row['observation_provenance']['host_request_file'] = row['observation_provenance']['request_file']
+                        row['observation_provenance']['request_file'] = str(path.with_suffix(f'.wire-request-{attempt}.json'))
+                        row['measurement_definition'] = ('physical_continuity_only' if name.endswith('.state_flow')
+                                                         else 'isolated_source_predicate')
                     if name in plan.get('owner_context', {}):
                         row['owner_fact_context'] = deepcopy(plan['owner_context'][name])
                 if identity and identity['dependencies'][name]:

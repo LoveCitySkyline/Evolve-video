@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "source-scoped-evaluation-v40"
+VERIFIER_PROTOCOL_VERSION = "isolated-observation-decision-v41"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -238,6 +238,54 @@ def windows(task):
         result.append({"segment_id": i, "start_seconds": start, "end_seconds": start + duration})
         start += duration
     return result
+
+
+def evaluation_definition(task):
+    """One source of truth for production and offline contract planning."""
+    rubric = {k: deepcopy(v) for k, v in task.metadata.get("evaluation", {}).items()
+              if k not in task.metadata.get("h3_audio_criteria", [])}
+    if "identity_across_shots" in rubric and "shot_and_action_coverage" in rubric:
+        definition = rubric["identity_across_shots"]
+        definition = dict(definition) if isinstance(definition, dict) else {"description": str(definition)}
+        definition["scoring_scope"] = "visible_appearance_only"
+        definition["excluded_failures"] = ["missing_cuts", "missing_shots", "missing_actions"]
+        rubric["identity_across_shots"] = definition
+    criteria = {**{k: {"description": v} for k, v in GENERIC.items()}, **rubric}
+    # Applicability follows the original task contract, never missing media or
+    # the candidate graph's use of editing tools. Explicit rubrics stay mandatory.
+    for name in rubric:
+        definition = criteria[name]
+        criteria[name] = ({**definition, "mandatory": True} if isinstance(definition, dict)
+                          else {"description": str(definition), "mandatory": True})
+        if "story_shot_index" in criteria[name]:
+            criteria[name]["evidence_status_contract"] = "visible-outcome-v1"
+    if (task.mode == "generation" and not task.metadata.get("edit_operations")
+            and "target_edit_success_score" not in task.metadata.get("evaluation", {})):
+        criteria["target_edit_success_score"]["host_not_applicable"] = (
+            "Original task mode is generation with no edit_operations; generic edit success "
+            "does not apply. Declared task criteria are evaluated separately.")
+    criteria = grounded_criteria(task, criteria)
+    from evovideo_skill.metric_dimensions import apply_boundaries
+    criteria = apply_boundaries(criteria)
+    public = task_payload(task)
+    # Reference URIs, strategy/graph names and earlier judgments never reach the judge.
+    public.pop("reference_video", None)
+    public["metadata"].pop("h3_references", None)
+    public["metadata"].pop("h3_audio_criteria", None)
+    public["metadata"].pop("evaluation", None)
+    return rubric, criteria, public
+
+
+def source_criteria(criteria, public, spans):
+    from evovideo_skill.verifier_facts import with_fact_contract
+    criteria = with_fact_contract(criteria, public)
+    shots = public.get('metadata', {}).get('story_contract', {}).get('shots', [])
+    if (shots and 'action_alignment_score' in criteria
+            and {s.get('shot_index') for s in shots} == {w['segment_id'] for w in spans}
+            and all(s.get('events') for s in shots)):
+        criteria['action_alignment_score'] = {**criteria['action_alignment_score'],
+            'fixed_window_coverage': True, 'host_aggregate_from_windows': True}
+    return criteria
 
 
 def required_segment_ids(name, definition, spans):
@@ -462,13 +510,16 @@ def resolve_profiles(config, settings, require_keys=True, apply_env=True):
         "api_key_env": "DASHSCOPE_API_KEY", "fps": 2, "max_width": 768,
         "max_media_bytes": 16_000_000, "max_request_bytes": 48_000_000,
         "timeout_seconds": 180, "max_attempts": 2, "repeats": 1,
-        "criteria_per_call": 8, "disagreement_threshold": .2, "auto_review": {}}
+        "criteria_per_call": 8, "disagreement_threshold": .2, "auto_review": {},
+        "observation_mode": "source_predicates"}
     profiles = {}
     for phase in ("runtime", "final"):
         supplied = value.get(phase, {})
         if not isinstance(supplied, dict) or set(supplied) - set(defaults):
             raise ValueError("unknown verifier profile fields; store credentials only in the named environment variable")
         profile = {**defaults, **supplied}
+        if profile['observation_mode'] not in {'source_predicates', 'isolated_attributes'}:
+            raise ValueError('invalid verifier observation_mode')
         prefix = "CONDITION_" + phase.upper() + "_VERIFIER_"
         for key in ("transport", "model", "base_url", "api_key_env"):
             if apply_env and os.environ.get(prefix + key.upper()):
@@ -512,6 +563,9 @@ class ConditioningVideoVerifier:
     def __init__(self, profile, root):
         self.profile, self.root = deepcopy(profile), Path(root)
         self.model = profile["model"]
+        if profile.get('observation_mode') == 'isolated_attributes':
+            from evovideo_skill.isolated_observations import VERSION
+            self.observation_protocol = VERSION
         self.cache_enabled = True
         self.root.mkdir(parents=True, exist_ok=True)
 
@@ -853,6 +907,9 @@ class ConditioningVideoVerifier:
         shared_review = wire_protocol in {OBSERVATION_PROTOCOL, *SUPPORTED_VERSIONS}
         if wire_protocol in SUPPORTED_VERSIONS:
             OBSERVATION_SYSTEM = OWNED_SYSTEM
+        from evovideo_skill.isolated_observations import VERSION as ISOLATED_PROTOCOL, SYSTEM as ISOLATED_SYSTEM
+        if wire_protocol == ISOLATED_PROTOCOL:
+            OBSERVATION_SYSTEM = ISOLATED_SYSTEM
         if shared_review:
             # A distinct wire contract: do not append the legacy criteria/facts
             # instructions, which would demand duplicate copies of each verdict.
@@ -979,37 +1036,7 @@ class ConditioningVideoVerifier:
 
     def _evaluate(self, task, artifact):
         evidence, manifest = self.evidence(task, artifact)
-        rubric = {k: deepcopy(v) for k, v in task.metadata.get("evaluation", {}).items()
-                  if k not in task.metadata.get("h3_audio_criteria", [])}
-        if "identity_across_shots" in rubric and "shot_and_action_coverage" in rubric:
-            definition = rubric["identity_across_shots"]
-            definition = dict(definition) if isinstance(definition, dict) else {"description": str(definition)}
-            definition["scoring_scope"] = "visible_appearance_only"
-            definition["excluded_failures"] = ["missing_cuts", "missing_shots", "missing_actions"]
-            rubric["identity_across_shots"] = definition
-        criteria = {**{k: {"description": v} for k, v in GENERIC.items()}, **rubric}
-        # Applicability follows the original task contract, never missing media or
-        # the candidate graph's use of editing tools. Explicit rubrics stay mandatory.
-        for name in rubric:
-            definition = criteria[name]
-            criteria[name] = ({**definition, "mandatory": True} if isinstance(definition, dict)
-                              else {"description": str(definition), "mandatory": True})
-            if "story_shot_index" in criteria[name]:
-                criteria[name]["evidence_status_contract"] = "visible-outcome-v1"
-        if (task.mode == "generation" and not task.metadata.get("edit_operations")
-                and "target_edit_success_score" not in task.metadata.get("evaluation", {})):
-            criteria["target_edit_success_score"]["host_not_applicable"] = (
-                "Original task mode is generation with no edit_operations; generic edit success "
-                "does not apply. Declared task criteria are evaluated separately.")
-        criteria = grounded_criteria(task, criteria)
-        from evovideo_skill.metric_dimensions import apply_boundaries
-        criteria = apply_boundaries(criteria)
-        public = task_payload(task)
-        # Reference URIs, strategy/graph names and earlier judgments never reach the judge.
-        public.pop("reference_video", None)
-        public["metadata"].pop("h3_references", None)
-        public["metadata"].pop("h3_audio_criteria", None)
-        public["metadata"].pop("evaluation", None)
+        rubric, criteria, public = evaluation_definition(task)
         digest = stable_hash([public, criteria, manifest, self.profile, JUDGE_SYSTEM,
                              PHYSICAL_JUDGE_SYSTEM, SCOPED_JUDGE_SYSTEM, FRAME_INPUT_INSTRUCTIONS,
                              VERIFIER_PROTOCOL_VERSION])
@@ -1398,14 +1425,7 @@ class ConditioningVideoVerifier:
     def _judge(self, task, evidence, manifest, rubric, criteria, public, digest, artifact=None):
         # Keep the canonical source contract through initial grouping, review,
         # aggregation and cache records, not just inside _observe_group.
-        from evovideo_skill.verifier_facts import with_fact_contract
-        criteria = with_fact_contract(criteria, public)
-        shots = public.get('metadata', {}).get('story_contract', {}).get('shots', [])
-        if (shots and 'action_alignment_score' in criteria
-                and {s.get('shot_index') for s in shots} == {w['segment_id'] for w in manifest['windows']}
-                and all(s.get('events') for s in shots)):
-            criteria['action_alignment_score'] = {**criteria['action_alignment_score'],
-                'fixed_window_coverage': True, 'host_aggregate_from_windows': True}
+        criteria = source_criteria(criteria, public, manifest['windows'])
         folder = self.root / "judgments" / digest
         final = folder / "result.json"
         if self.cache_enabled and final.exists():
@@ -1574,6 +1594,12 @@ class ConditioningVideoVerifier:
         result = {k: scores[k] for k in GENERIC if k in scores}
         from evovideo_skill.evaluation_report import processing_diagnostics
         from evovideo_skill.predicate_evidence import summary as predicate_summary
+        from evovideo_skill.isolated_observations import VERSION as ISOLATED_VERSION, CONTINUITY
+        measurement_overrides = {name: {'original_definition': deepcopy(rubric.get(name)),
+            'measurement': CONTINUITY, 'protocol': ISOLATED_VERSION,
+            'qualification': 'Task compliance is measured by separate pre/post/action criteria.'}
+            for name in rubric if name.endswith('.state_flow')
+            and self.observation_protocol == ISOLATED_VERSION}
         result.update(model=self.model, criterion_scores={k: scores[k] for k in rubric if k in scores},
             criterion_evidence={k: texts[k] for k in rubric}, failed_segments=failed, failure_types=[],
             evaluation_status="needs_review" if unobserved or review else "complete",
@@ -1595,7 +1621,8 @@ class ConditioningVideoVerifier:
                 "cross_window_conflict_policy": "single_owner_source_facts_with_explicit_context_bindings",
                 "fact_ownership": ownership_audit,
                 "shared_observation_protocol": self.observation_protocol,
-                "source_fact_scoring": "categorical_requirement_satisfaction" if self.observation_protocol in {"shared-observation-review-v2", "shared-observation-review-v3", "shared-observation-review-v4"} else "legacy_graded",
+                "measurement_overrides": measurement_overrides,
+                "source_fact_scoring": "categorical_requirement_satisfaction" if self.observation_protocol != "shared-observation-review-v1" else "legacy_graded",
                 'source_identity': source_identity_audit,
                 'fact_consistency': {'before_review': fact_conflicts_before, 'unresolved': fact_conflicts_after,
                     'qualification': 'Structured same-proposition consistency, not independent visual ground truth.'},

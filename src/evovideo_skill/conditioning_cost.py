@@ -94,7 +94,7 @@ def selection_gain(effect, config):
     if options(config)['enabled']:
         if 'bargaining' not in effect:
             raise ValueError('bargaining selection requires complete evidence')
-        return effect['bargaining']['gain']
+        return effect['bargaining'].get('selection_signal', effect['bargaining']['gain'])
     if cost_options(config)["enabled"]:
         if "cost_effect" not in effect:
             raise ValueError("cost-aware selection requires complete cost evidence")

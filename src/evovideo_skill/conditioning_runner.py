@@ -17,6 +17,7 @@ import time
 from evovideo_skill.benchmarks import BenchmarkSuite
 from evovideo_skill.conditioning_cache import ConditioningNodeCache, material_hashes
 from evovideo_skill import conditioning_bargaining as bargaining
+from evovideo_skill.quality_axes import from_evaluation as build_quality_axes
 from evovideo_skill.conditioning_cost import (cost_options, profile as cost_profile, selection_gain,
     pareto_points, penalty as cost_penalty, delta as cost_delta)
 from evovideo_skill.conditioning_memory import StrategyMemory, paired_effect, task_payload, task_state, metric_vector
@@ -205,6 +206,9 @@ class ConditioningRunner:
                                           for k in ("calls", "seconds")},
                 "reused_nodes": cache.hits, "executed_nodes": cache.misses,
                 "wall_seconds": time.monotonic() - started}
+            if bargaining.options(self.config)['metric_source'] == 'axes':
+                record['quality_axes'] = build_quality_axes(rollout.artifact.metadata.get('vlm_evaluation', {}),
+                    sampled.metadata.get('evaluation', {}))
             if bargaining.options(self.config)['enabled']:
                 record['bargaining_objective'] = bargaining.options(self.config)
                 try:
@@ -329,6 +333,8 @@ class ConditioningRunner:
                 "cost_objective": cost_options(self.config),
                 "parent_generation_cost": cost_profile(task, parent, cost_options(self.config)),
                 "bargaining": bargaining.options(self.config),
+                "parent_quality_axes": [{"seed": r['seed'], "quality_axes": deepcopy(r['quality_axes'])}
+                                        for r in records if r.get('quality_axes')],
                 "selection_instruction": ("Use fixed-reference multi-objective bargaining; keep each quality dimension, costs and conflicts explicit. Missing evidence is unknown. Staying with the parent is allowed."
                     if bargaining.options(self.config)['enabled'] else "Use the original configured quality/net-gain objective."),
                 "cost_instruction": "Quality does not necessarily improve with longer paths. Keep original quality evidence separate from cold graph calls/video seconds. Prefer supported net gains under the configured cost objective. Node config.cost is NOT a measured cost and must remain fixed.",
@@ -734,9 +740,10 @@ class ConditioningRunner:
             objective = cost_options(self.config)
             bargain = bargaining.options(self.config)
             net_gain = statistics.mean(selection_gain(e, self.config) for e in effects) if effects else None
+            gain_supported = (bargaining.validation_supported(effects, self.config) if bargain['enabled'] else
+                net_gain is not None and net_gain >= (objective['min_validation_net_gain'] if objective['enabled'] else self.config['min_gain']))
             accepted = (len(effects) >= self.config["min_validation_tasks"] and not failures and not unresolved
-                        and net_gain >= (bargain['min_validation_gain'] if bargain['enabled'] else
-                            objective["min_validation_net_gain"] if objective["enabled"] else self.config["min_gain"])
+                        and gain_supported
                         and all(v >= -self.config["max_metric_regression"]
                                 for e in effects for v in e["metric_deltas"].values()))
             if self.config.get("search_mode", "legacy") != "legacy" or objective["enabled"] or bargain['enabled']:
@@ -747,6 +754,7 @@ class ConditioningRunner:
             reports.append({"strategy_id": key, "accepted": accepted, "gain": gain,
                 "selection_gain": net_gain, "cost_objective": objective,
                 "bargaining_objective": bargain,
+                "selection_signal_qualification": "Retrieval diagnostic only; bargaining validation uses each effect's own tier, not mixed-tier mean.",
                 "tasks": [t.task_id for t in tasks], "execution_failures": failures, "effects": effects,
                 "unresolved_comparisons": unresolved, "valid_comparisons": len(effects),
                 "planned_comparisons": len(tasks), "preservation": preservation, "mandatory_preserved": mandatory_preserved,
@@ -970,10 +978,15 @@ class ConditioningRunner:
             if bargaining.options(self.config)['enabled']:
                 o = bargaining.options(self.config)
                 def final_profile(assessment, cost):
-                    return bargaining.profile([{**assessment, 'generation_cost': cost,
+                    return bargaining.profile([{**assessment, 'generation_cost': cost, 'seed': seed,
                         'feedback': {'metrics': {m['name']: m for m in assessment['metrics']}}}], o)
                 bp, cp = final_profile(base_score, bc), final_profile(score, cc)
-                pairs[-1]['bargaining'] = {'baseline': bp, 'candidate': cp, 'gain': cp['score']-bp['score']}
+                pairs[-1]['bargaining'] = {'baseline': bp, 'candidate': cp, 'gain': cp['score']-bp['score'],
+                    'secondary_log_gain': cp['nash_log']-bp['nash_log'],
+                    'axis_deltas': {k: cp['values'][k]-v for k,v in bp['values'].items()},
+                    'feasible_lexicographic_improvement': cp['feasible'] and (
+                        (cp['score'], cp['nash_log']) > (bp['score'], bp['nash_log'])),
+                    'qualification': 'Post-commit descriptive comparison, not a new selection or admission decision.'}
         if self.load_frozen(frozen)[2] != digest or memory.snapshot() != json.loads(Path(frozen).read_text())["entries"]:
             raise RuntimeError("frozen memory changed during held-out evaluation")
         by_task = {}
@@ -1009,6 +1022,13 @@ class ConditioningRunner:
         if bargaining.options(self.config)['enabled']:
             result['heldout_bargaining_gain'] = statistics.mean(statistics.mean(p['bargaining']['gain']
                 for p in pairs if p['task_id'] == task_id) for task_id in by_task) if complete_evidence else None
+            result['heldout_secondary_log_gain'] = statistics.mean(statistics.mean(p['bargaining']['secondary_log_gain']
+                for p in pairs if p['task_id'] == task_id) for task_id in by_task) if complete_evidence else None
+            result['bargaining_outcomes'] = {
+                'measured_pairs': len(pairs), 'planned_pairs': len(selected),
+                'feasible_lexicographic_improvements': sum(p['bargaining']['feasible_lexicographic_improvement'] for p in pairs),
+                'infeasible_candidates': sum(not p['bargaining']['candidate']['feasible'] for p in pairs),
+                'qualification': 'Paired descriptive counts with coverage, not calibrated significance or global optimality.'}
         result["contract_acceptance"] = {
             "evaluated_outputs": len(contract_pairs), "planned_outputs": len(selected),
             "unresolved_outputs": len(unresolved_pairs),
@@ -1085,6 +1105,9 @@ class ConditioningRunner:
                   "criterion_scores": deepcopy(artifact.metadata.get("vlm_evaluation", {}).get("criterion_scores", {})),
                   "verification": deepcopy(artifact.metadata.get("vlm_evaluation", {}).get("verification_metadata", {}))}
         from evovideo_skill.evaluation_report import scorecard
+        if bargaining.options(self.config)['metric_source'] == 'axes':
+            result['quality_axes'] = build_quality_axes(artifact.metadata.get('vlm_evaluation', {}),
+                task.metadata.get('evaluation', {}))
         result['evaluation_scorecard'] = scorecard(artifact.metadata.get('vlm_evaluation', {}),
             result['acceptance'], record.get('generation_cost'), record.get('process_diagnostics'))
         write_json(path, result)
