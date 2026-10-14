@@ -43,6 +43,7 @@ def check(config, tasks):
                 groups=list(owner.criterion_groups(names,criteria,spans))
                 questions=[]
                 motion_questions = 0
+                actor_questions = 0
                 for subset in groups:
                     if not enabled(subset):
                         continue
@@ -60,6 +61,8 @@ def check(config, tasks):
                         questions.append(len(packet['questions']))
                         motion_questions += sum(q.get('observation_domain') == 'boundary_motion'
                                                 for q in packet['questions'].values())
+                        actor_questions += sum(bool(q.get('actor_references'))
+                                               for q in packet['questions'].values())
                 initial=len(groups)*p['repeats']
                 review=p['auto_review']
                 cap=min(review['max_calls_per_video'], review['max_calls_per_run']) if review['enabled'] else 0
@@ -70,6 +73,7 @@ def check(config, tasks):
                     'maximum_request_attempts_per_video':(2*initial+cap)*p['max_attempts'],
                     'automatic_review_call_cap':cap,'max_hypotheses_in_source_group':max(questions,default=0),
                     'boundary_motion_hypotheses': motion_questions,
+                    'actor_bound_state_hypotheses': actor_questions,
                     'max_request_bytes':p['max_request_bytes']}
             rows.append({'task_id':task.task_id,'shots':len(spans),
                 'axes':{k:v['members'] for k,v in axis_contract['axes'].items()},'phases':phases})

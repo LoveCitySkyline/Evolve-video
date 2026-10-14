@@ -10,8 +10,9 @@ import re
 from evovideo_skill.research_subgraphs import stable_hash
 
 LEGACY_VERSION = 'isolated-attribute-observations-v1'
-VERSION = 'isolated-attribute-observations-v1.1'
-SUPPORTED_VERSIONS = {LEGACY_VERSION, VERSION}
+BOUNDARY_VERSION = 'isolated-attribute-observations-v1.1'
+VERSION = 'isolated-attribute-observations-v1.2'
+SUPPORTED_VERSIONS = {LEGACY_VERSION, BOUNDARY_VERSION, VERSION}
 CONTINUITY = (
     'Visible physical continuity of the same objects within this window and across its entry cut. '
     'Compare the actually visible previous last boundary (when attached) with the current first boundary, '
@@ -55,6 +56,38 @@ boundary and its attached short same-shot sequence, not a still alone or a later
 unrelated action. This measures local motion near the boundary, not an exact
 instantaneous velocity. Do not infer motion from attachment or lack of motion blur.
 '''
+BOUNDARY_SYSTEM = SYSTEM
+SYSTEM += '''
+State questions use explicit ACTOR[label] tokens for source-declared people.
+ACTOR[A] means the specific person A in the source appearance registry, NEVER
+the English article "a" or an arbitrary person. "ACTOR[A] hand" means A's hand;
+"ACTOR[B] tray" means the tray associated with B. These are identity-qualified
+relations, not observations that the person or object is actually present.
+Bind the visible referent before evaluating the relation. Evidence of an object
+in B's hand alone cannot support a hypothesis that it is in A's hand. If custody
+is shared or ambiguous, observe that explicitly; do not assume exclusive holding.
+All values are independent hypotheses. Apply actor bindings to non-target values
+equally; these tokens do not identify a desired answer. Unknown remains allowed.
+'''
+SYSTEMS = {LEGACY_VERSION: LEGACY_SYSTEM, BOUNDARY_VERSION: BOUNDARY_SYSTEM, VERSION: SYSTEM}
+
+
+def qualify_state_actors(question, actors):
+    """Disambiguate declared labels in structured states, not arbitrary prose.
+
+    This is source-language compilation, not a visual/semantic correctness check.
+    Event/setup prose is unchanged: its initial 'A customer' can be an article.
+    The original proposition and target mapping remain in the host plan.
+    """
+    if question.get('observation_domain') != 'state_attribute' or not actors:
+        return
+    pattern = r'\b(' + '|'.join(re.escape(a) for a in sorted(actors)) + r')\b'
+    labels = sorted(set(re.findall(pattern, question['proposition'])))
+    if not labels:
+        return
+    question['proposition'] = re.sub(pattern, lambda m: f'ACTOR[{m[0]}]', question['proposition'])
+    question['actor_references'] = {a: {'token': f'ACTOR[{a}]',
+        'appearance_id': actors[a]['appearance_id']} for a in labels}
 
 
 def boundary_motion_contract(question, catalog):
@@ -98,6 +131,8 @@ def boundary_motion_contract(question, catalog):
 
 def prepare(plan, public):
     from evovideo_skill.predicate_scope import predicate_scope
+    from evovideo_skill.verifier_identity import registry
+    actors = registry(public) if plan['wire_protocol'] == VERSION else {}
     vocabulary = {}
     for shot in public.get('metadata', {}).get('story_contract', {}).get('shots', []):
         for field in ('preconditions', 'postconditions', 'invariants'):
@@ -138,6 +173,8 @@ def prepare(plan, public):
             if source['phase'] == 'state_flow':
                 question['observation_domain'] = 'physical_continuity'
             if plan['wire_protocol'] == VERSION:
+                qualify_state_actors(question, actors)
+            if plan['wire_protocol'] in {BOUNDARY_VERSION, VERSION}:
                 boundary_motion_contract(question, plan['evidence_catalog'])
             ident = 'o_' + stable_hash(question)[:16]
             questions[ident] = question

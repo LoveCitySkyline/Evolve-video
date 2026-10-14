@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "isolated-observation-decision-v41.1"
+VERIFIER_PROTOCOL_VERSION = "isolated-observation-decision-v41.2"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -907,12 +907,9 @@ class ConditioningVideoVerifier:
         shared_review = wire_protocol in {OBSERVATION_PROTOCOL, *SUPPORTED_VERSIONS}
         if wire_protocol in SUPPORTED_VERSIONS:
             OBSERVATION_SYSTEM = OWNED_SYSTEM
-        from evovideo_skill.isolated_observations import (VERSION as ISOLATED_PROTOCOL, SYSTEM as ISOLATED_SYSTEM,
-            LEGACY_VERSION as LEGACY_ISOLATED_PROTOCOL, LEGACY_SYSTEM as LEGACY_ISOLATED_SYSTEM)
-        if wire_protocol == ISOLATED_PROTOCOL:
-            OBSERVATION_SYSTEM = ISOLATED_SYSTEM
-        elif wire_protocol == LEGACY_ISOLATED_PROTOCOL:
-            OBSERVATION_SYSTEM = LEGACY_ISOLATED_SYSTEM
+        from evovideo_skill.isolated_observations import SYSTEMS as ISOLATED_SYSTEMS
+        if wire_protocol in ISOLATED_SYSTEMS:
+            OBSERVATION_SYSTEM = ISOLATED_SYSTEMS[wire_protocol]
         if shared_review:
             # A distinct wire contract: do not append the legacy criteria/facts
             # instructions, which would demand duplicate copies of each verdict.

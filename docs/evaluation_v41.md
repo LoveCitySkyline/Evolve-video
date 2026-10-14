@@ -1,8 +1,49 @@
 # V41：从视觉观察到预算内策略选择
 
-当前维护版本：`isolated-observation-decision-v41.1`。属性观察：
-`isolated-attribute-observations-v1.1`。决策维度：`story-quality-axes-v1`。
-V41 原始协议及匿名问题 ID 保留用于旧记录回放，不将旧响应重标为新观察。
+当前维护版本：`isolated-observation-decision-v41.2`。属性观察：
+`isolated-attribute-observations-v1.2`。决策维度：`story-quality-axes-v1`。
+V41/V41.1 原始协议、提示词及匿名问题 ID 保留用于旧记录回放，不将旧响应重标为新观察。
+
+## V41.2：状态中的角色编号消歧
+
+V41.1 离线快照审计有 8 个可提交组件，其中 4 个完整、4 个仍未知。这不代表 8 段视频
+评测完成，也未更新任何旧结果。原已 resolved 的 4 组并非新恢复的测量。
+原暂缓的 market_change 第 1 镜可保留事件、起始位置和该镜 action alignment 的测量，
+但其末状态和第 2 镜动作仍未知，不能因此认为全片 action alignment 已确定。
+
+审计还暴露了起始 token.location 从 0 到 1 的可疑翻转。按已知请求目录重建得到同一
+问题 ID `o_4f7829ec893d7eb9`，其问题是 `token.location equals 'A hand'`；保存的响应却以
+“在 actor B 手里”支持它。这是问题与回答的语义矛盾，不是视觉真值验证。现有 JSON、
+引用和外观绑定校验无法发现所有此类错误，`snapshot_committable` 也不保证判断正确。
+
+新编译器将**结构化状态**里已在原始身份注册表声明的角色编号显式写为 `ACTOR[A]`、
+`ACTOR[B]`，并附上各自的 appearance_id。`A hand` 因而成为 `ACTOR[A] hand`，明确表示
+A 的手而非任意一只手。角色自身属性如 `A.location` 同样消歧，所有候选值一视同仁，
+不泄露目标选项。未声明的形状字母（如 V shape）、普通小写冠词、setup/事件自然语言
+保持不变；原始 benchmark、主机端命题、目标映射和旧分数也保持不变。
+
+这项修改减少源语言歧义，**不构成通用语义验证器，也不能保证模型不再答非所问**。
+不添加新的响应字段、投票轮数或基于文字自动反转分数的规则。未进行真实模型复测前，
+不能宣称视觉准确率或覆盖率提高。共享持有、遮挡和身份模糊仍由模型观察，允许未知。
+
+同步 `src/evovideo_skill/`、`scripts/`，回归测试及说明在 `tests/`、`docs/`。
+配置、benchmark、准备素材及 H3 权重没有变化。先运行零 API 检查：
+
+```bash
+PYTHONPATH=src:tests python -m unittest test_evaluation_v412 test_evaluation_v411 test_evaluation_v41 test_verifier_identity
+PYTHONPATH=src python scripts/check_evaluation_contract.py \
+  --config configs/h3_story350_debug.json \
+  --task-file benchmarks/story350/story350.json \
+  > outputs/evaluation_v412_contract.json
+```
+
+预检的 `actor_bound_state_hypotheses` 记录实际消歧的问题数量（包含非目标候选，不是
+视频数）。若进行付费验证，沿用本文预先固定的三任务、seed=42，只运行一次并使用
+新的 `outputs/h3_v412_canary_XXXXXX` 目录。旧快照不重新标为 V41.2 结果。
+
+V41.2 本地全量 1081 项测试通过；debug 配置对全部 350 条 Story350 任务静态编译通过。
+其中 162 条任务含角色状态表达，final 请求共 2302 个带角色绑定的状态候选问题。
+未调用真实评估模型或 H3；这些检查不衡量视觉准确率。
 
 ## V41 固定三任务复测后的修正
 
@@ -175,7 +216,7 @@ PYTHONPATH=src:tests python -m unittest test_evaluation_v41 test_conditioning_ba
 这一步会调用付费 verifier，不调用 H3；旧结果不变，缺失基线仍明确缺失。
 
 ```bash
-review_dir="$(mktemp -d outputs/h3_v41_canary_XXXXXX)"
+review_dir="$(mktemp -d outputs/h3_v412_canary_XXXXXX)"
 recheck_args=(
   --run-dir outputs/h3_story350_semantics_v2_RowaH0
   --config configs/h3_story350_debug.json
