@@ -5,10 +5,13 @@ each is an independent visual hypothesis, never an exclusive classifier.
 """
 from copy import deepcopy
 import json
+import re
 
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'isolated-attribute-observations-v1'
+LEGACY_VERSION = 'isolated-attribute-observations-v1'
+VERSION = 'isolated-attribute-observations-v1.1'
+SUPPORTED_VERSIONS = {LEGACY_VERSION, VERSION}
 CONTINUITY = (
     'Visible physical continuity of the same objects within this window and across its entry cut. '
     'Compare the actually visible previous last boundary (when attached) with the current first boundary, '
@@ -37,6 +40,60 @@ Use the supplied source appearance registry for actor labels, never possession o
 When identity_contract exists, also return its requested top-level identity_bindings object.
 Standalone judgments use their own schemas. Do not infer missing observations to complete JSON.
 '''
+LEGACY_SYSTEM = SYSTEM
+SYSTEM += '''
+Do not confuse an unmet hypothesis with missing evidence. When the identified object
+is visibly in an incompatible location, that can be a visible_counterexample even
+if the requested destination is unseen. If object identity or spatial relations
+are actually ambiguous, retain unknown. Mere absence from a crop proves nothing.
+An event means its full stated action within this window. Visible incomplete or
+wrong execution is a counterexample when adequate trajectory evidence establishes
+noncompletion; initiating an action is not completing it. A final state alone does
+not rule out an earlier completed action. Gaps/occlusion remain unknown when material.
+For boundary_motion questions follow their temporal_evidence contract: use the
+boundary and its attached short same-shot sequence, not a still alone or a later
+unrelated action. This measures local motion near the boundary, not an exact
+instantaneous velocity. Do not infer motion from attachment or lack of motion blur.
+'''
+
+
+def boundary_motion_contract(question, catalog):
+    """Conservative lexical routing of explicit motion words, never a visual verdict.
+
+    This defines a fixed, one-sided 0.5 s measurement neighborhood. Static
+    properties retain their exact boundary rule; historical v1 is unchanged.
+    """
+    if (question.get('observation_domain') != 'state_attribute'
+            or question['phase'] not in {'pre', 'post'}
+            or not re.search(r'\b(?:moving|rotating|spinning|rolling|flowing|swinging|oscillating|vibrating)\b',
+                             question['proposition'], re.I)):
+        return
+    index = question['shot_index']
+    boundary = f"s{index}:{'first' if question['phase'] == 'pre' else 'last'}"
+    frames = catalog.get(boundary, {}).get('images', [])
+    origin = frames[0]['original_seconds'] if frames else None
+    times = {}
+    if origin is not None:
+        for ref, item in catalog.items():
+            if item['kind'] != 'sample' or not ref.startswith(f's{index}:'):
+                continue
+            t = item['images'][0]['original_seconds']
+            delta = t-origin if question['phase'] == 'pre' else origin-t
+            if 0 < delta <= .5 + 1e-6:
+                times[ref] = t
+    question['observation_domain'] = 'boundary_motion'
+    question['temporal_evidence'] = {
+        'protocol': 'one-sided-boundary-motion-v1', 'boundary_ref': boundary,
+        'boundary_seconds': origin, 'neighborhood_seconds': .5,
+        'sequence_refs': times, 'minimum_distinct_timestamps': 2,
+        'qualification': 'Local motion estimate near boundary; not exact instantaneous velocity. '
+            'Only these nearby samples establish motion. Other samples identify referents only.'}
+    citation = question['citation_contract']
+    citation['context_only_refs'] = [r for r in citation['context_only_refs'] if r not in times]
+    citation['instruction'] = ('Cite the full boundary AND at least one sequence_ref at a distinct '
+        'timestamp for a known motion judgment. Compare the same object across these images. '
+        'Missing/occluded/ambiguous motion evidence stays unknown. Static appearance alone cannot '
+        'establish motion or its absence. Other samples are referent context only.')
 
 
 def prepare(plan, public):
@@ -80,6 +137,8 @@ def prepare(plan, public):
                 question['clause_context'] = source['context']
             if source['phase'] == 'state_flow':
                 question['observation_domain'] = 'physical_continuity'
+            if plan['wire_protocol'] == VERSION:
+                boundary_motion_contract(question, plan['evidence_catalog'])
             ident = 'o_' + stable_hash(question)[:16]
             questions[ident] = question
             if proposition == source['proposition']:
@@ -141,5 +200,9 @@ def select_targets(raw, plan):
         if VALUES[fact['basis']] != 'unknown' and (not refs or
                 not set(citation['required_refs_when_known']).issubset(refs)):
             raise ValueError(key + ': known observation requires its own evidence including boundary')
+        temporal = questions[key].get('temporal_evidence')
+        if (temporal and VALUES[fact['basis']] != 'unknown'
+                and not set(refs).intersection(temporal['sequence_refs'])):
+            raise ValueError(key + ': known boundary motion requires distinct nearby sequence evidence')
     return {**deepcopy(raw), 'facts': {key: deepcopy(facts[question])
         for key, question in plan['isolated_observations']['target_map'].items()}}

@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "isolated-observation-decision-v41"
+VERIFIER_PROTOCOL_VERSION = "isolated-observation-decision-v41.1"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -907,9 +907,12 @@ class ConditioningVideoVerifier:
         shared_review = wire_protocol in {OBSERVATION_PROTOCOL, *SUPPORTED_VERSIONS}
         if wire_protocol in SUPPORTED_VERSIONS:
             OBSERVATION_SYSTEM = OWNED_SYSTEM
-        from evovideo_skill.isolated_observations import VERSION as ISOLATED_PROTOCOL, SYSTEM as ISOLATED_SYSTEM
+        from evovideo_skill.isolated_observations import (VERSION as ISOLATED_PROTOCOL, SYSTEM as ISOLATED_SYSTEM,
+            LEGACY_VERSION as LEGACY_ISOLATED_PROTOCOL, LEGACY_SYSTEM as LEGACY_ISOLATED_SYSTEM)
         if wire_protocol == ISOLATED_PROTOCOL:
             OBSERVATION_SYSTEM = ISOLATED_SYSTEM
+        elif wire_protocol == LEGACY_ISOLATED_PROTOCOL:
+            OBSERVATION_SYSTEM = LEGACY_ISOLATED_SYSTEM
         if shared_review:
             # A distinct wire contract: do not append the legacy criteria/facts
             # instructions, which would demand duplicate copies of each verdict.
@@ -1594,12 +1597,15 @@ class ConditioningVideoVerifier:
         result = {k: scores[k] for k in GENERIC if k in scores}
         from evovideo_skill.evaluation_report import processing_diagnostics
         from evovideo_skill.predicate_evidence import summary as predicate_summary
-        from evovideo_skill.isolated_observations import VERSION as ISOLATED_VERSION, CONTINUITY
+        from evovideo_skill.isolated_observations import SUPPORTED_VERSIONS as ISOLATED_VERSIONS, CONTINUITY
         measurement_overrides = {name: {'original_definition': deepcopy(rubric.get(name)),
-            'measurement': CONTINUITY, 'protocol': ISOLATED_VERSION,
+            'measurement': CONTINUITY, 'protocol': self.observation_protocol,
             'qualification': 'Task compliance is measured by separate pre/post/action criteria.'}
             for name in rubric if name.endswith('.state_flow')
-            and self.observation_protocol == ISOLATED_VERSION}
+            and self.observation_protocol in ISOLATED_VERSIONS}
+        measurement_overrides.update({name: {'original_definition': deepcopy(rubric.get(name)),
+            'measurement': deepcopy(row['temporal_measurement']), 'protocol': self.observation_protocol}
+            for name, rows in observations.items() for row in rows if row.get('temporal_measurement')})
         result.update(model=self.model, criterion_scores={k: scores[k] for k in rubric if k in scores},
             criterion_evidence={k: texts[k] for k in rubric}, failed_segments=failed, failure_types=[],
             evaluation_status="needs_review" if unobserved or review else "complete",
@@ -1612,7 +1618,7 @@ class ConditioningVideoVerifier:
                     for state in ('measured', 'not_applicable', 'insufficient_evidence', 'score_unresolved', 'identity_unresolved', 'disputed', 'invalid_response')},
                 "auto_review": review_audits, "response_format_failures": format_failures,
                 "review_schedule": schedule,
-                "review_policy": "single_pass_shared_fact_components_atomic_commit",
+                "review_policy": auto_options["commit_policy"],
                 "sampling_policy": {"initial_repeats": self.profile["repeats"],
                     "initial_repeat_agreement_measured": self.profile["repeats"] > 1,
                     "review_confirmations": auto_options["confirmations"],

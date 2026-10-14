@@ -8,7 +8,7 @@ from pathlib import Path
 
 def diagnose(root):
     root = Path(root).resolve()
-    unique, records, failures = {}, [], []
+    unique, records, failures, snapshots = {}, [], [], []
     for path in sorted((root / 'observations').glob('*.json')):
         row = json.loads(path.read_text())
         evaluation = row.get('evaluation', {})
@@ -37,6 +37,8 @@ def diagnose(root):
     # Only responses/format errors are read. Requests with embedded media are excluded.
     for path in sorted((root / 'verifier').glob('*/judgments/*/auto_review/*/decision.json')):
         decision = json.loads(path.read_text())
+        if decision.get('snapshot_commit'):
+            snapshots.append({'decision': str(path.relative_to(root)), **decision['snapshot_commit']})
         if decision.get('status') != 'abstained':
             continue
         entries = list(decision.get('criteria', {}).values())
@@ -62,6 +64,7 @@ def diagnose(root):
         'per_task': {task: dict(Counter(r['status'] for r in unique.values() if r['task_id'] == task))
                      for task in sorted({r['task_id'] for r in records if r['task_id']})},
         'failed_component_counts': dict(Counter(r['reason'] for r in failures)),
+        'review_snapshot_commits': snapshots,
         'judgments': list(unique.values()), 'failed_components': failures,
         'qualification': 'Model prose is unverified evidence, not visual truth. Shared judgment paths are counted once. '
             'No videos, prompts, keys, or base64 request bodies are included. No saved scores were changed.'}

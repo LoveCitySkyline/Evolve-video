@@ -123,8 +123,8 @@ def compile_plan(criteria, public, spans, manifest, protocol=None):
         if protocol not in SUPPORTED_VERSIONS:
             raise ValueError('unsupported shared observation protocol: ' + protocol)
         prepare_plan(plan, protocol)
-        from evovideo_skill.isolated_observations import VERSION as ISOLATED_VERSION, prepare
-        if protocol == ISOLATED_VERSION:
+        from evovideo_skill.isolated_observations import SUPPORTED_VERSIONS as ISOLATED_VERSIONS, prepare
+        if protocol in ISOLATED_VERSIONS:
             prepare(plan, public)
     return plan
 
@@ -543,6 +543,11 @@ def observe(reviewer, path, payload, evidence, operation, criteria, spans):
                         row['observation_provenance']['request_file'] = str(path.with_suffix(f'.wire-request-{attempt}.json'))
                         row['measurement_definition'] = ('physical_continuity_only' if name.endswith('.state_flow')
                                                          else 'isolated_source_predicate')
+                        packet = plan['isolated_observations']
+                        primary = plan['consumers'].get(name, {}).get('primary')
+                        question = packet['questions'].get(packet['target_map'].get(primary), {})
+                        if question.get('temporal_evidence'):
+                            row['temporal_measurement'] = deepcopy(question['temporal_evidence'])
                     if name in plan.get('owner_context', {}):
                         row['owner_fact_context'] = deepcopy(plan['owner_context'][name])
                 if identity and identity['dependencies'][name]:

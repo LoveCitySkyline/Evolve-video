@@ -8,8 +8,8 @@ from copy import deepcopy
 import math
 
 VERSION = 'shared-observation-review-v4'
-from evovideo_skill.isolated_observations import VERSION as ISOLATED_VERSION
-SUPPORTED_VERSIONS = {'shared-observation-review-v2', 'shared-observation-review-v3', VERSION, ISOLATED_VERSION}
+from evovideo_skill.isolated_observations import SUPPORTED_VERSIONS as ISOLATED_VERSIONS
+SUPPORTED_VERSIONS = {'shared-observation-review-v2', 'shared-observation-review-v3', VERSION, *ISOLATED_VERSIONS}
 SYSTEM = '''Return JSON following output_contract.response_shape exactly.
 Observe each requested source proposition once. Each fact has ONLY basis,
 confidence, evidence, evidence_refs. Never output credit, score, matched, unmet,
@@ -89,9 +89,9 @@ def prepare_plan(plan, protocol=VERSION):
         else:
             owners[signature] = key
     plan.update(wire_protocol=protocol, owner_context=dependencies, fact_aliases=aliases)
-    if protocol in {'shared-observation-review-v3', VERSION, ISOLATED_VERSION}:
+    if protocol in {'shared-observation-review-v3', VERSION, *ISOLATED_VERSIONS}:
         plan['aggregation_policy'] = 'bounded-source-aggregation-v1'
-    if protocol in {VERSION, ISOLATED_VERSION}:
+    if protocol in {VERSION, *ISOLATED_VERSIONS}:
         from evovideo_skill.predicate_evidence import VERSION as GUARD_VERSION
         plan['predicate_evidence_guard'] = GUARD_VERSION
 

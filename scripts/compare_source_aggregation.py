@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 
 from evovideo_skill.owned_observations import SUPPORTED_VERSIONS
-from evovideo_skill.isolated_observations import VERSION as ISOLATED_VERSION
+from evovideo_skill.isolated_observations import SUPPORTED_VERSIONS as ISOLATED_VERSIONS
 from evovideo_skill.review_observations import compile_plan, project_response
 from evovideo_skill.scoped_judgment import project
 from evovideo_skill.conditioning_verifier import parse_judgment
@@ -22,7 +22,7 @@ ALGEBRA_PROTOCOL = 'shared-observation-review-v3'
 
 def compare(request, raw):
     old_protocol = request.get('output_contract', {}).get('response_protocol')
-    if old_protocol not in SUPPORTED_VERSIONS or old_protocol == ISOLATED_VERSION:
+    if old_protocol not in SUPPORTED_VERSIONS or old_protocol in ISOLATED_VERSIONS:
         return {'status': 'skipped_non_owned_wire'}
     manifest, public = request['evidence_manifest'], request['original_task']
     spans = manifest['windows']

@@ -58,7 +58,8 @@
         "confirmations": 1,
         "policy": "decision_relevant",
         "min_quality_impact": 0.02,
-        "max_components_per_video": 3
+        "max_components_per_video": 3,
+        "commit_policy": "validated_snapshot"
       },
       "transport": "dashscope_video",
       "api_key_env": "DASHSCOPE_API_KEY",
@@ -79,7 +80,8 @@
         "confirmations": 1,
         "policy": "decision_relevant",
         "min_quality_impact": 0.02,
-        "max_components_per_video": 3
+        "max_components_per_video": 3,
+        "commit_policy": "validated_snapshot"
       },
       "transport": "dashscope_video",
       "api_key_env": "DASHSCOPE_API_KEY",

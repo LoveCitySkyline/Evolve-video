@@ -12,11 +12,11 @@ from evovideo_skill.h3_api import portable_interprocess_lock
 from evovideo_skill.research_protocol import write_json
 from evovideo_skill.research_subgraphs import stable_hash
 
-VERSION = 'bounded-automatic-review-v17'
+VERSION = 'bounded-automatic-review-v17.1'
 DEFAULTS = dict(enabled=False, max_calls_per_criterion=4, max_calls_per_video=8,
                 max_calls_per_run=200, max_seconds_per_video=600, fps=8, max_width=1536,
                 secondary_model=None, confirmations=2, policy='all_uncertain',
-                min_quality_impact=.02, max_components_per_video=3)
+                min_quality_impact=.02, max_components_per_video=3, commit_policy='resolved_only')
 CHECKS = {
     'referents': 'Can all actors/objects NEEDED FOR THIS CLAIM be bound to visible evidence? A task definition alone is not visual identification.',
     'visibility': 'Is the visual evidence sufficient to decide this claim, including a visible counterexample? Not whether the required outcome occurs.',
@@ -165,6 +165,10 @@ def options(value=None):
         raise ValueError('auto_review.confirmations must be 1 or 2')
     if out['policy'] not in ('all_uncertain', 'decision_relevant'):
         raise ValueError('invalid auto_review.policy')
+    if out['commit_policy'] not in ('resolved_only', 'validated_snapshot'):
+        raise ValueError('invalid auto_review.commit_policy')
+    if out['commit_policy'] == 'validated_snapshot' and out['confirmations'] != 1:
+        raise ValueError('validated_snapshot requires exactly one enhanced assessment')
     if (type(out['min_quality_impact']) not in (int, float)
             or not math.isfinite(out['min_quality_impact']) or not 0 <= out['min_quality_impact'] <= 1):
         raise ValueError('invalid auto_review.min_quality_impact')
@@ -483,7 +487,7 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
             decision = json.loads(saved.read_text())
             for name in members:
                 audit[name] = decision['criteria'][name]
-            if decision['status'] == 'resolved':
+            if decision['status'] == 'resolved' or decision.get('snapshot_commit', {}).get('committed'):
                 rows.update({n: deepcopy(decision['criteria'][n]['observations']) for n in members})
             continue
         root.mkdir(parents=True, exist_ok=True)
@@ -637,8 +641,12 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
             reasons.append('component confirmations remain unknown or disputed: ' + ', '.join(unresolved))
         if conflicts:
             reasons.append('shared facts conflict across component confirmations: ' + ', '.join(sorted(conflicts)))
+        from evovideo_skill.review_snapshot import decision as snapshot_decision
+        snapshot = snapshot_decision(initial, confirmations, policy=config['commit_policy'],
+                                     required=required, threshold=owner.profile['disagreement_threshold'])
         entries = {name: {'protocol': VERSION, 'criterion': name, 'component': members,
             'status': 'resolved' if resolved else 'abstained',
+            'snapshot_commit': snapshot,
             'initial_observations': initial[name], 'observations': confirmations[name], 'errors': reasons,
             'abstention_kind': abstention_kind, 'evidence_conflicts': evidence_issues,
             'models': review_models[:len(results)],
@@ -653,13 +661,15 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
             for name in members}
         decision = {'protocol': VERSION, 'component': members, 'criteria': entries,
             'status': 'resolved' if resolved else 'abstained', 'errors': reasons,
+            'snapshot_commit': snapshot,
             'shared_fact_conflicts': conflicts, 'abstention_kind': abstention_kind,
             'evidence_conflicts': evidence_issues, 'wall_seconds': time.monotonic() - started}
-        # One durable component decision is the commit record. Never replay a subset.
+        # Commit a single whole snapshot. Unknown is not invalid, and is never
+        # replaced by a convenient old score or borrowed from another assessment.
         write_json(saved, decision)
         print(f"[conditioning verifier] auto-review component={members} status={decision['status']} "
               f"errors={json.dumps(reasons)} audit={saved}", flush=True)
         audit.update(entries)
-        if resolved:
+        if snapshot['committed']:
             rows.update(deepcopy(confirmations))
     return audit

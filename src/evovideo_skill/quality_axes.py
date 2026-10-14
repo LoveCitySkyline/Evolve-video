@@ -84,9 +84,9 @@ def from_evaluation(evaluation, fallback_rules):
     """Include measured generic axes even when they are outside the task rubric."""
     meta = evaluation.get('verification_metadata', {})
     rules = meta.get('effective_criterion_contracts') or fallback_rules
-    from evovideo_skill.isolated_observations import VERSION as OBSERVATION_VERSION
+    from evovideo_skill.isolated_observations import SUPPORTED_VERSIONS as OBSERVATION_VERSIONS
     legacy_flow = [key for key in rules if key.endswith('.state_flow')
-                   and meta.get('shared_observation_protocol') != OBSERVATION_VERSION]
+                   and meta.get('shared_observation_protocol') not in OBSERVATION_VERSIONS]
     # Old state_flow mixed ideal task progression with physics. Displaying an
     # old run must not relabel those scores as newly measured continuity.
     if legacy_flow:
