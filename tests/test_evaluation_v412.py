@@ -3,7 +3,7 @@ from copy import deepcopy
 import unittest
 
 from evovideo_skill.isolated_observations import (
-    VERSION, LEGACY_VERSION, BOUNDARY_VERSION, SYSTEMS, qualify_state_actors)
+    VERSION, LEGACY_VERSION, BOUNDARY_VERSION, ACTOR_VERSION, SYSTEMS, qualify_state_actors)
 from evovideo_skill.review_observations import compile_plan, wire_contract
 from evovideo_skill.verifier_facts import citation_contract
 from evovideo_skill.verifier_identity import registry
@@ -98,7 +98,7 @@ class ActorQualifiedStateTests(unittest.TestCase):
         self.assertIsNone(fx.parsed(raw)['story.s2.post.token.location']['score'])
 
     def test_versioned_prompts_preserve_replay_and_do_not_claim_semantic_validation(self):
-        self.assertEqual(set(SYSTEMS), {LEGACY_VERSION, BOUNDARY_VERSION, VERSION})
+        self.assertEqual(set(SYSTEMS), {LEGACY_VERSION, BOUNDARY_VERSION, ACTOR_VERSION, VERSION})
         self.assertNotIn('ACTOR[label]', SYSTEMS[BOUNDARY_VERSION])
         self.assertIn('ACTOR[label]', SYSTEMS[VERSION])
         self.assertIn('shared or ambiguous', SYSTEMS[VERSION])

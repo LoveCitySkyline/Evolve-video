@@ -78,23 +78,25 @@ def dependencies(name, rule, actors):
     return sorted(actor for actor in actors if re.search(r'\b' + re.escape(actor) + r'\b', text))
 
 
-def contract(public, criteria, manifest):
+def contract(public, criteria, manifest, *, dependency_override=None, additional_actors=()):
     from evovideo_skill.scoped_judgment import evidence_catalog
     actors = registry(public)
-    required = {name: dependencies(name, rule, actors) for name, rule in criteria.items()}
-    if not actors or not any(required.values()):
+    required = (dependency_override if dependency_override is not None else
+                {name: dependencies(name, rule, actors) for name, rule in criteria.items()})
+    required_actors = sorted({a for values in required.values() for a in values} | set(additional_actors))
+    if not actors or not required_actors:
         return None
     index = manifest.get('evaluation_view', {}).get('segment_id')
     catalog = evidence_catalog(manifest, {'story_shot_index': index})
     refs = sorted(k for k, v in catalog.items() if v['kind'] in {'sample', 'boundary', 'source_frame_crop'})
     return {'version': VERSION, 'actors': actors, 'dependencies': required,
-        'required_actors': sorted({a for values in required.values() for a in values}),
+        'required_actors': required_actors,
         'allowed_evidence_refs': refs,
         'response_shape': {'identity_bindings': {a: {'status': 'observed|unknown',
             'appearance_id': 'source appearance ID, or null when unknown',
             'evidence_refs': ['actual candidate image ID; [] when unknown'],
             'evidence': 'visible appearance and identification, or specific limitation'}
-            for a in sorted({a for values in required.values() for a in values})}},
+            for a in required_actors}},
         'qualification': 'Source binding and explicit claim consistency, not an independent vision model.'}
 
 
@@ -174,9 +176,13 @@ def assess(raw, spec):
     actors = spec['actors']
     bindings = raw.get('identity_bindings') if isinstance(raw, dict) else None
     issues = {}
-    if not isinstance(bindings, dict) or set(bindings) != set(spec['required_actors']):
+    precise = spec.get('dependency_protocol') == 'question-identity-projection-v1'
+    allowed_actors = set(actors) if precise else set(spec['required_actors'])
+    if (not isinstance(bindings, dict) or set(bindings) - allowed_actors
+            or (not precise and set(bindings) != set(spec['required_actors']))):
         issues = {a: ['missing_or_wrong_binding_keys'] for a in spec['required_actors']}
     else:
+        issues = {a: ['missing_binding'] for a in spec['required_actors'] if a not in bindings}
         for actor, binding in bindings.items():
             errors = []
             if not isinstance(binding, dict):
@@ -239,16 +245,34 @@ def quarantine_source_conflicts(public, criteria, observations):
     It does not claim to detect arbitrary contradictions in natural language.
     Known explicit label/appearance conflicts cannot become rewards or repairs.
     """
+    from evovideo_skill.observation_identity import has_scoped_audit
     actors = registry(public)
-    claims = {name: explicit_alias_conflicts(rows, actors) for name, rows in observations.items()}
+    # Isolated observations already passed the raw source check and dependency
+    # projection. Re-scanning their historical/context prose would spread a
+    # different scope's actor failure back into independently bound measurements.
+    def audited(name, row):
+        rule = criteria[name]
+        if type(rule.get('story_shot_index')) is int:
+            return has_scoped_audit(row)
+        if rule.get('host_aggregate_from_windows') and row.get('aggregation_source') == 'host_source_window_mean':
+            windows = row.get('window_observations', [])
+            return bool(windows) and len(windows) == len(row.get('segments', [])) and all(
+                has_scoped_audit(window) for window in windows)
+        return False
+
+    claims = {name: explicit_alias_conflicts([r for r in rows if not audited(name, r)], actors)
+              for name, rows in observations.items()}
     claims = {name: rows for name, rows in claims.items() if rows}
     affected = {actor for rows in claims.values() for claim in rows for actor in (claim['actor'], claim['source_actor'])}
     blocked = []
     for name, rows in observations.items():
         if not set(dependencies(name, criteria[name], actors)) & affected:
             continue
+        pending = [r for r in rows if not audited(name, r)]
+        if not pending:
+            continue
         blocked.append(name)
-        for row in rows:
+        for row in pending:
             row.update(status='unobserved', score=None, confidence=0.,
                 observation_basis='insufficient_evidence', evidence_refs=[], evidence_times_seconds=[],
                 evidence='Host withheld judgment due to an explicit source identity conflict; not a quality failure.',

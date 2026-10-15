@@ -32,10 +32,20 @@ def replay(request, raw, require_review=False):
     manifest = request['evidence_manifest']
     spans = manifest['windows']
     protocol = request.get('output_contract', {}).get('response_protocol')
+    from evovideo_skill import observation_identity, isolated_observations
+    identity_projection = protocol == isolated_observations.VERSION
+    identity_spec = None
     if protocol in {VERSION, *SUPPORTED_VERSIONS}:
         plan = compile_plan(rules, request.get('original_task', {}), spans, manifest, protocol=protocol)
         normalized = project_response(raw, plan, manifest)
         rules = plan['rules']
+        if identity_projection:
+            identity_spec = observation_identity.contract(request.get('original_task', {}), plan, manifest)
+            identity_audit = assess(raw, identity_spec)
+            if identity_spec and identity_audit['actor_issues']:
+                masked = observation_identity.mask(raw, plan, identity_spec, identity_audit)
+                normalized = project_response(masked, plan, manifest)
+                observation_identity.withhold_scores(normalized, plan, identity_audit)
     elif protocol and protocol.startswith('shared-observation-'):
         raise ValueError('unsupported saved shared observation protocol: ' + protocol)
     else:
@@ -53,7 +63,8 @@ def replay(request, raw, require_review=False):
         normalized = {k: v for k, v in normalized.items() if k != 'identity_bindings'}
     rows = parse_judgment(normalized, rules, spans, manifest)
     identity_required = (bool(request.get('identity_contract')) or protocol in {VERSION, *SUPPORTED_VERSIONS})
-    identity = assess(raw, contract(request.get('original_task', {}), rules, manifest) if identity_required else None)
+    identity = (identity_audit if identity_projection else
+                assess(raw, contract(request.get('original_task', {}), rules, manifest) if identity_required else None))
     conflicts = fact_conflicts({k: [v] for k, v in rows.items()})
     unknown = sorted(k for k, v in rows.items() if v['status'] == 'unobserved')
     if identity['blocked_criteria']:
@@ -64,7 +75,10 @@ def replay(request, raw, require_review=False):
         state = 'evidence_unresolved'
     else:
         state = 'contract_valid'
+    legacy_ambiguous = sorted(k for k, v in raw.get('facts', {}).items()
+        if isinstance(v, dict) and v.get('basis') == 'not_visible') if identity_projection else []
     return {'status': state, 'unknown_criteria': unknown,
+            'legacy_ambiguous_questions': legacy_ambiguous,
             'identity_check': 'required' if identity_required else 'not_requested_by_saved_contract',
             'identity_blocked_criteria': identity['blocked_criteria'],
             'conflicting_fact_ids': sorted(conflicts), 'criteria': sorted(rows)}

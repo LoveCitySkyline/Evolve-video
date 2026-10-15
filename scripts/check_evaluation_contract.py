@@ -54,6 +54,9 @@ def check(config, tasks):
                         'evaluation_view':{'kind':'fixed_window_clip','segment_id':index}},
                         protocol=owner.observation_protocol)
                     if plan.get('isolated_observations'):
+                        from evovideo_skill.observation_identity import contract as identity_contract
+                        identity_contract(public, plan, {'windows': spans,
+                            'evaluation_view': {'kind': 'fixed_window_clip', 'segment_id': index}})
                         packet=plan['isolated_observations']
                         expected=set(plan['definitions'])-set(plan['fact_aliases'])
                         if set(packet['target_map']) != expected:

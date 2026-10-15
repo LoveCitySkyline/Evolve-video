@@ -12,6 +12,7 @@ def decision(initial, confirmations, *, policy, required, threshold):
     different passes. Repeated assessments retain the legacy agreement rule.
     """
     from evovideo_skill.verifier_review import uncertain
+    from evovideo_skill.observation_identity import is_valid_unknown
     from evovideo_skill.verifier_facts import fact_conflicts
     members = set(initial)
     malformed = (set(confirmations) != members or any(
@@ -26,7 +27,8 @@ def decision(initial, confirmations, *, policy, required, threshold):
                     or (status != 'observed' and score is not None)
                     or bool(row.get('scope_issues') or row.get('fact_conflicts'))
                     or row.get('identity_gate', {}).get('status') == 'blocked'
-                    or row.get('processing_status') in {'invalid_response', 'identity_unresolved', 'score_unresolved'}
+                    or row.get('processing_status') in {'invalid_response', 'score_unresolved'}
+                    or (row.get('processing_status') == 'identity_unresolved' and not is_valid_unknown(row))
                     or row.get('observation_source') == 'response_format_failure')
     conflicts = {} if malformed else fact_conflicts(confirmations)
     unresolved = sorted(n for n, rows in confirmations.items()

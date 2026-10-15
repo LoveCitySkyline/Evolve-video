@@ -183,6 +183,7 @@ def reconcile_owned_facts(observations):
     A separate unknown endpoint also cannot mechanically decide a holistic flow
     criterion. Keep these as contextual facts, not invented scoring conjuncts.
     """
+    from evovideo_skill.observation_identity import is_valid_unknown
     owners, bindings = {}, {}
     for name, rows in observations.items():
         for repeat, row in enumerate(rows):
@@ -195,7 +196,8 @@ def reconcile_owned_facts(observations):
                 entry = {'criterion': name, 'repeat': repeat, 'observation': deepcopy(fact),
                          'provenance': deepcopy(row.get('observation_provenance', {})),
                          'usable': row.get('identity_gate', {}).get('status') != 'blocked'
-                                   and row.get('processing_status') not in {'identity_unresolved', 'invalid_response'}}
+                                   and (row.get('processing_status') not in {'identity_unresolved', 'invalid_response'}
+                                        or is_valid_unknown(row))}
                 owners.setdefault(key, []).append(entry)
     for name, rows in observations.items():
         for row in rows:

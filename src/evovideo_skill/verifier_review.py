@@ -481,7 +481,8 @@ def review_group(owner, task, artifact, public, subset, rows, folder, group, dig
                for values in initial.values() for row in values):
             for name in members:
                 audit[name] = {'status': 'abstained', 'observations': [], 'component': members,
-                    'errors': ['shared identity reassessment unresolved; no per-criterion retry or score assigned'],
+                    'errors': ['shared identity unresolved; no additional review scheduled for this legacy blocked response'],
+                    'abstention_kind': 'identity_unresolved', 'human_review_required': False,
                     'review_scope': 'shared_identity', 'additional_model_calls': 0}
             continue
         key = stable_hash([VERSION, group, members, {n: subset[n] for n in members}, config, owner.model, source_hash])[:16]

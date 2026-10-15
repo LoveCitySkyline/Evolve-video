@@ -32,7 +32,7 @@ from evovideo_skill.scoped_judgment import (SCOPED_RESPONSE_PROTOCOL, SCOPED_JUD
     is_scoped, output_contract as scoped_output_contract, project as project_scoped)
 
 
-VERIFIER_PROTOCOL_VERSION = "isolated-observation-decision-v41.2"
+VERIFIER_PROTOCOL_VERSION = "dependency-scoped-evaluation-v41.3"
 
 
 class VerifierFormatError(VideoApiError, ValueError):
@@ -470,6 +470,8 @@ def aggregate_source_windows(components, spans):
         'window_observations': deepcopy(components)}
     if any(r.get('processing_status') == 'invalid_response' for r in components):
         result.update(processing_status='invalid_response', observation_source='response_format_failure')
+    elif not known and any(r.get('processing_status') == 'identity_unresolved' for r in components):
+        result.update(processing_status='identity_unresolved', observation_source='host_identity_dependency')
     result['fact_observations'] = {key: deepcopy(value) for row in components
                                    for key, value in row.get('fact_observations', {}).items()}
     interval = combine(intervals, 'mean')

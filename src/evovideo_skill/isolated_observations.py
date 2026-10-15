@@ -11,8 +11,9 @@ from evovideo_skill.research_subgraphs import stable_hash
 
 LEGACY_VERSION = 'isolated-attribute-observations-v1'
 BOUNDARY_VERSION = 'isolated-attribute-observations-v1.1'
-VERSION = 'isolated-attribute-observations-v1.2'
-SUPPORTED_VERSIONS = {LEGACY_VERSION, BOUNDARY_VERSION, VERSION}
+ACTOR_VERSION = 'isolated-attribute-observations-v1.2'
+VERSION = 'isolated-attribute-observations-v1.3'
+SUPPORTED_VERSIONS = {LEGACY_VERSION, BOUNDARY_VERSION, ACTOR_VERSION, VERSION}
 CONTINUITY = (
     'Visible physical continuity of the same objects within this window and across its entry cut. '
     'Compare the actually visible previous last boundary (when attached) with the current first boundary, '
@@ -69,7 +70,28 @@ is shared or ambiguous, observe that explicitly; do not assume exclusive holding
 All values are independent hypotheses. Apply actor bindings to non-target values
 equally; these tokens do not identify a desired answer. Unknown remains allowed.
 '''
-SYSTEMS = {LEGACY_VERSION: LEGACY_SYSTEM, BOUNDARY_VERSION: BOUNDARY_SYSTEM, VERSION: SYSTEM}
+ACTOR_SYSTEM = SYSTEM
+SYSTEM = SYSTEM.replace('Use not_visible, occluded, ambiguous or sampling_gap when evidence cannot decide.',
+    'For undecidable evidence choose occluded, ambiguous, sampling_gap or missing_evidence.')
+SYSTEM += """
+Classification contract (no scores):
+- visible_support: this exact hypothesis is established by the supplied evidence.
+- visible_counterexample: a visible incompatible state, wrong action, or incomplete
+  execution is established by adequate evidence for this question's temporal scope.
+- occluded: an actual obstruction prevents deciding the relevant object/property.
+- ambiguous: the visible content/referent has multiple plausible interpretations.
+- sampling_gap: missing temporal coverage prevents deciding the trajectory/event.
+- missing_evidence: the required media/reference is absent or unreadable.
+Do NOT use not_visible: it conflates an unmet hypothesis with inability to judge.
+A desired action that did not occur is not itself missing evidence. Conversely,
+not seeing an action is not proof it never occurred. Describe the concrete visual
+alternative or concrete limitation. The host never guesses a basis from prose.
+Unknown identity may affect actor-dependent questions; independently observable
+object properties remain assessable. Do not use expected actions to bind people.
+"""
+SYSTEMS = {LEGACY_VERSION: LEGACY_SYSTEM, BOUNDARY_VERSION: BOUNDARY_SYSTEM,
+           ACTOR_VERSION: ACTOR_SYSTEM, VERSION: SYSTEM}
+
 
 
 def qualify_state_actors(question, actors):
@@ -132,7 +154,7 @@ def boundary_motion_contract(question, catalog):
 def prepare(plan, public):
     from evovideo_skill.predicate_scope import predicate_scope
     from evovideo_skill.verifier_identity import registry
-    actors = registry(public) if plan['wire_protocol'] == VERSION else {}
+    actors = registry(public) if plan['wire_protocol'] in {ACTOR_VERSION, VERSION} else {}
     vocabulary = {}
     for shot in public.get('metadata', {}).get('story_contract', {}).get('shots', []):
         for field in ('preconditions', 'postconditions', 'invariants'):
@@ -172,9 +194,9 @@ def prepare(plan, public):
                 question['clause_context'] = source['context']
             if source['phase'] == 'state_flow':
                 question['observation_domain'] = 'physical_continuity'
-            if plan['wire_protocol'] == VERSION:
+            if plan['wire_protocol'] in {ACTOR_VERSION, VERSION}:
                 qualify_state_actors(question, actors)
-            if plan['wire_protocol'] in {BOUNDARY_VERSION, VERSION}:
+            if plan['wire_protocol'] in {BOUNDARY_VERSION, ACTOR_VERSION, VERSION}:
                 boundary_motion_contract(question, plan['evidence_catalog'])
             ident = 'o_' + stable_hash(question)[:16]
             questions[ident] = question
@@ -196,6 +218,9 @@ def wire_contract(plan, legacy_contract):
         'confidence': 'finite number in [0,1]; not a score',
         'evidence': 'visible feature of THIS property/action or the precise visibility limitation',
         'evidence_refs': 'unique IDs permitted by this question citation_contract'} for key in questions}}
+    if plan.get('wire_protocol') == VERSION:
+        for shape in out['response_shape']['facts'].values():
+            shape['basis'] = shape['basis'].replace('not_visible', 'missing_evidence')
     if plan['standalone']:
         out['response_shape']['judgments'] = deepcopy(legacy_contract['response_shape']['judgments'])
     out['evidence_catalog'] = deepcopy(plan['evidence_catalog'])
@@ -207,6 +232,7 @@ def transport_payload(host_payload):
     sent = {key: deepcopy(host_payload[key]) for key in (
         'output_contract', 'evidence_manifest', 'identity_contract', 'format_feedback') if key in host_payload}
     if 'identity_contract' in sent:
+        sent['identity_contract'].pop('criterion_questions', None)
         sent['identity_contract'].pop('dependencies', None)  # Host criterion names are not questions.
     return sent
 
@@ -219,13 +245,16 @@ def select_targets(raw, plan):
     """
     from evovideo_skill.review_observations import VALUES, _number
     questions = plan['isolated_observations']['questions']
+    values = dict(VALUES)
+    if plan.get('wire_protocol') == VERSION:
+        values['missing_evidence'] = 'unknown'
     facts = raw.get('facts') if isinstance(raw, dict) else None
     if not isinstance(facts, dict) or set(facts) != set(questions):
         raise ValueError('facts must contain exactly the observation question IDs in response_shape')
     for key, fact in facts.items():
         if not isinstance(fact, dict) or set(fact) != {'basis','confidence','evidence','evidence_refs'}:
             raise ValueError(key + ': expected basis, confidence, evidence, evidence_refs ONLY')
-        if not isinstance(fact['basis'], str) or fact['basis'] not in VALUES or not _number(fact['confidence']):
+        if not isinstance(fact['basis'], str) or fact['basis'] not in values or not _number(fact['confidence']):
             raise ValueError(key + ': invalid basis or confidence')
         if not isinstance(fact['evidence'], str) or not fact['evidence'].strip():
             raise ValueError(key + ': missing visual observation')
@@ -234,12 +263,20 @@ def select_targets(raw, plan):
         if (not isinstance(refs, list) or any(not isinstance(r,str) or r not in
                 citation['allowed_refs_when_known'] for r in refs) or len(set(refs)) != len(refs)):
             raise ValueError(key + ': invalid evidence_refs')
-        if VALUES[fact['basis']] != 'unknown' and (not refs or
+        if values[fact['basis']] != 'unknown' and (not refs or
                 not set(citation['required_refs_when_known']).issubset(refs)):
             raise ValueError(key + ': known observation requires its own evidence including boundary')
         temporal = questions[key].get('temporal_evidence')
-        if (temporal and VALUES[fact['basis']] != 'unknown'
+        if (temporal and values[fact['basis']] != 'unknown'
                 and not set(refs).intersection(temporal['sequence_refs'])):
             raise ValueError(key + ': known boundary motion requires distinct nearby sequence evidence')
-    return {**deepcopy(raw), 'facts': {key: deepcopy(facts[question])
-        for key, question in plan['isolated_observations']['target_map'].items()}}
+    selected = {key: deepcopy(facts[question])
+        for key, question in plan['isolated_observations']['target_map'].items()}
+    # Missing media and the legacy ambiguous label are both unknown, never zero.
+    # Accept old not_visible conservatively rather than failing independent facts;
+    # the observation audit records it. No semantic inference from prose.
+    # The immutable wire response retains the actual model classification.
+    for fact in selected.values():
+        if fact['basis'] == 'missing_evidence':
+            fact['basis'] = 'not_visible'
+    return {**deepcopy(raw), 'facts': selected}

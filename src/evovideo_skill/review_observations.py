@@ -480,7 +480,10 @@ def observe(reviewer, path, payload, evidence, operation, criteria, spans):
                         protocol=getattr(reviewer, 'observation_protocol', VERSION))
     if reviewer.cache_enabled and path.exists():
         return parse_judgment(json.loads(path.read_text()), plan['rules'], spans, manifest)
-    identity = contract(payload.get('original_task', {}), plan['rules'], manifest)
+    from evovideo_skill import isolated_observations, observation_identity
+    precise_identity = plan.get('wire_protocol') == isolated_observations.VERSION
+    identity = (observation_identity.contract(payload.get('original_task', {}), plan, manifest)
+                if precise_identity else contract(payload.get('original_task', {}), plan['rules'], manifest))
     if identity:
         payload['identity_contract'] = identity
     payload['criteria'] = deepcopy(plan['rules'])
@@ -517,8 +520,16 @@ def observe(reviewer, path, payload, evidence, operation, criteria, spans):
             projected = project(normalized, plan['rules'], manifest)
             parsed = parse_judgment(projected, plan['rules'], spans, manifest)
             identity_audit = assess(raw, identity)
+            if precise_identity and identity and identity_audit['actor_issues']:
+                # First validation above checks EVERY original observation. Masking
+                # must not conceal schema errors or copy values from another pass.
+                masked = observation_identity.mask(raw, plan, identity, identity_audit)
+                normalized, aggregation_audits = project_response(masked, plan, manifest, with_audit=True)
+                observation_identity.withhold_scores(normalized, plan, identity_audit)
+                projected = project(normalized, plan['rules'], manifest)
+                parsed = parse_judgment(projected, plan['rules'], spans, manifest)
             write_json(path.with_suffix(f'.identity-{attempt}.json'), identity_audit)
-            if identity_audit['blocked_criteria']:
+            if identity_audit['blocked_criteria'] and not precise_identity:
                 write_json(path.with_suffix(f'.format-{attempt}.json'), {'status': 'valid_response_format',
                     'response_protocol': plan.get('wire_protocol', VERSION), 'identity_status': 'unresolved', 'accepted_criteria': []})
                 raise ReviewEvidenceConflict([{'criterion': n, 'code': 'identity_dependency',
@@ -550,8 +561,21 @@ def observe(reviewer, path, payload, evidence, operation, criteria, spans):
                             row['temporal_measurement'] = deepcopy(question['temporal_evidence'])
                     if name in plan.get('owner_context', {}):
                         row['owner_fact_context'] = deepcopy(plan['owner_context'][name])
-                if identity and identity['dependencies'][name]:
+                if identity and identity['dependencies'][name] and not precise_identity:
                     row['identity_gate'] = {**deepcopy(identity_audit), 'status': 'bound'}
+            if precise_identity:
+                ambiguous_ids = sorted(q for q, fact in raw.get('facts', {}).items()
+                                       if fact.get('basis') == 'not_visible')
+                classification = {'protocol': plan['wire_protocol'],
+                    'legacy_ambiguous_questions': ambiguous_ids,
+                    'policy': 'Legacy not_visible stays unknown; no score inferred from explanation, no extra call.'}
+                write_json(path.with_suffix(f'.classification-{attempt}.json'), classification)
+                if ambiguous_ids:
+                    for row in parsed.values():
+                        row['observation_provenance']['classification_audit_file'] = str(
+                            path.with_suffix(f'.classification-{attempt}.json'))
+                observation_identity.decorate(parsed, identity, identity_audit,
+                                               path.with_suffix(f'.identity-{attempt}.json'))
             write_json(path.with_suffix('.projection.json'), projected)
             write_json(path.with_suffix(f'.format-{attempt}.json'), {'status': 'valid_response_format',
                 'response_protocol': plan.get('wire_protocol', VERSION), 'accepted_criteria': list(parsed),

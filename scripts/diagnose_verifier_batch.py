@@ -8,7 +8,7 @@ from pathlib import Path
 
 def diagnose(root):
     root = Path(root).resolve()
-    unique, records, failures, snapshots = {}, [], [], []
+    unique, records, failures, snapshots, identities, classifications = {}, [], [], [], [], []
     for path in sorted((root / 'observations').glob('*.json')):
         row = json.loads(path.read_text())
         evaluation = row.get('evaluation', {})
@@ -49,6 +49,30 @@ def diagnose(root):
             'errors': first.get('errors', []),
             'responses': [{'file': str(p.relative_to(root)), 'response': json.loads(p.read_text())}
                           for p in response_files]})
+    # Full identity audits are separate from accepted scores so a quarantined
+    # prose claim cannot contaminate another criterion during final checks.
+    for path in sorted((root / 'verifier').glob('*/judgments/**/*.identity-*.json')):
+        data = json.loads(path.read_text())
+        if not data.get('actor_issues'):
+            continue
+        # Whitelist structural diagnostics, never request payloads or raw media.
+        identities.append({'file': str(path.relative_to(root)),
+            'dependency_protocol': data.get('dependency_protocol'),
+            'actor_issues': data.get('actor_issues', {}),
+            'blocked_criteria': data.get('blocked_criteria', {}),
+            'blocked_questions': data.get('blocked_questions', {}),
+            'withheld_fact_ids': data.get('withheld_fact_ids', [])})
+    for path in sorted((root / 'verifier').glob('*/judgments/**/*.classification-*.json')):
+        data = json.loads(path.read_text())
+        if data.get('legacy_ambiguous_questions'):
+            classifications.append({'file': str(path.relative_to(root)),
+                'legacy_ambiguous_questions': data['legacy_ambiguous_questions'], 'policy': data.get('policy')})
+    for item in unique.values():
+        counts = item.get('processing_summary') or {}
+        applicable = sum(v for k, v in counts.items() if k != 'not_applicable')
+        item['measurement_coverage'] = {'measured': counts.get('measured'),
+            'applicable': applicable if counts else None,
+            'fraction': counts.get('measured', 0) / applicable if applicable else None}
     summary_path = root / 'summary.json'
     summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
     return {'purpose': 'offline_batch_diagnostics_not_visual_validation', 'model_calls': 0,
@@ -65,6 +89,9 @@ def diagnose(root):
                      for task in sorted({r['task_id'] for r in records if r['task_id']})},
         'failed_component_counts': dict(Counter(r['reason'] for r in failures)),
         'review_snapshot_commits': snapshots,
+        'identity_audits': identities,
+        'classification_audits': classifications,
+        'identity_audit_qualification': 'Attempt-level audit; later review may resolve these. Final problems and coverage are authoritative.',
         'judgments': list(unique.values()), 'failed_components': failures,
         'qualification': 'Model prose is unverified evidence, not visual truth. Shared judgment paths are counted once. '
             'No videos, prompts, keys, or base64 request bodies are included. No saved scores were changed.'}

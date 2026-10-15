@@ -67,7 +67,8 @@ class ObservationIsolationTests(unittest.TestCase):
 
     def test_all_six_bases_and_malformed_alternative_are_checked(self):
         from evovideo_skill.review_observations import VALUES
-        for basis,value in VALUES.items():
+        for basis,value in {**{k:v for k,v in VALUES.items() if k != 'not_visible'},
+                            'missing_evidence': 'unknown'}.items():
             with self.subTest(basis=basis):
                 rows=self.parsed(response(self.plan,basis))
                 self.assertEqual(rows[POST]['score'], {'supported':1,'contradicted':0,'unknown':None}[value])

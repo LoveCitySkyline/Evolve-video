@@ -1,14 +1,50 @@
 # V41：从视觉观察到预算内策略选择
 
-当前维护版本：`isolated-observation-decision-v41.2`。属性观察：
-`isolated-attribute-observations-v1.2`。决策维度：`story-quality-axes-v1`。
-V41/V41.1 原始协议、提示词及匿名问题 ID 保留用于旧记录回放，不将旧响应重标为新观察。
+当前维护版本：`dependency-scoped-evaluation-v41.3`。属性观察：
+`isolated-attribute-observations-v1.3`。决策维度：`story-quality-axes-v1`。
+V41/V41.1/V41.2 原始协议、提示词及匿名问题 ID 保留用于旧记录回放，不将旧响应重标为新观察。
+
+## V41.3：统一依赖隔离、分类入口和诊断
+
+这次针对 Flash 三任务运行中已证实的通用路径问题修复，不为某个任务写特殊判分规则。
+
+- **身份依赖按实际观察问题计算。** A 的动作只依赖它实际涉及的人物；另一个未出现的
+  人物、非目标状态选项，不能令该动作自动失效。物体位置、形状及不包含人物角色命题的
+  物理连续性不会因为一个身份绑定未知而被整组清空。明确依赖身份的命题仍保持未知。
+- **共享事实在同一次回答内统一隔离。** 先校验整个原始响应，再隔离依赖未确认人物的
+  问题及所有消费者。原始回答不修改；独立事实（包括负分）保留。身份错绑不会被自动
+  交换标签、反转分数或用别轮结果补齐。全局身份判断有问题也不覆盖已单独绑定的局部事实。
+- **初评与自动复核采用同一处理。** 依赖隔离后的合法未知可以作为完整复核快照的一部分，
+  不再因为一个身份未知退回整个旧快照。仍未知的指标不给数值，也不进入学习收益。
+  复核预算、确认次数、每次最多一次格式修正保持原上限；不新增 Max 后备模型。
+- **取消新接口里含混的 `not_visible` 分类。** 可见反例、遮挡、语义模糊、采样缺口、媒体
+  缺失分别表达。旧响应重放仍按旧协议处理。若模型仍返回 `not_visible`，兼容为未知并记录
+  `classification_audits`，不让整组报错、不额外调用、不通过解释文字猜分。真实遮挡绝不
+  因此变成零分；同次回答里独立可用的测量继续保留。
+- **诊断与运行统一。** 离线回放使用同一依赖投影；诊断新增 `identity_audits` 与每段独立
+  视频的 `measurement_coverage`。身份错误的尝试历史与最终问题分别列出，防止把已解决的
+  初评错误再次当成最终失败。全局动作汇总保留 `identity_unresolved` 的实际原因。
+
+仍使用 Flash、600 秒请求超时、一次网络尝试，保持生成调用数/视频秒数预算、净收益、
+KS/Nash、质量底线和退化保护。合法负面质量结果可供优化；不完整测量仍不记为零收益样本。
+
+这是程序正确性修复和观察接口消歧，**没有证明 Flash 的视觉准确率或重复稳定性提高**。
+如果新一批仍有真实遮挡或模型识别不稳，运行应保存未知并继续其他任务，不应为追求
+`complete` 一直重投票或放宽验收。下一次只做第 6 节固定三任务验证，统一分析结果。
+
+验证记录：本地全量 1,095 项测试通过；末次身份兼容处理后的 90 项相关回归通过。
+Debug、KS、Nash、net 四配置分别静态编译全部 350 条任务，模型调用为 0。覆盖隔离、
+共享事实一致性、缓存、自动复核、快照、旧协议回放、质量/预算保护及诊断；未进行真实视觉验证。
+
+本次修改需要同步 `src/evovideo_skill/`、`scripts/`、`tests/`；说明在 `docs/`。
+已经同步 Flash/600 秒配置的服务器无需再改配置。原始 benchmark、素材和生成代码不变。
+旧目录属于 V41.2，不能改写 protocol 后接着跑 V41.3，也不用重新生成视频。
 
 ## Story350 默认 verifier 切换到 Qwen3.8 Flash
 
 `h3_story350_debug/ks/nash/net.json` 的 runtime、final 和 runtime.vlm_model 统一使用
 `qwen3.8-flash`，自动复核沿用当前模型，没有配置 Max 后备。默认生成实验输出目录增加
-`_qwen38_flash` 后缀。本次不改变 V41.2 评分、采样、复核次数、质量保护或生成预算。
+`_qwen38_flash` 后缀。切换 Flash 本身不改变评分、采样、复核次数、质量保护或生成预算。
 
 官方 [模型说明](https://help.aliyun.com/zh/model-studio/qwen3-8-flash)确认该 ID 支持图像、视频
 与结构化输出。[思考模式说明](https://help.aliyun.com/zh/model-studio/deep-thinking)表明 Flash
@@ -251,8 +287,8 @@ log-Nash 在零达成度使用既有的固定 `1e-12` 数值下限，其增益�
 
 ## 6. 同步与固定验证步骤
 
-本次同步 `src/evovideo_skill/`、`configs/`、`scripts/`、`tests/`、`docs/` 和 `README.md`。
-运行必需的是前三项；测试目录用于零 API 回归。原始 benchmark 和已准备素材未改。
+V41.3 同步 `src/evovideo_skill/`、`scripts/`、`tests/`，说明同步 `docs/`。
+若尚未同步 Flash/600 秒配置，再同步 `configs/`；测试目录用于零 API 回归。原始 benchmark 和已准备素材未改。
 以下命令在服务器仓库根目录执行，沿用已配置的模型、API key 和 H3 服务环境。
 
 先离线检查整个 Story350（无需 key）：
@@ -263,15 +299,17 @@ mkdir -p outputs
 PYTHONPATH=src python scripts/check_evaluation_contract.py \
   --config configs/h3_story350_debug.json \
   --task-file benchmarks/story350/story350.json \
-  > outputs/evaluation_v41_contract.json
-PYTHONPATH=src:tests python -m unittest test_evaluation_v41 test_conditioning_bargaining
+  > outputs/evaluation_v413_contract.json
+PYTHONPATH=src:tests python -m unittest test_evaluation_v413 test_evaluation_v412 test_evaluation_v411 test_evaluation_v41 test_verifier_identity
 ```
 
 随后只做一次预先固定的三任务、seed=42 复测。先 dry-run 查看本机可用视频，再执行。
 这一步会调用付费 verifier，不调用 H3；旧结果不变，缺失基线仍明确缺失。
 
 ```bash
-review_dir="$(mktemp -d outputs/h3_v412_flash_canary_XXXXXX)"
+export CONDITION_RUNTIME_VERIFIER_MODEL=qwen3.8-flash
+export CONDITION_FINAL_VERIFIER_MODEL=qwen3.8-flash
+review_dir="$(mktemp -d outputs/h3_v413_flash_canary_XXXXXX)"
 recheck_args=(
   --run-dir outputs/h3_story350_semantics_v2_RowaH0
   --config configs/h3_story350_debug.json
@@ -290,6 +328,9 @@ PYTHONPATH=src python scripts/diagnose_verifier_batch.py --run-dir "$review_dir"
 PYTHONPATH=src python scripts/report_evaluation.py --run-dir "$review_dir"
 ```
 
+首轮日志写到 `"${review_dir}.log"`，位于结果目录外，避免 `tee` 提前写文件触发空目录保护。
+命令意外中断时只在协议和配置完全相同时使用 `--resume`，不要反复新建目录重复计费。
+
 报告中的 `complete` 表示评估完成，`failed` 可以是有效的负面质量证据；不要求视频全部通过。
 明确未知允许自动暂缓。反复出现无效响应、身份错绑、越界证据或大量暂缓时，不扩大付费实验，
 先统一诊断该批次。单次结果一致不证明模型重复稳定或视觉判断正确。
@@ -297,7 +338,7 @@ PYTHONPATH=src python scripts/report_evaluation.py --run-dir "$review_dir"
 确认流程和覆盖率可用于实验后，新建生成运行目录；不要复用旧学习状态或旧分数：
 
 ```bash
-run_dir="$(mktemp -d outputs/h3_story350_v41_debug_XXXXXX)"
+run_dir="$(mktemp -d outputs/h3_story350_v413_debug_XXXXXX)"
 run_args=(
   --config configs/h3_story350_debug.json
   --task-file outputs/story350_smoke15_semantics_v2_prepared/story350_h3.json
@@ -306,7 +347,7 @@ run_args=(
   --output-dir "$run_dir"
 )
 bash scripts/run_h3_conditioning_graph_search.sh "${run_args[@]}" --dry-run
-bash scripts/run_h3_conditioning_graph_search.sh "${run_args[@]}" 2>&1 | tee "$run_dir/run.log"
+bash scripts/run_h3_conditioning_graph_search.sh "${run_args[@]}" 2>&1 | tee "${run_dir}.log"
 PYTHONPATH=src python scripts/report_evaluation.py --run-dir "$run_dir"
 ```
 
